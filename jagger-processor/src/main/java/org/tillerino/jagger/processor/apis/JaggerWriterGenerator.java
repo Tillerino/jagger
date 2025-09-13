@@ -6,7 +6,6 @@ import static org.tillerino.jagger.processor.Snippet.of;
 import javax.lang.model.element.VariableElement;
 import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
-import org.mapstruct.ap.internal.model.common.Type;
 import org.tillerino.jagger.processor.AnnotationProcessorUtils;
 import org.tillerino.jagger.processor.GeneratedClass;
 import org.tillerino.jagger.processor.JaggerPrototype;
@@ -24,7 +23,7 @@ public class JaggerWriterGenerator extends AbstractWriterGenerator<JaggerWriterG
     }
 
     protected JaggerWriterGenerator(
-            Type type,
+            TypeMirror type,
             JaggerWriterGenerator parent,
             LHS lhs,
             RHS rhs,
@@ -133,6 +132,6 @@ public class JaggerWriterGenerator extends AbstractWriterGenerator<JaggerWriterG
     @Override
     protected JaggerWriterGenerator nest(
             TypeMirror type, LHS lhs, Property property, RHS rhs, boolean stackRelevantType, AnyConfig config) {
-        return new JaggerWriterGenerator(utils.tf.getType(type), this, lhs, rhs, property, stackRelevantType, config);
+        return new JaggerWriterGenerator(type, this, lhs, rhs, property, stackRelevantType, config);
     }
 }

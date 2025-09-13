@@ -1,13 +1,15 @@
 package org.tillerino.jagger.processor;
 
-import java.util.*;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import javax.lang.model.element.ExecutableElement;
 import javax.lang.model.element.TypeParameterElement;
 import javax.lang.model.element.VariableElement;
 import javax.lang.model.type.*;
 import org.apache.commons.lang3.NotImplementedException;
-import org.mapstruct.ap.internal.model.common.Type;
 import org.tillerino.jagger.processor.config.AnyConfig;
 import org.tillerino.jagger.processor.config.ConfigProperty;
 import org.tillerino.jagger.processor.features.Generics.TypeVar;
@@ -52,7 +54,7 @@ public record JaggerPrototype(
     }
 
     /** Checks if reads/writes the given type and matches the signature of a reference method. */
-    public InstantiatedMethod matches(JaggerPrototype caller, Type callerType, boolean allowExact) {
+    public InstantiatedMethod matches(JaggerPrototype caller, TypeMirror callerType, boolean allowExact) {
         if (kind.direction() != caller.kind().direction()
                 || !utils.types.isSameType(kind().jsonType(), caller.kind().jsonType())) {
             return null;
@@ -65,7 +67,7 @@ public record JaggerPrototype(
                 .collect(Collectors.toCollection(LinkedHashSet::new));
         LinkedHashMap<TypeVar, TypeMirror> typeBindings = new LinkedHashMap<>();
 
-        if (isSameTypeWithBindings(kind().javaType(), callerType.getTypeMirror(), localTypeVars, typeBindings)) {
+        if (isSameTypeWithBindings(kind().javaType(), callerType, localTypeVars, typeBindings)) {
             if (!allowExact && typeBindings.isEmpty()) {
                 return null;
             }

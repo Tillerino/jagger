@@ -64,8 +64,8 @@ public sealed interface PrototypeKind {
                         m.returnType(),
                         m.parameters().subList(1, m.parameters().size())));
             }
-            TypeMirror jaggerReaderRaw =
-                    utils.tf.getType(JAGGER_READER).asRawType().getTypeMirror();
+            TypeMirror jaggerReaderRaw = utils.types.erasure(
+                    utils.elements.getTypeElement(JAGGER_READER).asType());
             if (utils.types.isAssignable(m.parameters().get(0).type(), jaggerReaderRaw)) {
                 return Optional.of(new Input(
                         jaggerReaderRaw,
@@ -88,8 +88,8 @@ public sealed interface PrototypeKind {
                         m.parameters().get(0).type(),
                         m.parameters().subList(2, m.parameters().size())));
             }
-            TypeMirror jaggerWriterRaw =
-                    utils.tf.getType(JAGGER_WRITER).asRawType().getTypeMirror();
+            TypeMirror jaggerWriterRaw = utils.types.erasure(
+                    utils.elements.getTypeElement(JAGGER_WRITER).asType());
             if (utils.types.isAssignable(m.parameters().get(1).type(), jaggerWriterRaw)) {
                 return Optional.of(new Output(
                         jaggerWriterRaw,

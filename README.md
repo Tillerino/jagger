@@ -418,4 +418,3 @@ A checkmark indicates _basic_ compatibility, although there can be edge cases wh
 
 - Slowly add support for more Jackson annotations, but on a need-to-have basis.
   There are so many annotations that we cannot support them all.
-- Get rid of Mapstruct dependency

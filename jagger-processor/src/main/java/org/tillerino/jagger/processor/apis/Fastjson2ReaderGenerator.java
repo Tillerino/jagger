@@ -7,10 +7,10 @@ import jakarta.annotation.Nonnull;
 import jakarta.annotation.Nullable;
 import java.io.IOException;
 import javax.lang.model.element.VariableElement;
+import javax.lang.model.type.ArrayType;
 import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
 import org.apache.commons.lang3.exception.ContextedRuntimeException;
-import org.mapstruct.ap.internal.model.common.Type;
 import org.tillerino.jagger.helpers.Fastjson2ReaderHelper;
 import org.tillerino.jagger.processor.AnnotationProcessorUtils;
 import org.tillerino.jagger.processor.GeneratedClass;
@@ -30,7 +30,7 @@ public class Fastjson2ReaderGenerator extends AbstractReaderGenerator<Fastjson2R
     }
 
     public Fastjson2ReaderGenerator(
-            Type type,
+            TypeMirror type,
             Property property,
             LHS lhs,
             @Nonnull Fastjson2ReaderGenerator parent,
@@ -42,16 +42,17 @@ public class Fastjson2ReaderGenerator extends AbstractReaderGenerator<Fastjson2R
 
     @Override
     protected void readNullable(Branch branch, boolean nullable, boolean lastCase) {
-        if (type.isArrayType()) {
-            if (type.getComponentType().isString()) {
+        if (type instanceof ArrayType at) {
+            TypeMirror componentType = at.getComponentType();
+            if (utils.commonTypes.isString(componentType)) {
                 addStatement(lhs.assign("$L.readStringArray()", parserVariable.getSimpleName()));
                 return;
             }
-            if (type.getComponentType().getTypeMirror().getKind() == TypeKind.INT) {
+            if (utils.commonTypes.isArrayOf(type, TypeKind.INT)) {
                 addStatement(lhs.assign("$L.readInt32ValueArray()", parserVariable.getSimpleName()));
                 return;
             }
-            if (type.getComponentType().getTypeMirror().getKind() == TypeKind.LONG) {
+            if (utils.commonTypes.isArrayOf(type, TypeKind.LONG)) {
                 addStatement(lhs.assign("$L.readInt64ValueArray()", parserVariable.getSimpleName()));
                 return;
             }
@@ -183,6 +184,6 @@ public class Fastjson2ReaderGenerator extends AbstractReaderGenerator<Fastjson2R
     @Override
     protected Fastjson2ReaderGenerator nest(
             TypeMirror type, @Nullable Property property, LHS lhs, boolean stackRelevantType, AnyConfig config) {
-        return new Fastjson2ReaderGenerator(utils.tf.getType(type), property, lhs, this, stackRelevantType, config);
+        return new Fastjson2ReaderGenerator(type, property, lhs, this, stackRelevantType, config);
     }
 }

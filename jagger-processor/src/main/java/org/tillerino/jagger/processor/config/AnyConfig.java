@@ -10,16 +10,15 @@ import javax.lang.model.type.DeclaredType;
 import javax.lang.model.type.TypeMirror;
 import javax.lang.model.util.ElementFilter;
 import org.apache.commons.lang3.exception.ContextedRuntimeException;
-import org.mapstruct.ap.internal.util.accessor.Accessor;
-import org.mapstruct.ap.internal.util.accessor.AccessorType;
-import org.mapstruct.ap.internal.util.accessor.ExecutableElementAccessor;
 import org.tillerino.jagger.processor.AnnotationProcessorUtils;
 import org.tillerino.jagger.processor.JaggerBlueprint;
 import org.tillerino.jagger.processor.config.ConfigProperty.InstantiatedProperty;
 import org.tillerino.jagger.processor.config.ConfigProperty.LocationKind;
 import org.tillerino.jagger.processor.config.ConfigProperty.PropagationKind;
 import org.tillerino.jagger.processor.features.*;
-import org.tillerino.jagger.processor.features.RequiredProperty;
+import org.tillerino.jagger.processor.util.Accessor;
+import org.tillerino.jagger.processor.util.Accessor.AccessorKind;
+import org.tillerino.jagger.processor.util.Accessor.ElementAccessor;
 
 public final class AnyConfig {
     static final ConfigProperty[] available = {
@@ -109,7 +108,7 @@ public final class AnyConfig {
         // parent types.
         AnyConfig accessorConfig = fromAccessorAndField(property, dto, canonicalPropertyName, utils);
 
-        if (property.getAccessorType() != AccessorType.GETTER && property.getAccessorType() != AccessorType.SETTER) {
+        if (property.kind() != AccessorKind.GETTER && property.kind() != AccessorKind.SETTER) {
             return accessorConfig;
         }
 
@@ -119,8 +118,8 @@ public final class AnyConfig {
                     ElementFilter.methodsIn(superTypeElement.getEnclosedElements()).stream()
                             .filter(m -> m.getSimpleName().contentEquals(accessorName))
                             .findFirst();
-            ExecutableElementAccessor parentAccessor = new ExecutableElementAccessor(
-                    superMethod.orElse(null), property.getAccessedType(), property.getAccessorType());
+            ElementAccessor parentAccessor =
+                    new ElementAccessor(property.type(), superMethod.orElse(null), property.kind());
             AnyConfig superConfig =
                     fromAccessorConsideringField(parentAccessor, accessorName, d, canonicalPropertyName, utils);
             if (superConfig != null) {
@@ -134,8 +133,8 @@ public final class AnyConfig {
     private static AnyConfig fromAccessorAndField(
             Accessor property, TypeMirror dto, String canonicalPropertyName, AnnotationProcessorUtils utils) {
         AnyConfig accessorConfig =
-                property.getElement() != null ? create(property.getElement(), LocationKind.PROPERTY, utils) : null;
-        if (property.getAccessorType() == AccessorType.FIELD) {
+                property.element() != null ? create(property.element(), LocationKind.PROPERTY, utils) : null;
+        if (property.kind() == AccessorKind.FIELD) {
             return accessorConfig;
         }
         if (!(dto instanceof DeclaredType d)) {

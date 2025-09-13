@@ -3,7 +3,6 @@ package org.tillerino.jagger.processor.apis;
 import static java.util.stream.Collectors.joining;
 import static java.util.stream.Collectors.toMap;
 import static org.apache.commons.lang3.StringUtils.capitalize;
-import static org.mapstruct.ap.internal.gem.CollectionMappingStrategyGem.SETTER_PREFERRED;
 import static org.tillerino.jagger.processor.Snippet.joinPrependingCommaToEach;
 import static org.tillerino.jagger.processor.Snippet.of;
 import static org.tillerino.jagger.processor.apis.AbstractCodeGeneratorStack.Property.ITEM;
@@ -24,14 +23,15 @@ import jakarta.annotation.Nullable;
 import java.io.IOException;
 import java.util.*;
 import java.util.function.Consumer;
+import javax.lang.model.element.ElementKind;
+import javax.lang.model.element.Modifier;
+import javax.lang.model.element.TypeElement;
 import javax.lang.model.element.VariableElement;
 import javax.lang.model.type.DeclaredType;
 import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
 import javax.lang.model.util.ElementFilter;
 import org.apache.commons.lang3.exception.ContextedRuntimeException;
-import org.mapstruct.ap.internal.model.common.Type;
-import org.mapstruct.ap.internal.util.accessor.Accessor;
 import org.tillerino.jagger.input.EmptyArrays;
 import org.tillerino.jagger.processor.AnnotationProcessorUtils;
 import org.tillerino.jagger.processor.GeneratedClass;
@@ -47,6 +47,7 @@ import org.tillerino.jagger.processor.features.Delegation.Delegatee;
 import org.tillerino.jagger.processor.features.Generics.TypeVar;
 import org.tillerino.jagger.processor.features.References.Setup;
 import org.tillerino.jagger.processor.features.Verification.ProtoAndProps;
+import org.tillerino.jagger.processor.util.Accessor.WriteAccessor;
 import org.tillerino.jagger.processor.util.Exceptions;
 import org.tillerino.jagger.processor.util.InstantiatedMethod;
 import org.tillerino.jagger.processor.util.InstantiatedMethod.InstantiatedVariable;
@@ -62,7 +63,7 @@ public abstract class AbstractReaderGenerator<SELF extends AbstractReaderGenerat
                 prototype,
                 CodeBlock.builder(),
                 null,
-                utils.tf.getType(prototype.instantiatedReturnType()),
+                prototype.instantiatedReturnType(),
                 true,
                 null,
                 null);
@@ -70,7 +71,12 @@ public abstract class AbstractReaderGenerator<SELF extends AbstractReaderGenerat
     }
 
     protected AbstractReaderGenerator(
-            @Nonnull SELF parent, Type type, boolean stackRelevantType, Property property, LHS lhs, AnyConfig config) {
+            @Nonnull SELF parent,
+            TypeMirror type,
+            boolean stackRelevantType,
+            Property property,
+            LHS lhs,
+            AnyConfig config) {
         super(parent, type, stackRelevantType, property, config);
         this.lhs = lhs;
     }
@@ -81,7 +87,7 @@ public abstract class AbstractReaderGenerator<SELF extends AbstractReaderGenerat
     }
 
     CodeBlock.Builder build(Branch branch, boolean nullable, boolean lastCase) {
-        Optional<Setup> resolveSetup = utils.references.resolveSetup(config, prototype, type.getTypeMirror());
+        Optional<Setup> resolveSetup = utils.references.resolveSetup(config, prototype, type);
         if (resolveSetup.isPresent()) {
             resolveId(branch, resolveSetup.get());
             branch = ELSE_IF;
@@ -99,7 +105,7 @@ public abstract class AbstractReaderGenerator<SELF extends AbstractReaderGenerat
             return code;
         }
         Optional<InstantiatedMethod> converter =
-                utils.converters.findInputConverter(prototype.blueprint(), type.getTypeMirror(), config);
+                utils.converters.findInputConverter(prototype.blueprint(), type, config);
         if (converter.isPresent()) {
             if (branch != IF) {
                 nextControlFlow("else");
@@ -126,8 +132,8 @@ public abstract class AbstractReaderGenerator<SELF extends AbstractReaderGenerat
             return code;
         }
         detectSelfReferencingType();
-        if (type.isPrimitive()) {
-            readPrimitive(branch, type.getTypeMirror(), lastCase);
+        if (type.getKind().isPrimitive()) {
+            readPrimitive(branch, type, lastCase);
         } else {
             readNullable(branch, nullable, lastCase);
         }
@@ -145,8 +151,7 @@ public abstract class AbstractReaderGenerator<SELF extends AbstractReaderGenerat
         nest(idType, new Property("id", "id", null), Variable.from(idVar), false, nestedConfig)
                 .build(branch, false, false);
         ScopedVar resolvedVar = createVariable("resolved");
-        addStatement(
-                "$T $C = ($T) $C", type.getTypeMirror(), resolvedVar, type.getTypeMirror(), setup.resolveId(idVar));
+        addStatement("$T $C = ($T) $C", type, resolvedVar, type, setup.resolveId(idVar));
         beginControlFlow("if ($C == null)", resolvedVar);
         addStatement("throw new IOException($S + $C)", "Unresolved ID: ", idVar);
         endControlFlow();
@@ -242,41 +247,39 @@ public abstract class AbstractReaderGenerator<SELF extends AbstractReaderGenerat
                 LHS.Variable.from(stringVar),
                 false,
                 config.propagateTo(PropagationKind.SUBSTITUTE));
-        addStatement("$T $C", nested.type.getTypeMirror(), stringVar);
+        addStatement("$T $C", nested.type, stringVar);
         nested.readString(StringKind.STRING);
         return stringVar;
     }
 
     void readNullCheckedObject(Branch branch, boolean lastCase) {
-        Optional<Creator> jsonCreatorMethod = utils.creators.findJsonCreatorMethod(type.getTypeMirror());
+        Optional<Creator> jsonCreatorMethod = utils.creators.findJsonCreatorMethod(type);
         if (jsonCreatorMethod.isPresent()) {
             if (jsonCreatorMethod.get() instanceof Creator.Converter c) {
                 readFactory(branch, c.method(), lastCase);
             } else if (jsonCreatorMethod.get() instanceof Creator.Properties p) {
-                readObject(branch, p, lastCase);
+                readObject(branch, p, (TypeElement) ((DeclaredType) type).asElement(), lastCase);
             } else {
                 throw Exceptions.unexpected();
             }
-        } else if (utils.isBoxed(type.getTypeMirror())) {
-            nest(
-                            utils.types.unboxedType(type.getTypeMirror()),
-                            null,
-                            lhs,
-                            false,
-                            config.propagateTo(PropagationKind.SUBSTITUTE))
+        } else if (utils.isBoxed(type)) {
+            nest(utils.types.unboxedType(type), null, lhs, false, config.propagateTo(PropagationKind.SUBSTITUTE))
                     .build(branch, true, lastCase);
-        } else if (type.isString() || AnnotationProcessorUtils.isArrayOf(type, TypeKind.CHAR)) {
-            readString(branch, type.isString() ? StringKind.STRING : StringKind.CHAR_ARRAY, lastCase);
-        } else if (type.isEnumType()) {
+        } else if (utils.commonTypes.isString(type) || utils.commonTypes.isArrayOf(type, TypeKind.CHAR)) {
+            readString(branch, utils.commonTypes.isString(type) ? StringKind.STRING : StringKind.CHAR_ARRAY, lastCase);
+        } else if (utils.commonTypes.isEnum(type)) {
             readEnum(branch, lastCase);
-        } else if (type.isArrayType()) {
+        } else if (type.getKind() == TypeKind.ARRAY) {
             readArray(branch, lastCase);
-        } else if (type.isIterableType()) {
+        } else if (utils.commonTypes.isIterable(type)) {
             readCollection(branch, lastCase);
-        } else if (type.isMapType()) {
+        } else if (utils.commonTypes.isMap(type)) {
             readMap(branch, lastCase);
         } else {
-            readObject(branch, null, lastCase);
+            if (!(type instanceof DeclaredType dt)) {
+                throw Exceptions.unexpected();
+            }
+            readObject(branch, null, (TypeElement) dt.asElement(), lastCase);
         }
     }
 
@@ -315,7 +318,7 @@ public abstract class AbstractReaderGenerator<SELF extends AbstractReaderGenerat
     private void readEnum(Branch branch, boolean lastCase) {
         branch.controlFlow(this, stringCaseCondition());
         {
-            String enumValuesField = generatedClass.getOrCreateEnumField(type.getTypeMirror());
+            String enumValuesField = generatedClass.getOrCreateEnumField(type);
             Variable enumVar = Variable.from(createVariable("string"));
             addStatement("$T $L", utils.commonTypes.string, enumVar.name);
             nest(utils.commonTypes.string, null, enumVar, false, config.propagateTo(PropagationKind.SUBSTITUTE))
@@ -328,10 +331,10 @@ public abstract class AbstractReaderGenerator<SELF extends AbstractReaderGenerat
     }
 
     private void readArray(Branch branch, boolean lastCase) {
-        Type componentType = type.getComponentType();
+        TypeMirror componentType = utils.commonTypes.getArrayComponentType(type);
         branch.controlFlow(this, arrayCaseCondition());
         {
-            TypeMirror rawComponentType = componentType.asRawType().getTypeMirror();
+            TypeMirror rawComponentType = utils.types.erasure(componentType);
             TypeMirror rawRawComponentType =
                     rawComponentType.getKind().isPrimitive() ? rawComponentType : utils.commonTypes.object;
             code.add("// Like ArrayList\n");
@@ -362,7 +365,7 @@ public abstract class AbstractReaderGenerator<SELF extends AbstractReaderGenerat
 
                 Exceptions.runWithContext(
                         () -> nest(
-                                        componentType.getTypeMirror(),
+                                        componentType,
                                         Property.ITEM,
                                         new LHS.Array(varName.name(), len),
                                         true,
@@ -373,9 +376,9 @@ public abstract class AbstractReaderGenerator<SELF extends AbstractReaderGenerat
             }
             endControlFlow(); // end of loop
             afterArray();
-            if (type.isArrayTypeVar()) {
+            if (componentType.getKind() == TypeKind.TYPEVAR) {
                 Optional<Snippet> classParameter =
-                        utils.generics.findClassParameter(prototype.asInstantiatedMethod(), type.getTypeMirror());
+                        utils.generics.findClassParameter(prototype.asInstantiatedMethod(), type);
                 if (classParameter.isEmpty()) {
                     throw new ContextedRuntimeException(
                             "You are trying to read a generic array. For this, you need the array class at runtime.\n"
@@ -388,7 +391,7 @@ public abstract class AbstractReaderGenerator<SELF extends AbstractReaderGenerat
                 addStatement(lhs.assign("$T.copyOf($C, $L, $T[].class)", Arrays.class, varName, len, rawComponentType));
             }
         }
-        if (componentType.getTypeMirror().getKind() == TypeKind.BYTE) {
+        if (componentType.getKind() == TypeKind.BYTE) {
             ELSE_IF.controlFlow(this, stringCaseCondition());
             ScopedVar stringVar = readStringInstead();
             addStatement(lhs.assign("$T.getDecoder().decode($C)", Base64.class, stringVar));
@@ -399,7 +402,11 @@ public abstract class AbstractReaderGenerator<SELF extends AbstractReaderGenerat
     private void readCollection(Branch branch, boolean lastCase) {
         branch.controlFlow(this, arrayCaseCondition());
         {
-            Type componentType = type.determineTypeArguments(Iterable.class).get(0);
+            TypeMirror componentType = utils.generics
+                    .recordTypeBindingsFor((DeclaredType) type, utils.elements.getTypeElement(Iterable.class.getName()))
+                    .values()
+                    .iterator()
+                    .next();
             TypeMirror collectionType = determineCollectionType();
             String varName = instantiateContainer(collectionType);
 
@@ -407,7 +414,7 @@ public abstract class AbstractReaderGenerator<SELF extends AbstractReaderGenerat
             {
                 runWithContext(
                         () -> nest(
-                                        componentType.getTypeMirror(),
+                                        componentType,
                                         ITEM,
                                         new Collection(varName),
                                         true,
@@ -424,12 +431,13 @@ public abstract class AbstractReaderGenerator<SELF extends AbstractReaderGenerat
     }
 
     private TypeMirror determineCollectionType() {
-        if (!type.asRawType().isAbstract()) {
-            return type.asRawType().getTypeMirror();
-        } else if (utils.tf.getType(Set.class).isAssignableTo(type.asRawType())) {
-            return utils.tf.getType(LinkedHashSet.class).asRawType().getTypeMirror();
-        } else if (utils.tf.getType(List.class).isAssignableTo(type.asRawType())) {
-            return utils.tf.getType(ArrayList.class).asRawType().getTypeMirror();
+        TypeMirror rawType = utils.types.erasure(type);
+        if (!((DeclaredType) rawType).asElement().getModifiers().contains(Modifier.ABSTRACT)) {
+            return rawType;
+        } else if (utils.commonTypes.isAssignableTo(rawType, Set.class)) {
+            return utils.types.erasure(utils.commonTypes.type(LinkedHashSet.class));
+        } else if (utils.commonTypes.isAssignableTo(rawType, List.class)) {
+            return utils.types.erasure(utils.commonTypes.type(ArrayList.class));
         } else {
             throw new ContextedRuntimeException(type.toString());
         }
@@ -441,7 +449,7 @@ public abstract class AbstractReaderGenerator<SELF extends AbstractReaderGenerat
             return v.name();
         } else {
             ScopedVar variable = createVariable("container");
-            addStatement("$T $C = new $T<>()", type.getTypeMirror(), variable, collectionType);
+            addStatement("$T $C = new $T<>()", type, variable, collectionType);
             return variable.name();
         }
     }
@@ -449,11 +457,15 @@ public abstract class AbstractReaderGenerator<SELF extends AbstractReaderGenerat
     private void readMap(Branch branch, boolean lastCase) {
         branch.controlFlow(this, objectCaseCondition());
         {
-            Type keyType = type.determineTypeArguments(Map.class).get(0);
-            if (!utils.types.isSameType(keyType.getTypeMirror(), utils.commonTypes.string)) {
+            TypeMirror[] typeBindings = utils.generics
+                    .recordTypeBindingsFor((DeclaredType) type, utils.commonTypes.elem(Map.class))
+                    .values()
+                    .toArray(TypeMirror[]::new);
+            TypeMirror keyType = typeBindings[0];
+            if (!utils.types.isSameType(keyType, utils.commonTypes.string)) {
                 throw new ContextedRuntimeException("Only String keys supported for now.");
             }
-            Type valueType = type.determineTypeArguments(Map.class).get(1);
+            TypeMirror valueType = typeBindings[1];
             TypeMirror mapType = determineMapType();
             String varName = instantiateContainer(mapType);
             iterateOverFields();
@@ -463,7 +475,7 @@ public abstract class AbstractReaderGenerator<SELF extends AbstractReaderGenerat
                 readFieldNameInIteration(keyVar);
                 Exceptions.runWithContext(
                         () -> nest(
-                                        valueType.getTypeMirror(),
+                                        valueType,
                                         Property.VALUE,
                                         new LHS.Map(varName, keyVar),
                                         true,
@@ -484,14 +496,16 @@ public abstract class AbstractReaderGenerator<SELF extends AbstractReaderGenerat
     }
 
     private TypeMirror determineMapType() {
-        if (!type.asRawType().isAbstract()) {
-            return type.asRawType().getTypeMirror();
+        TypeMirror rawType = utils.types.erasure(type);
+        if (!((DeclaredType) rawType).asElement().getModifiers().contains(Modifier.ABSTRACT)) {
+            return rawType;
         } else {
-            return utils.tf.getType(LinkedHashMap.class).asRawType().getTypeMirror();
+            return utils.types.erasure(utils.commonTypes.type(LinkedHashMap.class));
         }
     }
 
-    private void readObject(Branch branch, @Nullable Creator.Properties properties, boolean lastCase) {
+    private void readObject(
+            Branch branch, @Nullable Creator.Properties properties, TypeElement element, boolean lastCase) {
         Snippet cond = objectCaseCondition();
         if (canBePolyChild) {
             cond = Snippet.of(
@@ -502,17 +516,16 @@ public abstract class AbstractReaderGenerator<SELF extends AbstractReaderGenerat
         if (properties != null) {
             readCreator(properties.method(), lastCase);
         } else {
-            Optional.ofNullable(type.getTypeElement())
-                    .flatMap(t -> Polymorphism.of(t, utils))
+            Polymorphism.of(element, utils)
                     .ifPresentOrElse(
-                            polymorphism -> readPolymorphicObject(polymorphism, lastCase),
-                            () -> readObjectFields(lastCase));
+                            polymorphism -> readPolymorphicObject(polymorphism, element, lastCase),
+                            () -> readObjectFields(element, lastCase));
         }
 
         elseThrowUnexpected("object", lastCase);
     }
 
-    private void readPolymorphicObject(Polymorphism polymorphism, boolean lastCase) {
+    private void readPolymorphicObject(Polymorphism polymorphism, TypeElement element, boolean lastCase) {
         LHS.Variable discriminator = LHS.Variable.from(createVariable("discriminator"));
         addStatement("$T $L = null", utils.commonTypes.string, discriminator.name());
         nest(
@@ -534,7 +547,7 @@ public abstract class AbstractReaderGenerator<SELF extends AbstractReaderGenerat
                             PropagationKind.SUBSTITUTE /* this is fine with the configuration options that we
                  currently have */));
             utils.delegation
-                    .findDelegatee(utils.tf.getType(child.type()), prototype, false, true, config, generatedClass)
+                    .findDelegatee(child.type(), prototype, false, true, config, generatedClass)
                     .ifPresentOrElse(
                             delegatee -> {
                                 VariableElement callerContext = prototype
@@ -560,7 +573,9 @@ public abstract class AbstractReaderGenerator<SELF extends AbstractReaderGenerat
                                                 .map(c -> c instanceof Creator.Properties p ? p : null)
                                                 .ifPresentOrElse(
                                                         c -> nested.readCreator(c.method(), lastCase),
-                                                        () -> nested.readObjectFields(lastCase)),
+                                                        () -> nested.readObjectFields(
+                                                                (TypeElement) ((DeclaredType) nested.type).asElement(),
+                                                                lastCase)),
                                         "instance",
                                         child.type());
                             });
@@ -574,26 +589,21 @@ public abstract class AbstractReaderGenerator<SELF extends AbstractReaderGenerat
         endControlFlow(); // ends the loop
     }
 
-    void readObjectFields(boolean lastCase) {
-        if (type.getTypeElement() != null && type.isRecord()) {
-            Map<TypeVar, TypeMirror> typeBindings =
-                    utils.generics.recordTypeBindings((DeclaredType) type.getTypeMirror());
+    void readObjectFields(TypeElement element, boolean lastCase) {
+        if (element.getKind() == ElementKind.RECORD) {
+            Map<TypeVar, TypeMirror> typeBindings = utils.generics.recordTypeBindings((DeclaredType) type);
             InstantiatedMethod instantiatedConstructor = utils.generics.instantiateMethod(
-                    ElementFilter.constructorsIn(type.getTypeElement().getEnclosedElements())
-                            .get(0),
+                    ElementFilter.constructorsIn(element.getEnclosedElements()).get(0),
                     typeBindings,
                     LocationKind.CREATOR);
             readCreator(instantiatedConstructor, lastCase);
-        } else if (type.getTypeElement() != null) {
-            readObjectFromAccessors(lastCase);
         } else {
-            throw new ContextedRuntimeException("Cannot read " + type);
+            readObjectFromAccessors(lastCase);
         }
     }
 
     void readCreator(InstantiatedMethod method, boolean lastCase) {
-        ProtoAndProps verificationForDto =
-                generatedClass.verificationForBlueprint.addReader(prototype, type.getTypeMirror());
+        ProtoAndProps verificationForDto = generatedClass.verificationForBlueprint.addReader(prototype, type);
 
         List<SELF> nested = new ArrayList<>();
         AnyConfig creatorConfig = method.config().merge(config);
@@ -612,10 +622,10 @@ public abstract class AbstractReaderGenerator<SELF extends AbstractReaderGenerat
                     true,
                     propertyConfig.propagateTo(PropagationKind.PROPERTY));
             Snippet defaultValue = utils.defaultValues
-                    .findInputDefaultValue(prototype.blueprint(), nest.type.getTypeMirror(), propertyConfig)
+                    .findInputDefaultValue(prototype.blueprint(), nest.type, propertyConfig)
                     .map(m -> of("$C()", m.callSymbol(utils)))
-                    .orElse(of("$L", nest.type.getNull()));
-            addStatement(of("$T $L = $C", nest.type.getTypeMirror(), varName, defaultValue));
+                    .orElse(of("$L", utils.commonTypes.getNullValueRaw(nest.type)));
+            addStatement(of("$T $L = $C", nest.type, varName, defaultValue));
             if (propertyConfig.resolveProperty(IGNORE_PROPERTY).value()) {
                 // we do need the default value to call the creator, so we only skip reading the value
                 continue;
@@ -627,26 +637,22 @@ public abstract class AbstractReaderGenerator<SELF extends AbstractReaderGenerat
         String args = nested.stream().map(p -> ((Variable) p.lhs).name()).collect(joining(", "));
         Snippet creatorCall = of("$C($L)", method.callSymbol(utils), args);
         utils.references
-                .resolveSetup(config, prototype, type.getTypeMirror())
+                .resolveSetup(config, prototype, type)
                 .ifPresentOrElse(
                         setup -> lhs.assignAnd(
-                                creatorCall,
-                                this,
-                                type.getTypeMirror(),
-                                objectVar -> addStatement(setup.bindItem(idVar, objectVar))),
+                                creatorCall, this, type, objectVar -> addStatement(setup.bindItem(idVar, objectVar))),
                         () -> addStatement(lhs.assign(creatorCall)));
     }
 
     private void readObjectFromAccessors(boolean lastCase) {
-        ProtoAndProps verificationForDto =
-                generatedClass.verificationForBlueprint.addReader(prototype, type.getTypeMirror());
+        ProtoAndProps verificationForDto = generatedClass.verificationForBlueprint.addReader(prototype, type);
 
         List<SELF> nested = new ArrayList<>();
         ScopedVar objectVar = createVariable("object");
-        addStatement("$T $C = new $T()", type.getTypeMirror(), objectVar, type.getTypeMirror());
-        type.getPropertyWriteAccessors(SETTER_PREFERRED).forEach((canonicalPropertyName, accessor) -> {
+        addStatement("$T $C = new $T()", type, objectVar, type);
+        utils.properties.listWriteAccessors(type).forEach((canonicalPropertyName, accessor) -> {
             AnyConfig propertyConfig = fromAccessorConsideringField(
-                            accessor, accessor.getSimpleName(), type.getTypeMirror(), canonicalPropertyName, utils)
+                            accessor, accessor.name(), type, canonicalPropertyName, utils)
                     .merge(config);
             if (propertyConfig.resolveProperty(IGNORE_PROPERTY).value()) {
                 return;
@@ -654,9 +660,9 @@ public abstract class AbstractReaderGenerator<SELF extends AbstractReaderGenerat
 
             LHS lhs = from(accessor, objectVar.name());
             String propertyName = resolvePropertyName(propertyConfig, canonicalPropertyName);
-            verificationForDto.addProperty(propertyName, accessor.getAccessedType(), propertyConfig);
+            verificationForDto.addProperty(propertyName, accessor.type(), propertyConfig);
             SELF nest = nest(
-                    accessor.getAccessedType(),
+                    accessor.type(),
                     new Property(canonicalPropertyName, propertyName, propertyConfig),
                     lhs,
                     true,
@@ -664,14 +670,14 @@ public abstract class AbstractReaderGenerator<SELF extends AbstractReaderGenerat
             nested.add(nest);
         });
         ScopedVar idVar = readProperties(nested, lastCase);
-        utils.references.resolveSetup(config, prototype, type.getTypeMirror()).ifPresent(setup -> {
+        utils.references.resolveSetup(config, prototype, type).ifPresent(setup -> {
             addStatement(setup.bindItem(idVar, objectVar));
         });
         addStatement(lhs.assign("$C", objectVar));
     }
 
     private ScopedVar readProperties(List<SELF> properties, boolean lastCase) {
-        Optional<Setup> referencesSetup = utils.references.resolveSetup(config, prototype, type.getTypeMirror());
+        Optional<Setup> referencesSetup = utils.references.resolveSetup(config, prototype, type);
         ScopedVar idVar = referencesSetup
                 .map(setup -> {
                     ScopedVar variable = createVariable("id");
@@ -707,7 +713,7 @@ public abstract class AbstractReaderGenerator<SELF extends AbstractReaderGenerat
                                         && setup.property().equals(nest.property.serializedName()))
                                 .isPresent()) {
                             SELF tmpNest = nest(
-                                    nest.type.getTypeMirror(),
+                                    nest.type,
                                     nest.property,
                                     Variable.from(idVar),
                                     nest.stackRelevantType,
@@ -889,20 +895,11 @@ public abstract class AbstractReaderGenerator<SELF extends AbstractReaderGenerat
             }
         }
 
-        static LHS from(Accessor a, String objectVar) {
-            return switch (a.getAccessorType()) {
-                case FIELD -> new Field(
-                        objectVar, a.getElement().getSimpleName().toString());
-                case SETTER -> new Setter(
-                        objectVar, a.getElement().getSimpleName().toString());
-                case ADDER -> throw new ContextedRuntimeException(
-                                "Adders are not supported. Define a setter as an alternative to the adder.")
-                        .addContextValue("adder", a.getElement());
-                case GETTER -> throw new ContextedRuntimeException(
-                                "Getters are not supported. Define a setter as an alternative to the getter.")
-                        .addContextValue("setter", a.getElement());
-                default -> throw new ContextedRuntimeException(
-                        a.getAccessorType().toString());
+        static LHS from(WriteAccessor a, String objectVar) {
+            return switch (a.kind()) {
+                case FIELD -> new Field(objectVar, a.element().getSimpleName().toString());
+                case SETTER -> new Setter(objectVar, a.element().getSimpleName().toString());
+                default -> throw new ContextedRuntimeException(a.kind().toString());
             };
         }
 

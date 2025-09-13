@@ -7,7 +7,6 @@ import jakarta.annotation.Nonnull;
 import javax.lang.model.element.VariableElement;
 import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
-import org.mapstruct.ap.internal.model.common.Type;
 import org.tillerino.jagger.processor.AnnotationProcessorUtils;
 import org.tillerino.jagger.processor.GeneratedClass;
 import org.tillerino.jagger.processor.JaggerPrototype;
@@ -25,7 +24,7 @@ public class NanojsonWriterGenerator extends AbstractWriterGenerator<NanojsonWri
     }
 
     protected NanojsonWriterGenerator(
-            Type type,
+            TypeMirror type,
             @Nonnull NanojsonWriterGenerator parent,
             LHS lhs,
             RHS rhs,
@@ -132,6 +131,6 @@ public class NanojsonWriterGenerator extends AbstractWriterGenerator<NanojsonWri
     @Override
     protected NanojsonWriterGenerator nest(
             TypeMirror type, LHS lhs, Property property, RHS rhs, boolean stackRelevantType, AnyConfig config) {
-        return new NanojsonWriterGenerator(utils.tf.getType(type), this, lhs, rhs, property, stackRelevantType, config);
+        return new NanojsonWriterGenerator(type, this, lhs, rhs, property, stackRelevantType, config);
     }
 }

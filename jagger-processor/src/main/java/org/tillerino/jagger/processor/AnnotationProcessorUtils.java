@@ -7,29 +7,25 @@ import java.util.Set;
 import javax.annotation.processing.Messager;
 import javax.annotation.processing.ProcessingEnvironment;
 import javax.lang.model.element.AnnotationValue;
+import javax.lang.model.element.Element;
+import javax.lang.model.element.ElementKind;
 import javax.lang.model.element.TypeElement;
+import javax.lang.model.type.ArrayType;
 import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
 import javax.lang.model.util.Elements;
 import javax.lang.model.util.SimpleAnnotationValueVisitor14;
 import javax.lang.model.util.Types;
-import org.mapstruct.ap.internal.gem.ReportingPolicyGem;
-import org.mapstruct.ap.internal.model.common.Type;
-import org.mapstruct.ap.internal.model.common.TypeFactory;
-import org.mapstruct.ap.internal.option.Options;
-import org.mapstruct.ap.internal.processor.DefaultModelElementProcessorContext;
-import org.mapstruct.ap.internal.util.AnnotationProcessorContext;
-import org.mapstruct.ap.internal.util.RoundContext;
 import org.tillerino.jagger.api.DeserializationContext;
 import org.tillerino.jagger.api.SerializationContext;
 import org.tillerino.jagger.processor.features.*;
 import org.tillerino.jagger.processor.util.Annotations;
+import org.tillerino.jagger.processor.util.Exceptions;
 
 public class AnnotationProcessorUtils {
     public final Elements elements;
     public final Types types;
     public final CommonTypes commonTypes;
-    public final TypeFactory tf;
     public final Delegation delegation;
     public final Generics generics;
     public final Converters converters;
@@ -40,10 +36,11 @@ public class AnnotationProcessorUtils {
     public final Verification verification;
     public final Creators creators;
     public final References references;
+    public final Properties properties;
 
     public final Messager messager;
 
-    public AnnotationProcessorUtils(ProcessingEnvironment processingEnv, TypeElement typeElement) {
+    public AnnotationProcessorUtils(ProcessingEnvironment processingEnv) {
         elements = processingEnv.getElementUtils();
         types = processingEnv.getTypeUtils();
         commonTypes = new CommonTypes();
@@ -56,35 +53,8 @@ public class AnnotationProcessorUtils {
         verification = new Verification(this);
         creators = new Creators(this);
         references = new References(this);
+        properties = new Properties(this);
         messager = processingEnv.getMessager();
-
-        AnnotationProcessorContext apc = new AnnotationProcessorContext(
-                processingEnv.getElementUtils(),
-                processingEnv.getTypeUtils(),
-                processingEnv.getMessager(),
-                false,
-                false);
-        RoundContext rc = new RoundContext(apc);
-        DefaultModelElementProcessorContext dmepc = new DefaultModelElementProcessorContext(
-                processingEnv,
-                new Options(
-                        false,
-                        false,
-                        ReportingPolicyGem.ERROR,
-                        ReportingPolicyGem.ERROR,
-                        "what",
-                        "what",
-                        false,
-                        false,
-                        false),
-                rc,
-                Map.of(),
-                typeElement);
-        tf = new TypeFactory(dmepc.getElementUtils(), dmepc.getTypeUtils(), dmepc.getMessager(), rc, Map.of(), false);
-    }
-
-    public static boolean isArrayOf(Type type, TypeKind kind) {
-        return type.isArrayType() && type.getComponentType().getTypeMirror().getKind() == kind;
     }
 
     public static class GetAnnotationValues<R, P> extends SimpleAnnotationValueVisitor14<R, P> {
@@ -147,5 +117,58 @@ public class AnnotationProcessorUtils {
                 boxedFloat.toString(),
                 boxedDouble.toString(),
                 boxedChar.toString());
+
+        public boolean isString(TypeMirror type) {
+            return types.isSameType(type, string);
+        }
+
+        public boolean isArrayOf(TypeMirror type, TypeKind componentKind) {
+            return type.getKind() == TypeKind.ARRAY
+                    && ((ArrayType) type).getComponentType().getKind() == componentKind;
+        }
+
+        public boolean isEnum(TypeMirror type) {
+            Element element = types.asElement(type);
+            return element != null && element.getKind() == ElementKind.ENUM;
+        }
+
+        public boolean isIterable(TypeMirror type) {
+            return isAssignableTo(types.erasure(type), Iterable.class) || type.getKind() == TypeKind.ARRAY;
+        }
+
+        public boolean isMap(TypeMirror type) {
+            return isAssignableTo(types.erasure(type), Map.class);
+        }
+
+        public TypeMirror getArrayComponentType(TypeMirror type) {
+            if (type.getKind() == TypeKind.ARRAY) {
+                return ((ArrayType) type).getComponentType();
+            }
+            return null;
+        }
+
+        public TypeElement elem(Class<?> cls) {
+            return elements.getTypeElement(cls.getName());
+        }
+
+        public TypeMirror type(Class<?> cls) {
+            return elem(cls).asType();
+        }
+
+        public boolean isAssignableTo(TypeMirror type1, Class<?> cls) {
+            return types.isAssignable(type1, type(cls));
+        }
+
+        public String getNullValueRaw(TypeMirror type) {
+            return switch (type.getKind()) {
+                case BOOLEAN -> "false";
+                case BYTE, SHORT, INT, CHAR -> "0";
+                case LONG -> "0L";
+                case FLOAT -> "0.0f";
+                case DOUBLE -> "0.0d";
+                case ARRAY, DECLARED, TYPEVAR, WILDCARD, UNION, INTERSECTION -> "null";
+                default -> throw Exceptions.unexpected();
+            };
+        }
     }
 }

@@ -8,8 +8,6 @@ import javax.lang.model.element.VariableElement;
 import javax.lang.model.type.DeclaredType;
 import javax.lang.model.type.TypeMirror;
 import org.apache.commons.lang3.exception.ContextedRuntimeException;
-import org.mapstruct.ap.internal.model.common.Type;
-import org.mapstruct.ap.internal.util.accessor.ReadAccessor;
 import org.tillerino.jagger.processor.AnnotationProcessorUtils;
 import org.tillerino.jagger.processor.JaggerPrototype;
 import org.tillerino.jagger.processor.Snippet;
@@ -21,6 +19,7 @@ import org.tillerino.jagger.processor.config.ConfigProperty.InstantiatedProperty
 import org.tillerino.jagger.processor.config.ConfigProperty.LocationKind;
 import org.tillerino.jagger.processor.config.ConfigProperty.PropagationKind;
 import org.tillerino.jagger.processor.features.Generics.TypeVar;
+import org.tillerino.jagger.processor.util.Accessor.ReadAccessor;
 import org.tillerino.jagger.processor.util.Annotations.AnnotationValueWrapper;
 import org.tillerino.jagger.processor.util.Exceptions;
 
@@ -138,21 +137,21 @@ public record References(AnnotationProcessorUtils utils) {
             return generator.toString().equals("com.fasterxml.jackson.annotation.ObjectIdGenerators.PropertyGenerator");
         }
 
-        public TypeMirror finalIdType(Type type, AnnotationProcessorUtils utils) {
+        public TypeMirror finalIdType(TypeMirror type, AnnotationProcessorUtils utils) {
             if (!isPropertyBased()) {
                 return idType;
             }
-            return type.getPropertyReadAccessors().entrySet().stream()
+            return utils.properties.listReadAccessors(type).entrySet().stream()
                     .flatMap(entry -> {
                         String canonicalName = entry.getKey();
                         ReadAccessor accessor = entry.getValue();
                         AnyConfig propertyConfig = AnyConfig.fromAccessorConsideringField(
-                                accessor, accessor.getSimpleName(), type.getTypeMirror(), canonicalName, utils);
+                                accessor, accessor.name(), type, canonicalName, utils);
                         String externalName = PropertyName.resolvePropertyName(propertyConfig, canonicalName);
                         if (!externalName.equals(property())) {
                             return Stream.empty();
                         }
-                        return Stream.of(accessor.getAccessedType());
+                        return Stream.of(accessor.type());
                     })
                     .findFirst()
                     .orElseThrow(() -> new ContextedRuntimeException(

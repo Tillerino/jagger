@@ -44,10 +44,10 @@ public class JaggerProcessor extends AbstractProcessor {
 
     Set<String> generatedClasses = new LinkedHashSet<>();
 
-    private void mapStructSetup(ProcessingEnvironment processingEnv, TypeElement typeElement) {
+    private void setupUtils(ProcessingEnvironment processingEnv) {
         if (utils == null) {
             // AFAICT, the typeElement is only used for type resolution, so the first processed type should do fine
-            utils = new AnnotationProcessorUtils(processingEnv, typeElement);
+            utils = new AnnotationProcessorUtils(processingEnv);
         }
     }
 
@@ -70,7 +70,7 @@ public class JaggerProcessor extends AbstractProcessor {
             if (!(element instanceof TypeElement type)) {
                 return;
             }
-            mapStructSetup(processingEnv, type);
+            setupUtils(processingEnv);
             Exceptions.runWithContext(
                     () -> {
                         JaggerBlueprint blueprint = utils.blueprint(type);
@@ -103,7 +103,7 @@ public class JaggerProcessor extends AbstractProcessor {
         roundEnv.getElementsAnnotatedWith(JsonOutput.class).forEach(element -> {
             ExecutableElement exec = (ExecutableElement) element;
             TypeElement type = (TypeElement) exec.getEnclosingElement();
-            mapStructSetup(processingEnv, type);
+            setupUtils(processingEnv);
             JaggerBlueprint blueprint = utils.blueprint(type);
             InstantiatedMethod instantiated =
                     utils.generics.instantiateMethod(exec, blueprint.typeBindings, LocationKind.PROTOTYPE);
@@ -123,7 +123,7 @@ public class JaggerProcessor extends AbstractProcessor {
         roundEnv.getElementsAnnotatedWith(JsonInput.class).forEach(element -> {
             ExecutableElement exec = (ExecutableElement) element;
             TypeElement type = (TypeElement) exec.getEnclosingElement();
-            mapStructSetup(processingEnv, type);
+            setupUtils(processingEnv);
             JaggerBlueprint blueprint = utils.blueprint(type);
             InstantiatedMethod instantiated =
                     utils.generics.instantiateMethod(exec, blueprint.typeBindings, LocationKind.PROTOTYPE);
@@ -144,7 +144,7 @@ public class JaggerProcessor extends AbstractProcessor {
             if (!(element instanceof TypeElement type)) {
                 return;
             }
-            mapStructSetup(processingEnv, type);
+            setupUtils(processingEnv);
             JaggerBlueprint blueprint = utils.blueprint(type);
             blueprint.prototypes.addAll(utils.templates.instantiateTemplatedPrototypesFromSingleAnnotation(blueprint));
         });
@@ -152,7 +152,7 @@ public class JaggerProcessor extends AbstractProcessor {
             if (!(element instanceof TypeElement type)) {
                 return;
             }
-            mapStructSetup(processingEnv, type);
+            setupUtils(processingEnv);
             JaggerBlueprint blueprint = utils.blueprint(type);
             blueprint.prototypes.addAll(
                     utils.templates.instantiateTemplatedPrototypesFromMultipleAnnotations(blueprint));
@@ -169,7 +169,7 @@ public class JaggerProcessor extends AbstractProcessor {
                     .value()
                     .shouldImplement())) {
                 try {
-                    mapStructSetup(processingEnv, blueprint.typeElement);
+                    setupUtils(processingEnv);
                     generateCode(blueprint);
                 } catch (Exception e) {
                     if (e instanceof ContextedRuntimeException) {

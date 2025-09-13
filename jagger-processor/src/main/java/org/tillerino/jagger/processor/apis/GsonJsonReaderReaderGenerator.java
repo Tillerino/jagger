@@ -10,7 +10,6 @@ import javax.lang.model.element.TypeElement;
 import javax.lang.model.element.VariableElement;
 import javax.lang.model.type.TypeMirror;
 import org.apache.commons.lang3.exception.ContextedRuntimeException;
-import org.mapstruct.ap.internal.model.common.Type;
 import org.tillerino.jagger.helpers.GsonJsonReaderHelper;
 import org.tillerino.jagger.processor.AnnotationProcessorUtils;
 import org.tillerino.jagger.processor.GeneratedClass;
@@ -29,7 +28,7 @@ public class GsonJsonReaderReaderGenerator extends AbstractReaderGenerator<GsonJ
     }
 
     public GsonJsonReaderReaderGenerator(
-            Type type,
+            TypeMirror type,
             Property property,
             LHS lhs,
             @Nonnull GsonJsonReaderReaderGenerator parent,
@@ -171,7 +170,6 @@ public class GsonJsonReaderReaderGenerator extends AbstractReaderGenerator<GsonJ
     @Override
     protected GsonJsonReaderReaderGenerator nest(
             TypeMirror type, @Nullable Property property, LHS lhs, boolean stackRelevantType, AnyConfig config) {
-        return new GsonJsonReaderReaderGenerator(
-                utils.tf.getType(type), property, lhs, this, stackRelevantType, config);
+        return new GsonJsonReaderReaderGenerator(type, property, lhs, this, stackRelevantType, config);
     }
 }

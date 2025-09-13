@@ -10,7 +10,6 @@ import java.io.IOException;
 import javax.lang.model.element.VariableElement;
 import javax.lang.model.type.TypeMirror;
 import org.apache.commons.lang3.exception.ContextedRuntimeException;
-import org.mapstruct.ap.internal.model.common.Type;
 import org.tillerino.jagger.helpers.JakartaJsonParserHelper;
 import org.tillerino.jagger.processor.AnnotationProcessorUtils;
 import org.tillerino.jagger.processor.GeneratedClass;
@@ -29,7 +28,7 @@ public class JakartaJsonParserGenerator extends AbstractReaderGenerator<JakartaJ
     }
 
     public JakartaJsonParserGenerator(
-            Type type,
+            TypeMirror type,
             Property property,
             LHS lhs,
             @Nonnull JakartaJsonParserGenerator parent,
@@ -200,7 +199,7 @@ public class JakartaJsonParserGenerator extends AbstractReaderGenerator<JakartaJ
     @Override
     protected JakartaJsonParserGenerator nest(
             TypeMirror type, @Nullable Property property, LHS lhs, boolean stackRelevantType, AnyConfig config) {
-        return new JakartaJsonParserGenerator(utils.tf.getType(type), property, lhs, this, stackRelevantType, config);
+        return new JakartaJsonParserGenerator(type, property, lhs, this, stackRelevantType, config);
     }
 
     private Class<JakartaJsonParserHelper> importHelper() {

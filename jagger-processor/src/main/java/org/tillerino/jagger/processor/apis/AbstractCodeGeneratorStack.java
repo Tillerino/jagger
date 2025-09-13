@@ -5,8 +5,9 @@ import com.squareup.javapoet.CodeBlock.Builder;
 import jakarta.annotation.Nonnull;
 import jakarta.annotation.Nullable;
 import java.util.*;
+import javax.lang.model.type.DeclaredType;
+import javax.lang.model.type.TypeMirror;
 import org.apache.commons.lang3.exception.ContextedRuntimeException;
-import org.mapstruct.ap.internal.model.common.Type;
 import org.tillerino.jagger.processor.AnnotationProcessorUtils;
 import org.tillerino.jagger.processor.GeneratedClass;
 import org.tillerino.jagger.processor.JaggerPrototype;
@@ -24,7 +25,7 @@ public abstract class AbstractCodeGeneratorStack<SELF extends AbstractCodeGenera
     @Nullable
     protected final SELF parent;
 
-    protected final Type type;
+    protected final TypeMirror type;
     protected final boolean stackRelevantType;
 
     @Nullable
@@ -37,7 +38,11 @@ public abstract class AbstractCodeGeneratorStack<SELF extends AbstractCodeGenera
     protected final Stack<Set<String>> variables;
 
     protected AbstractCodeGeneratorStack(
-            @Nonnull SELF parent, Type type, boolean stackRelevantType, @Nullable Property property, AnyConfig config) {
+            @Nonnull SELF parent,
+            TypeMirror type,
+            boolean stackRelevantType,
+            @Nullable Property property,
+            AnyConfig config) {
         this(
                 parent.utils,
                 parent.generatedClass,
@@ -56,7 +61,7 @@ public abstract class AbstractCodeGeneratorStack<SELF extends AbstractCodeGenera
             JaggerPrototype prototype,
             Builder code,
             SELF parent,
-            Type type,
+            TypeMirror type,
             boolean stackRelevantType,
             @Nullable Property property,
             AnyConfig config) {
@@ -70,15 +75,15 @@ public abstract class AbstractCodeGeneratorStack<SELF extends AbstractCodeGenera
         this.property = property;
         this.canBePolyChild = prototype.contextParameter().isPresent()
                 && stackDepth() == 1
-                && Polymorphism.isSomeChild(type.getTypeMirror(), utils.types);
+                && Polymorphism.isSomeChild(type, utils.types);
         if (parent != null) {
             variables = parent.variables;
             this.config = config;
         } else {
             variables = new Stack<>();
             variables.push(new LinkedHashSet<>());
-            this.config = type.getTypeElement() != null
-                    ? AnyConfig.create(type.getTypeElement(), ConfigProperty.LocationKind.DTO, utils)
+            this.config = type instanceof DeclaredType dt && dt.asElement() != null
+                    ? AnyConfig.create(dt.asElement(), ConfigProperty.LocationKind.DTO, utils)
                             .merge(prototype.config())
                     : prototype.config();
         }
@@ -92,8 +97,8 @@ public abstract class AbstractCodeGeneratorStack<SELF extends AbstractCodeGenera
         }
     }
 
-    boolean stackContainsType(Type type) {
-        if ((stackRelevantType || parent == null) && this.type.equals(type)) {
+    boolean stackContainsType(TypeMirror type) {
+        if ((stackRelevantType || parent == null) && utils.types.isSameType(this.type, type)) {
             return true;
         }
         if (parent != null) {

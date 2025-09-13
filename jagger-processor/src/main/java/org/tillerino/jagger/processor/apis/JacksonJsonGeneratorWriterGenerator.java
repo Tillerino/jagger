@@ -3,7 +3,6 @@ package org.tillerino.jagger.processor.apis;
 import javax.lang.model.element.VariableElement;
 import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
-import org.mapstruct.ap.internal.model.common.Type;
 import org.tillerino.jagger.processor.AnnotationProcessorUtils;
 import org.tillerino.jagger.processor.GeneratedClass;
 import org.tillerino.jagger.processor.JaggerPrototype;
@@ -21,7 +20,7 @@ public class JacksonJsonGeneratorWriterGenerator extends AbstractWriterGenerator
     }
 
     protected JacksonJsonGeneratorWriterGenerator(
-            Type type,
+            TypeMirror type,
             JacksonJsonGeneratorWriterGenerator parent,
             LHS lhs,
             RHS rhs,
@@ -149,7 +148,6 @@ public class JacksonJsonGeneratorWriterGenerator extends AbstractWriterGenerator
     @Override
     protected JacksonJsonGeneratorWriterGenerator nest(
             TypeMirror type, LHS lhs, Property property, RHS rhs, boolean stackRelevantType, AnyConfig config) {
-        return new JacksonJsonGeneratorWriterGenerator(
-                utils.tf.getType(type), this, lhs, rhs, property, stackRelevantType, config);
+        return new JacksonJsonGeneratorWriterGenerator(type, this, lhs, rhs, property, stackRelevantType, config);
     }
 }

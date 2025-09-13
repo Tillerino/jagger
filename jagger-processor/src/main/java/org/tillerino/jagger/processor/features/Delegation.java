@@ -7,7 +7,6 @@ import java.util.stream.IntStream;
 import javax.lang.model.type.DeclaredType;
 import javax.lang.model.type.TypeMirror;
 import org.apache.commons.lang3.exception.ContextedRuntimeException;
-import org.mapstruct.ap.internal.model.common.Type;
 import org.tillerino.jagger.annotations.JsonConfig;
 import org.tillerino.jagger.processor.*;
 import org.tillerino.jagger.processor.config.AnyConfig;
@@ -37,7 +36,7 @@ public record Delegation(AnnotationProcessorUtils utils) {
             List.of(PropagationKind.SUBSTITUTE));
 
     public Optional<Delegatee> findDelegatee(
-            Type type,
+            TypeMirror type,
             JaggerPrototype caller,
             boolean allowRecursion,
             boolean allowExact,
@@ -54,7 +53,7 @@ public record Delegation(AnnotationProcessorUtils utils) {
     }
 
     private Optional<InstantiatedPrototype> findPrototype(
-            Type type, JaggerPrototype caller, boolean allowRecursion, boolean allowExact, AnyConfig config) {
+            TypeMirror type, JaggerPrototype caller, boolean allowRecursion, boolean allowExact, AnyConfig config) {
         if (!config.resolveProperty(DELEGATE_FROM).value()) {
             return Optional.empty();
         }
@@ -84,12 +83,12 @@ public record Delegation(AnnotationProcessorUtils utils) {
         return callee.config().resolveProperty(DELEGATE_TO).value().canBeDelegatedTo();
     }
 
-    private Optional<Delegatee> findDelegateeInMethodParameters(JaggerPrototype prototype, Type type) {
+    private Optional<Delegatee> findDelegateeInMethodParameters(JaggerPrototype prototype, TypeMirror type) {
         for (InstantiatedVariable parameter : prototype.kind().otherParameters()) {
             for (InstantiatedMethod method :
                     utils.generics.instantiateMethods(parameter.type(), LocationKind.PROTOTYPE)) {
                 Optional<PrototypeKind> prototypeKind = PrototypeKind.of(method, utils)
-                        .filter(kind -> kind.matchesWithJavaType(prototype.kind(), type.getTypeMirror(), utils));
+                        .filter(kind -> kind.matchesWithJavaType(prototype.kind(), type, utils));
                 if (prototypeKind.isPresent()) {
                     return Optional.of(new Delegatee(parameter.name(), method));
                 }

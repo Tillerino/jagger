@@ -9,7 +9,6 @@ import jakarta.annotation.Nonnull;
 import javax.lang.model.element.VariableElement;
 import javax.lang.model.type.TypeMirror;
 import org.apache.commons.lang3.exception.ContextedRuntimeException;
-import org.mapstruct.ap.internal.model.common.Type;
 import org.tillerino.jagger.api.JaggerReader;
 import org.tillerino.jagger.processor.AnnotationProcessorUtils;
 import org.tillerino.jagger.processor.GeneratedClass;
@@ -28,7 +27,7 @@ public class JaggerReaderGenerator extends AbstractReaderGenerator<JaggerReaderG
     }
 
     public JaggerReaderGenerator(
-            Type type,
+            TypeMirror type,
             Property property,
             LHS lhs,
             @Nonnull JaggerReaderGenerator parent,
@@ -161,7 +160,7 @@ public class JaggerReaderGenerator extends AbstractReaderGenerator<JaggerReaderG
     @Override
     protected JaggerReaderGenerator nest(
             TypeMirror type, Property property, LHS lhs, boolean stackRelevantType, AnyConfig config) {
-        return new JaggerReaderGenerator(utils.tf.getType(type), property, lhs, this, stackRelevantType, config);
+        return new JaggerReaderGenerator(type, property, lhs, this, stackRelevantType, config);
     }
 
     private String importAdvance(JaggerReader.Advance advance) {

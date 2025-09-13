@@ -4,7 +4,6 @@ import jakarta.annotation.Nonnull;
 import javax.lang.model.element.VariableElement;
 import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
-import org.mapstruct.ap.internal.model.common.Type;
 import org.tillerino.jagger.processor.AnnotationProcessorUtils;
 import org.tillerino.jagger.processor.GeneratedClass;
 import org.tillerino.jagger.processor.JaggerPrototype;
@@ -22,7 +21,7 @@ public class JakartaJsonGeneratorGenerator extends AbstractWriterGenerator<Jakar
     }
 
     public JakartaJsonGeneratorGenerator(
-            Type type,
+            TypeMirror type,
             @Nonnull JakartaJsonGeneratorGenerator parent,
             LHS lhs,
             RHS rhs,
@@ -120,7 +119,6 @@ public class JakartaJsonGeneratorGenerator extends AbstractWriterGenerator<Jakar
     @Override
     protected JakartaJsonGeneratorGenerator nest(
             TypeMirror type, LHS lhs, Property property, RHS rhs, boolean stackRelevantType, AnyConfig config) {
-        return new JakartaJsonGeneratorGenerator(
-                utils.tf.getType(type), this, lhs, rhs, property, stackRelevantType, config);
+        return new JakartaJsonGeneratorGenerator(type, this, lhs, rhs, property, stackRelevantType, config);
     }
 }

@@ -55,7 +55,6 @@
         <lombok.version>1.18.32</lombok.version>
         <fastjson2.version>2.0.51</fastjson2.version>
         <junit.version>5.10.2</junit.version>
-        <mapstruct.version>1.5.5.Final</mapstruct.version>
         <nanojson.version>1.9</nanojson.version>
     </properties>
 
@@ -88,11 +87,6 @@
                 <groupId>com.squareup</groupId>
                 <artifactId>javapoet</artifactId>
                 <version>${javapoet.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.mapstruct</groupId>
-                <artifactId>mapstruct-processor</artifactId>
-                <version>${mapstruct.version}</version>
             </dependency>
 
             <!-- JSON implementations -->

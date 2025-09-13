@@ -1,10 +1,10 @@
 package org.tillerino.jagger.processor.apis;
 
 import javax.lang.model.element.VariableElement;
+import javax.lang.model.type.ArrayType;
 import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
 import org.apache.commons.lang3.exception.ContextedRuntimeException;
-import org.mapstruct.ap.internal.model.common.Type;
 import org.tillerino.jagger.processor.AnnotationProcessorUtils;
 import org.tillerino.jagger.processor.GeneratedClass;
 import org.tillerino.jagger.processor.JaggerPrototype;
@@ -22,7 +22,7 @@ public class Fastjson2WriterGenerator extends AbstractWriterGenerator<Fastjson2W
     }
 
     public Fastjson2WriterGenerator(
-            Type type,
+            TypeMirror type,
             Fastjson2WriterGenerator parent,
             LHS lhs,
             RHS rhs,
@@ -150,12 +150,11 @@ public class Fastjson2WriterGenerator extends AbstractWriterGenerator<Fastjson2W
     @Override
     protected Fastjson2WriterGenerator nest(
             TypeMirror type, LHS lhs, Property property, RHS rhs, boolean stackRelevantType, AnyConfig config) {
-        return new Fastjson2WriterGenerator(
-                utils.tf.getType(type), this, lhs, rhs, property, stackRelevantType, config);
+        return new Fastjson2WriterGenerator(type, this, lhs, rhs, property, stackRelevantType, config);
     }
 
     private boolean writeNatively() {
-        if (type.isArrayType() && writeArrayNatively(type.getComponentType().getTypeMirror())) {
+        if (type instanceof ArrayType at && writeArrayNatively(at.getComponentType())) {
             return true;
         }
         return false;

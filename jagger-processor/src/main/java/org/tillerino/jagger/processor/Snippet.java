@@ -3,7 +3,6 @@ package org.tillerino.jagger.processor;
 import com.squareup.javapoet.CodeBlock;
 import java.util.*;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 import javax.lang.model.element.Element;
 import javax.lang.model.type.TypeMirror;
 import org.apache.commons.lang3.Validate;
@@ -62,16 +61,6 @@ public interface Snippet {
         };
     }
 
-    default Snippet concat(String format, Object... args) {
-        return Snippet.of(
-                this.format() + format,
-                Stream.concat(Arrays.stream(this.args()), Arrays.stream(args)).toArray());
-    }
-
-    default Snippet concat(Snippet snippet) {
-        return concat(snippet.format(), snippet.args());
-    }
-
     static Snippet join(Collection<? extends Snippet> snippets, String delimiter) {
         return join(snippets, delimiter, "", "");
     }
@@ -86,10 +75,6 @@ public interface Snippet {
         String format = snippets.stream().map(s -> ", " + s.format()).collect(Collectors.joining());
         Object[] args = snippets.stream().flatMap(s -> Arrays.stream(s.args())).toArray();
         return Snippet.of(format, args);
-    }
-
-    default void addStatementTo(CodeBlock.Builder b) {
-        b.addStatement(format(), args());
     }
 
     static void collectInto(Object o, List<Object> aggregator) {
