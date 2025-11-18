@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.ObjectIdGenerator;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
@@ -51,7 +52,7 @@ public class SerializationContext {
         }
         G generator = (G) objectIdGenerators.computeIfAbsent(new ClassAndScope(generatorClass, scope), cas -> {
             if (globalObjectIdGenerators == null) {
-                globalObjectIdGenerators = new LinkedHashMap<>();
+                globalObjectIdGenerators = new ConcurrentHashMap<>();
             }
             return globalObjectIdGenerators
                     .computeIfAbsent(cas, __ -> instantiator.get().forScope(scope))
