@@ -37,6 +37,7 @@ public record Properties(AnnotationProcessorUtils utils) {
             if (element.getKind() == ElementKind.FIELD) {
                 VariableElement field = (VariableElement) element;
                 if (field.getModifiers().contains(Modifier.STATIC)
+                        || field.getModifiers().contains(Modifier.TRANSIENT)
                         || !field.getModifiers().contains(Modifier.PUBLIC)) {
                     continue;
                 }
@@ -73,6 +74,7 @@ public record Properties(AnnotationProcessorUtils utils) {
             if (element.getKind() == ElementKind.FIELD) {
                 VariableElement field = (VariableElement) element;
                 if (field.getModifiers().contains(Modifier.STATIC)
+                        || field.getModifiers().contains(Modifier.TRANSIENT)
                         || !field.getModifiers().contains(Modifier.PUBLIC)) {
                     continue;
                 }

@@ -25,6 +25,8 @@ public class ScalarFieldsClass {
 
     public static String staticField = "abc";
 
+    public transient String transientField = "def";
+
     public ScalarFieldsClass() {}
 
     public ScalarFieldsClass(
