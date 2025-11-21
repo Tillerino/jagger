@@ -19,6 +19,11 @@ public record Properties(AnnotationProcessorUtils utils) {
         if (!(type instanceof DeclaredType declaredType)) {
             throw Exceptions.unexpected();
         }
+
+        for (DeclaredType directSupertype : Polymorphism.directSupertypes(type, utils)) {
+            accessors.putAll(listReadAccessors(directSupertype));
+        }
+
         Map<TypeVar, TypeMirror> typeBindings = utils.generics.recordTypeBindings(declaredType);
 
         TypeElement typeElement = (TypeElement) declaredType.asElement();
@@ -68,6 +73,11 @@ public record Properties(AnnotationProcessorUtils utils) {
         if (!(type instanceof DeclaredType declaredType)) {
             return accessors;
         }
+
+        for (DeclaredType directSupertype : Polymorphism.directSupertypes(type, utils)) {
+            accessors.putAll(listWriteAccessors(directSupertype));
+        }
+
         Map<TypeVar, TypeMirror> typeBindings = utils.generics.recordTypeBindings(declaredType);
 
         for (Element element : declaredType.asElement().getEnclosedElements()) {
