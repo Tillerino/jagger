@@ -23,6 +23,8 @@ public class ScalarFieldsClass {
     public String str;
     public AnEnum en;
 
+    public static String staticField = "abc";
+
     public ScalarFieldsClass() {}
 
     public ScalarFieldsClass(

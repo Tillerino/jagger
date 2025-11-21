@@ -36,12 +36,13 @@ public record Properties(AnnotationProcessorUtils utils) {
         for (Element element : typeElement.getEnclosedElements()) {
             if (element.getKind() == ElementKind.FIELD) {
                 VariableElement field = (VariableElement) element;
-                if (field.getModifiers().contains(Modifier.PUBLIC)) {
-                    TypeMirror fieldType = utils.generics.applyTypeBindings(field.asType(), typeBindings);
-                    accessors.put(
-                            element.getSimpleName().toString(),
-                            new Accessor.ElementAccessor(fieldType, field, Accessor.AccessorKind.FIELD));
+                if (field.getModifiers().contains(Modifier.STATIC)
+                        || !field.getModifiers().contains(Modifier.PUBLIC)) {
+                    continue;
                 }
+                TypeMirror fieldType = utils.generics.applyTypeBindings(field.asType(), typeBindings);
+                accessors.put(
+                        element.getSimpleName().toString(), new ElementAccessor(fieldType, field, AccessorKind.FIELD));
             } else if (element.getKind() == ElementKind.METHOD) {
                 ExecutableElement method = (ExecutableElement) element;
                 if (isGetter(method)) {
@@ -71,14 +72,16 @@ public record Properties(AnnotationProcessorUtils utils) {
         for (Element element : declaredType.asElement().getEnclosedElements()) {
             if (element.getKind() == ElementKind.FIELD) {
                 VariableElement field = (VariableElement) element;
-                if (field.getModifiers().contains(Modifier.PUBLIC)) {
-                    accessors.put(
-                            element.getSimpleName().toString(),
-                            new Accessor.ElementAccessor(
-                                    utils.generics.applyTypeBindings(field.asType(), typeBindings),
-                                    field,
-                                    Accessor.AccessorKind.FIELD));
+                if (field.getModifiers().contains(Modifier.STATIC)
+                        || !field.getModifiers().contains(Modifier.PUBLIC)) {
+                    continue;
                 }
+                accessors.put(
+                        element.getSimpleName().toString(),
+                        new Accessor.ElementAccessor(
+                                utils.generics.applyTypeBindings(field.asType(), typeBindings),
+                                field,
+                                Accessor.AccessorKind.FIELD));
             } else if (element.getKind() == ElementKind.METHOD) {
                 ExecutableElement method = (ExecutableElement) element;
                 if (isSetter(method)) {
