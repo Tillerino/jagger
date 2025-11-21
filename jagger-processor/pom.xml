@@ -4,7 +4,7 @@
     <parent>
         <groupId>org.tillerino.jagger</groupId>
         <artifactId>jagger-parent</artifactId>
-        <version>0.6.4</version>
+        <version>0.6.5-SNAPSHOT</version>
     </parent>
     <artifactId>jagger-processor</artifactId>
     <name>Jagger annotation processor</name>

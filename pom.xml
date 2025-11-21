@@ -3,7 +3,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>org.tillerino.jagger</groupId>
     <artifactId>jagger-parent</artifactId>
-    <version>0.6.4</version>
+    <version>0.6.5-SNAPSHOT</version>
     <packaging>pom</packaging>
     <name>Jagger parent POM</name>
     <description>A databind annotation processor for Java</description>
@@ -33,7 +33,7 @@
     <scm>
         <connection>scm:git:git@github.com:Tillerino/jagger.git</connection>
         <developerConnection>scm:git:git@github.com:Tillerino/jagger.git</developerConnection>
-        <tag>0.6.4</tag>
+        <tag>HEAD</tag>
         <url>https://github.com/Tillerino/jagger</url>
     </scm>
     <distributionManagement>
