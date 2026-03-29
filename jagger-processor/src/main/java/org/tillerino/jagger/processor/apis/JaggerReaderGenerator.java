@@ -120,10 +120,10 @@ public class JaggerReaderGenerator extends AbstractReaderGenerator<JaggerReaderG
     protected void afterObject() {}
 
     @Override
-    protected void readFieldNameInIteration(String propertyName) {
+    protected void readFieldNameInIteration(String variableName) {
         addStatement(
                 "String $L = $L.getFieldName($L)",
-                propertyName,
+                variableName,
                 parserVariable.getSimpleName(),
                 importAdvance(CONSUME));
     }
@@ -146,6 +146,10 @@ public class JaggerReaderGenerator extends AbstractReaderGenerator<JaggerReaderG
     @Override
     protected void throwUnexpected(String expectedToken) {
         addStatement("throw $L.unexpectedToken($S)", parserVariable.getSimpleName(), expectedToken);
+    }
+
+    protected void throwUnrecognizedProperty(Snippet propertyName) {
+        addStatement("throw $L.unrecognizedProperty($C)", parserVariable.getSimpleName(), propertyName);
     }
 
     @Override

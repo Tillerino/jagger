@@ -244,6 +244,11 @@ public class JacksonJsonNodeReaderAdapter implements JaggerReader<RuntimeExcepti
         return new RuntimeException("Expected " + expectedToken + " but got " + currentToken() + " at TODO LOCATION");
     }
 
+    @Override
+    public RuntimeException unrecognizedProperty(String propertyName) {
+        return new RuntimeException("Unrecognized field \"" + propertyName + "\"" + " at TODO LOCATION");
+    }
+
     protected JsonToken currentToken() {
         if (node.isEmpty()) {
             throw new RuntimeException("Unexpected end of input");

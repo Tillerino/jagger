@@ -124,8 +124,8 @@ public class GsonJsonReaderReaderGenerator extends AbstractReaderGenerator<GsonJ
     }
 
     @Override
-    protected void readFieldNameInIteration(String propertyName) {
-        addStatement("String $L = $L.nextName()", propertyName, parserVariable.getSimpleName());
+    protected void readFieldNameInIteration(String variableName) {
+        addStatement("String $L = $L.nextName()", variableName, parserVariable.getSimpleName());
     }
 
     @Override
@@ -156,6 +156,10 @@ public class GsonJsonReaderReaderGenerator extends AbstractReaderGenerator<GsonJ
                 parserVariable.getSimpleName(),
                 " at ",
                 parserVariable.getSimpleName());
+    }
+
+    protected void throwUnrecognizedProperty(Snippet propertyName) {
+        addStatement("throw new $T($S + $C + $S)", IOException.class, "Unrecognized field \"", propertyName, "\"");
     }
 
     @Override

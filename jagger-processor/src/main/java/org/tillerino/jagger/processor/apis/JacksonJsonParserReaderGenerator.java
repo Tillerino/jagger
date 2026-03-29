@@ -148,8 +148,8 @@ public class JacksonJsonParserReaderGenerator extends AbstractReaderGenerator<Ja
     protected void afterObject() {}
 
     @Override
-    protected void readFieldNameInIteration(String propertyName) {
-        addStatement("String $L = $L.currentName()", propertyName, parserVariable.getSimpleName());
+    protected void readFieldNameInIteration(String variableName) {
+        addStatement("String $L = $L.currentName()", variableName, parserVariable.getSimpleName());
         advance();
     }
 
@@ -180,6 +180,10 @@ public class JacksonJsonParserReaderGenerator extends AbstractReaderGenerator<Ja
                 parserVariable.getSimpleName(),
                 " at ",
                 parserVariable.getSimpleName());
+    }
+
+    protected void throwUnrecognizedProperty(Snippet propertyName) {
+        addStatement("throw new $T($S + $C + $S)", IOException.class, "Unrecognized field \"", propertyName, "\"");
     }
 
     @Override

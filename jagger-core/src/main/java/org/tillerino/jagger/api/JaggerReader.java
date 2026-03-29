@@ -37,6 +37,17 @@ public interface JaggerReader<E extends Exception> {
 
     String getFieldName(Advance advance) throws E;
 
+    /**
+     * Read the discriminator of a polymorphic type. If the discriminator is the next token in the stream, this call
+     * will behave like {@link #getFieldName(Advance)} followed by {@link #getText(Advance)}. However, for adapters that
+     * can buffer the token stream, this allows reading the discriminator out of order.
+     *
+     * @param expectedName The expected property name of the discriminator. An unbuffered implementation will validate
+     *     that this is the current field name. A buffered implementation will fetch this property from the buffer.
+     * @param visible if true, the discriminator will be repeated once it shows up naturally in the token stream.
+     *     Unsupported by some implementations.
+     * @return The discriminator value.
+     */
     String getDiscriminator(String expectedName, boolean visible) throws E;
 
     /**
@@ -47,6 +58,8 @@ public interface JaggerReader<E extends Exception> {
     void skipChildren(Advance advance) throws E;
 
     E unexpectedToken(String expectedToken);
+
+    E unrecognizedProperty(String propertyName);
 
     /** Controls whether to advance while inspecting tokens or keep the token. */
     enum Advance {

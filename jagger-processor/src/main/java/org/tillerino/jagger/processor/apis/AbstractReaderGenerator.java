@@ -153,7 +153,7 @@ public abstract class AbstractReaderGenerator<SELF extends AbstractReaderGenerat
         ScopedVar resolvedVar = createVariable("resolved");
         addStatement("$T $C = ($T) $C", type, resolvedVar, type, setup.resolveId(idVar));
         beginControlFlow("if ($C == null)", resolvedVar);
-        addStatement("throw new IOException($S + $C)", "Unresolved ID: ", idVar);
+        addStatement("throw new $T($S + $C)", IllegalArgumentException.class, "Unresolved ID: ", idVar);
         endControlFlow();
         addStatement(lhs.assign(resolvedVar));
 
@@ -218,7 +218,7 @@ public abstract class AbstractReaderGenerator<SELF extends AbstractReaderGenerat
         beginControlFlow("if ($C.length() == 1)", stringVar);
         addStatement(lhs.assign("$C.charAt(0)", stringVar));
         nextControlFlow("else");
-        addStatement("throw new $T()", IOException.class);
+        addStatement("throw new $T()", IllegalArgumentException.class);
         endControlFlow();
     }
 
@@ -235,7 +235,7 @@ public abstract class AbstractReaderGenerator<SELF extends AbstractReaderGenerat
         addStatement(lhs.assign("$L.NEGATIVE_INFINITY", capitalize(type.toString())));
 
         nextControlFlow("else");
-        addStatement("throw new $T()", IOException.class);
+        addStatement("throw new $T()", IllegalArgumentException.class);
         endControlFlow();
     }
 
@@ -585,7 +585,7 @@ public abstract class AbstractReaderGenerator<SELF extends AbstractReaderGenerat
             throw new ContextedRuntimeException("No children for " + type);
         }
         nextControlFlow("else");
-        addStatement("throw new $T($S + $L)", IOException.class, "Unknown type ", discriminator.name());
+        addStatement("throw new $T($S + $L)", IllegalArgumentException.class, "Unknown type ", discriminator.name());
         endControlFlow(); // ends the loop
     }
 
@@ -694,13 +694,13 @@ public abstract class AbstractReaderGenerator<SELF extends AbstractReaderGenerat
 
         iterateOverFields();
         Branch.IF.controlFlow(this, fieldCaseCondition());
-        String fieldVar = createVariable("field").name();
-        readFieldNameInIteration(fieldVar);
+        ScopedVar fieldVariable = createVariable("field");
+        readFieldNameInIteration(fieldVariable.name());
 
         Set<String> ignoredProperties =
                 config.resolveProperty(IgnoreProperties.IGNORED_PROPERTIES).value();
 
-        beginControlFlow("switch($L)", fieldVar);
+        beginControlFlow("switch($C)", fieldVariable);
         for (SELF nest : properties) {
             if (ignoredProperties.contains(nest.property.serializedName())) {
                 continue;
@@ -754,7 +754,7 @@ public abstract class AbstractReaderGenerator<SELF extends AbstractReaderGenerat
         {
             beginControlFlow("default:");
             if (UnknownProperties.shouldThrow(config)) {
-                addStatement("throw new $T($S + $L + $S)", IOException.class, "Unrecognized field \"", fieldVar, "\"");
+                throwUnrecognizedProperty(fieldVariable);
             } else {
                 skipValue();
             }
@@ -833,7 +833,7 @@ public abstract class AbstractReaderGenerator<SELF extends AbstractReaderGenerat
 
     protected abstract void readString(StringKind stringKind);
 
-    protected abstract void readFieldNameInIteration(String propertyName);
+    protected abstract void readFieldNameInIteration(String variableName);
 
     protected abstract void iterateOverFields();
 
@@ -848,6 +848,8 @@ public abstract class AbstractReaderGenerator<SELF extends AbstractReaderGenerat
     protected abstract void afterArray();
 
     protected abstract void throwUnexpected(String expected);
+
+    protected abstract void throwUnrecognizedProperty(Snippet propertyName);
 
     protected abstract void invokeDelegate(String instance, InstantiatedMethod callee);
 

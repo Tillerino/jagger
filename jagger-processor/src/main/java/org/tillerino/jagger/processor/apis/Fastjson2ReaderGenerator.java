@@ -142,8 +142,8 @@ public class Fastjson2ReaderGenerator extends AbstractReaderGenerator<Fastjson2R
     protected void afterObject() {}
 
     @Override
-    protected void readFieldNameInIteration(String propertyName) {
-        addStatement("String $L = $L.readFieldName()", propertyName, parserVariable.getSimpleName());
+    protected void readFieldNameInIteration(String variableName) {
+        addStatement("String $L = $L.readFieldName()", variableName, parserVariable.getSimpleName());
     }
 
     @Override
@@ -170,6 +170,10 @@ public class Fastjson2ReaderGenerator extends AbstractReaderGenerator<Fastjson2R
                 IOException.class,
                 "Expected " + expected + ", got ",
                 parserVariable.getSimpleName());
+    }
+
+    protected void throwUnrecognizedProperty(Snippet propertyName) {
+        addStatement("throw new $T($S + $C + $S)", IOException.class, "Unrecognized field \"", propertyName, "\"");
     }
 
     @Override

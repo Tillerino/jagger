@@ -153,8 +153,8 @@ public class JakartaJsonParserGenerator extends AbstractReaderGenerator<JakartaJ
     protected void afterObject() {}
 
     @Override
-    protected void readFieldNameInIteration(String propertyName) {
-        addStatement("String $L = $L.getString()", propertyName, parserVariable.getSimpleName());
+    protected void readFieldNameInIteration(String variableName) {
+        addStatement("String $L = $L.getString()", variableName, parserVariable.getSimpleName());
         advance();
     }
 
@@ -185,6 +185,10 @@ public class JakartaJsonParserGenerator extends AbstractReaderGenerator<JakartaJ
                 parserVariable.getSimpleName(),
                 " at ",
                 parserVariable.getSimpleName());
+    }
+
+    protected void throwUnrecognizedProperty(Snippet propertyName) {
+        addStatement("throw new $T($S + $C + $S)", IOException.class, "Unrecognized field \"", propertyName, "\"");
     }
 
     @Override
