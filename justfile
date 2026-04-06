@@ -75,9 +75,9 @@ check-feature-organization:
     
     # Check if features and their tests are properly organized
     processor_features_dir = Path("jagger-processor/src/main/java/org/tillerino/jagger/processor/features")
-    jackson_tests_dir = Path("jagger-tests/jagger-tests-jackson/src/test/java/org/tillerino/jagger/tests/base/features")
-    jackson_serde_dir = Path("jagger-tests/jagger-tests-jackson/src/main/java/org/tillerino/jagger/tests/base/features")
-    base_model_dir = Path("jagger-tests/jagger-tests-base/src/main/java/org/tillerino/jagger/tests/model/features")
+    jackson_tests_dir = Path("jagger-tests/jackson/src/test/java/org/tillerino/jagger/tests/base/features")
+    jackson_serde_dir = Path("jagger-tests/jackson/src/main/java/org/tillerino/jagger/tests/base/features")
+    base_model_dir = Path("jagger-tests/base/src/main/java/org/tillerino/jagger/tests/model/features")
     
     # Get all feature classes
     feature_files = list(processor_features_dir.glob("*.java"))

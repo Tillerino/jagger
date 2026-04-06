@@ -9,7 +9,7 @@ The `@JsonTemplate` annotation allows you to generate many prototypes based on s
 Consider these generic interfaces:
 
 ```java
-//../jagger-tests/jagger-tests-jackson/src/main/java/org/tillerino/jagger/tests/base/features/GenericsSerde.java#L17-L21
+//../jagger-tests/jackson/src/main/java/org/tillerino/jagger/tests/base/features/GenericsSerde.java#L17-L21
 
 @JsonConfig(implement = JsonConfig.ImplementationMode.DO_NOT_IMPLEMENT)
 interface GenericInputSerde<V> {
@@ -18,7 +18,7 @@ interface GenericInputSerde<V> {
 }
 ```
 ```java
-//../jagger-tests/jagger-tests-jackson/src/main/java/org/tillerino/jagger/tests/base/features/GenericsSerde.java#L24-L28
+//../jagger-tests/jackson/src/main/java/org/tillerino/jagger/tests/base/features/GenericsSerde.java#L24-L28
 
 @JsonConfig(implement = JsonConfig.ImplementationMode.DO_NOT_IMPLEMENT)
 interface GenericOutputSerde<U> {
@@ -29,7 +29,7 @@ interface GenericOutputSerde<U> {
 
 Annotating your blueprint with
 ```java
-// ../jagger-tests/jagger-tests-jackson/src/main/java/org/tillerino/jagger/tests/base/features/TemplatesSerde.java#L14-L16
+// ../jagger-tests/jackson/src/main/java/org/tillerino/jagger/tests/base/features/TemplatesSerde.java#L14-L16
 
 @JsonTemplate(
         templates = {GenericInputSerde.class, GenericOutputSerde.class},
@@ -41,7 +41,7 @@ The name of the generated methods is derived from the type.
 
 For example:
 ```java
-//../jagger-tests/jagger-tests-jackson/target/generated-sources/annotations/org/tillerino/jagger/tests/base/features/TemplatesSerde$TemplatedSerdeImpl.java#L87-L94
+//../jagger-tests/jackson/target/generated-sources/annotations/org/tillerino/jagger/tests/base/features/TemplatesSerde$TemplatedSerdeImpl.java#L88-L95
 
 public void writeAnEnum(AnEnum obj, JsonGenerator gen) throws Exception {
   if (obj != null) {
@@ -57,7 +57,7 @@ public void writeAnEnum(AnEnum obj, JsonGenerator gen) throws Exception {
 
 The generated methods behave exactly as if they were fully specified. In this blueprint:
 ```java
-// ../jagger-tests/jagger-tests-jackson/src/main/java/org/tillerino/jagger/tests/base/features/TemplatesSerde.java#L13-L19
+// ../jagger-tests/jackson/src/main/java/org/tillerino/jagger/tests/base/features/TemplatesSerde.java#L13-L19
 
 public interface TemplatesSerde {
     @JsonTemplate(
@@ -70,7 +70,7 @@ public interface TemplatesSerde {
 
 `writeAnEnum` works with generics and delegates serialization of the enum itself to the specialized method:
 ```java
-//../jagger-tests/jagger-tests-jackson/target/generated-sources/annotations/org/tillerino/jagger/tests/base/features/TemplatesSerde$TemplatedSerdeImpl.java#L156-L158
+//../jagger-tests/jackson/target/generated-sources/annotations/org/tillerino/jagger/tests/base/features/TemplatesSerde$TemplatedSerdeImpl.java#L155-L157
 
 public void writeArrayOfAnEnum(AnEnum[] obj, JsonGenerator gen) throws Exception {
   this.writeGenericArray(obj, gen, this::writeAnEnum);

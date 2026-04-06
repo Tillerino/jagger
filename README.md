@@ -48,8 +48,8 @@ See [Backends](docs/backends.md).
   * [Notable exceptions](#notable-exceptions)
   * [Jackson annotations compatibility](#jackson-annotations-compatibility)
 - [Roadmap](#roadmap)
-  * [Short-term:](#short-term)
-  * [Long-term:](#long-term)
+  * [Short-term](#short-term)
+  * [Long-term](#long-term)
 
 <!-- tocstop -->
 
@@ -109,7 +109,7 @@ The context parameters can be omitted if they are not explicitly needed.
 The `@JsonTemplate` annotation allows you to specify prototypes from templates without specifying each as a separate method.
 
 ```java
-// jagger-tests/jagger-tests-jackson/src/main/java/org/tillerino/jagger/tests/base/features/TemplatesSerde.java#L14-L16
+// jagger-tests/jackson/src/main/java/org/tillerino/jagger/tests/base/features/TemplatesSerde.java#L14-L16
 
 @JsonTemplate(
         templates = {GenericInputSerde.class, GenericOutputSerde.class},
@@ -271,7 +271,7 @@ The main consideration is: For each serialized type, is the set of written prope
 
 Consider the following class:
 ```java
-//jagger-tests/jagger-tests-base/src/main/java/org/tillerino/jagger/tests/model/features/VerificationModel.java#L18-L25
+//jagger-tests/base/src/main/java/org/tillerino/jagger/tests/model/features/VerificationModel.java#L18-L25
 
 class MoreSettersThanGetters {
     @Getter

@@ -9,14 +9,14 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.CLASS)
 public @interface JsonConfig {
     /**
-     * Uses mappers from these classes (recursively). These are merged in order, i.e. later elements take when resolving
-     * conflicts.
+     * Uses mappers from these classes (recursively). These are merged in order, i.e. later elements take precedence
+     * when resolving conflicts.
      */
     Class<?>[] uses() default {};
 
     /**
-     * Uses mappers and configuration from these classes. These are merged in order, i.e. later elements take when
-     * resolving conflicts.
+     * Uses mappers and configuration from these classes. These are merged in order, i.e. later elements take precedence
+     * when resolving conflicts.
      */
     Class<?>[] config() default {};
 
