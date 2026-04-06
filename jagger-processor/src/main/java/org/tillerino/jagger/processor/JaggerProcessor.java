@@ -259,20 +259,10 @@ public class JaggerProcessor extends AbstractProcessor {
     }
 
     private MethodSpec generateMethod(JaggerPrototype method, GeneratedClass generatedClass) {
-        MethodSpec.Builder methodBuilder = MethodSpec.methodBuilder(method.name());
+        MethodSpec.Builder methodBuilder = method.asInstantiatedMethod().methodSpec();
         if (method.overrides()) {
             methodBuilder.addAnnotation(Override.class);
         }
-        methodBuilder
-                .addModifiers(Modifier.PUBLIC)
-                .addTypeVariables(method.methodElement().getTypeParameters().stream()
-                        .map(TypeParameterElement::getSimpleName)
-                        .map(name -> TypeVariableName.get(name.toString()))
-                        .toList())
-                .returns(ClassName.get(method.instantiatedReturnType()));
-        method.instantiatedParameters()
-                .forEach(param -> methodBuilder.addParameter(ClassName.get(param.type()), param.name()));
-        method.methodElement().getThrownTypes().forEach(type -> methodBuilder.addException(ClassName.get(type)));
         Supplier<CodeBlock.Builder> codeGenerator =
                 switch (method.kind().direction()) {
                     case INPUT -> determineInputCodeGenerator(method, generatedClass);
