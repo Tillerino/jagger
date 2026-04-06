@@ -66,24 +66,6 @@ public class ReflectionBridge {
         return Optional.empty();
     }
 
-    public <T> Optional<ReturningSerializerDescription<T>> findReturningSerializer(Type type, Class<T> writerClass) {
-        for (Object instance : instances) {
-            for (Method method : instance.getClass().getMethods()) {
-                if (!method.getReturnType().equals(writerClass)) {
-                    continue;
-                }
-                if (MethodUtils.getAnnotation(method, JsonOutput.class, true, false) == null) {
-                    continue;
-                }
-                if (type.equals(method.getGenericParameterTypes()[0])) {
-                    return Optional.of(
-                            new ReturningSerializerDescription<>(instance, method, method.getParameterCount() == 2));
-                }
-            }
-        }
-        return Optional.empty();
-    }
-
     public static class DeserializerDescription<T> {
         private final Object instance;
         private final Method method;
@@ -136,32 +118,6 @@ public class ReflectionBridge {
                 } else {
                     method.invoke(instance, value, writer);
                 }
-            } catch (ReflectiveOperationException e) {
-                if (e.getCause() != null) {
-                    throw Failable.rethrow(e.getCause());
-                }
-                throw new RuntimeException(e);
-            }
-        }
-    }
-
-    public static class ReturningSerializerDescription<T> {
-        private final Object instance;
-        private final Method method;
-        private final boolean requiresContext;
-
-        public ReturningSerializerDescription(Object instance, Method method, boolean requiresContext) {
-            this.instance = instance;
-            this.method = method;
-            this.requiresContext = requiresContext;
-        }
-
-        public T invoke(Object value) {
-            try {
-                if (requiresContext) {
-                    return (T) method.invoke(instance, value, new SerializationContext());
-                }
-                return (T) method.invoke(instance, value);
             } catch (ReflectiveOperationException e) {
                 if (e.getCause() != null) {
                     throw Failable.rethrow(e.getCause());
