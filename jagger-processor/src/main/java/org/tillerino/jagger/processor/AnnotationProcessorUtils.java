@@ -11,6 +11,7 @@ import javax.lang.model.element.Element;
 import javax.lang.model.element.ElementKind;
 import javax.lang.model.element.TypeElement;
 import javax.lang.model.type.ArrayType;
+import javax.lang.model.type.DeclaredType;
 import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
 import javax.lang.model.util.Elements;
@@ -136,6 +137,14 @@ public class AnnotationProcessorUtils {
             return isAssignableTo(types.erasure(type), Iterable.class) || type.getKind() == TypeKind.ARRAY;
         }
 
+        public TypeMirror iterableComponentType(TypeMirror type) {
+            return generics.recordTypeBindingsFor(
+                            (DeclaredType) type, elements.getTypeElement(Iterable.class.getName()))
+                    .values()
+                    .iterator()
+                    .next();
+        }
+
         public boolean isMap(TypeMirror type) {
             return isAssignableTo(types.erasure(type), Map.class);
         }
@@ -145,6 +154,15 @@ public class AnnotationProcessorUtils {
                 return ((ArrayType) type).getComponentType();
             }
             return null;
+        }
+
+        public TypeMirror unwrapArraysAndIterables(TypeMirror type) {
+            if (type.getKind() == TypeKind.ARRAY) {
+                return getArrayComponentType(type);
+            } else if (isIterable(type)) {
+                return iterableComponentType(type);
+            }
+            return type;
         }
 
         public TypeElement elem(Class<?> cls) {

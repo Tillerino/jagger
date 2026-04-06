@@ -402,11 +402,7 @@ public abstract class AbstractReaderGenerator<SELF extends AbstractReaderGenerat
     private void readCollection(Branch branch, boolean lastCase) {
         branch.controlFlow(this, arrayCaseCondition());
         {
-            TypeMirror componentType = utils.generics
-                    .recordTypeBindingsFor((DeclaredType) type, utils.elements.getTypeElement(Iterable.class.getName()))
-                    .values()
-                    .iterator()
-                    .next();
+            TypeMirror componentType = utils.commonTypes.iterableComponentType(type);
             TypeMirror collectionType = determineCollectionType();
             String varName = instantiateContainer(collectionType);
 

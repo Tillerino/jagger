@@ -229,7 +229,7 @@ public class JaggerProcessor extends AbstractProcessor {
         generatedClass.verificationForBlueprint.finish();
     }
 
-    private void copyConstructors(TypeElement type, Builder classBuilder) {
+    static void copyConstructors(TypeElement type, Builder classBuilder) {
         List<ExecutableElement> constructors = type.getEnclosedElements().stream()
                 .filter(e -> e.getKind() == ElementKind.CONSTRUCTOR)
                 .map(e -> (ExecutableElement) e)
