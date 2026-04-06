@@ -80,7 +80,7 @@ public class CopyTests {
             Set<String> features)
             throws IOException {
         for (String p : List.of("src/main/java", "src/test/java")) {
-            SourceRoot sourceRoot = new SourceRoot(targetRoot.resolve("../jagger-tests-jackson/" + p));
+            SourceRoot sourceRoot = new SourceRoot(targetRoot.resolve("../jackson/" + p));
             sourceRoot.setParserConfiguration(
                     new ParserConfiguration().setLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17));
 

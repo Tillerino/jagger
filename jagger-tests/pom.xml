@@ -10,15 +10,15 @@
     <artifactId>jagger-tests</artifactId>
     <packaging>pom</packaging>
     <modules>
-        <module>jagger-tests-base</module>
-        <module>jagger-tests-jackson</module>
-        <module>jagger-tests-gson</module>
-        <module>jagger-tests-fastjson2</module>
-        <module>jagger-tests-jakarta-glassfish</module>
-        <module>jagger-tests-jakarta-johnzon</module>
-        <module>jagger-tests-nanojson</module>
-        <module>jagger-tests-adapter-jackson</module>
-        <module>jagger-tests-adapter-jackson-node</module>
+        <module>base</module>
+        <module>jackson</module>
+        <module>gson</module>
+        <module>fastjson2</module>
+        <module>jakarta-glassfish</module>
+        <module>jakarta-johnzon</module>
+        <module>nanojson</module>
+        <module>adapter-jackson</module>
+        <module>adapter-jackson-node</module>
     </modules>
 
     <properties>
