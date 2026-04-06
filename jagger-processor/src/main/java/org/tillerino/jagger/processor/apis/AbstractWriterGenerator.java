@@ -20,10 +20,8 @@ import org.tillerino.jagger.processor.features.Delegation.Delegatee;
 import org.tillerino.jagger.processor.features.IgnoreProperties;
 import org.tillerino.jagger.processor.features.IgnoreProperty;
 import org.tillerino.jagger.processor.features.Polymorphism;
-import org.tillerino.jagger.processor.features.PropertyName;
 import org.tillerino.jagger.processor.features.References.Setup;
 import org.tillerino.jagger.processor.features.Verification.ProtoAndProps;
-import org.tillerino.jagger.processor.util.Accessor.ReadAccessor;
 import org.tillerino.jagger.processor.util.Exceptions;
 import org.tillerino.jagger.processor.util.InstantiatedMethod;
 
@@ -356,7 +354,7 @@ public abstract class AbstractWriterGenerator<SELF extends AbstractWriterGenerat
         Set<String> ignoredProperties =
                 config.resolveProperty(IgnoreProperties.IGNORED_PROPERTIES).value();
 
-        outputProperties(type).forEach(property -> {
+        utils.properties.outputProperties(type, this.config).forEach(property -> {
             if (property.config()
                             .resolveProperty(IgnoreProperty.IGNORE_PROPERTY)
                             .value()
@@ -371,7 +369,7 @@ public abstract class AbstractWriterGenerator<SELF extends AbstractWriterGenerat
             SELF nested = nest(
                     property.accessor().type(),
                     lhs,
-                    new Property(property.canonicalName(), property.externalName(), property.config),
+                    new Property(property.canonicalName(), property.externalName(), property.config()),
                     accessorCall,
                     true,
                     property.config().propagateTo(PropagationKind.PROPERTY));
@@ -429,23 +427,6 @@ public abstract class AbstractWriterGenerator<SELF extends AbstractWriterGenerat
     Snippet charArrayToString(Snippet snippet) {
         return Snippet.of("new $T($C)", String.class, snippet);
     }
-
-    protected List<OutputProperty> outputProperties(TypeMirror type) {
-        return utils.properties.listReadAccessors(type).entrySet().stream()
-                .map(entry -> {
-                    String canonicalName = entry.getKey();
-                    ReadAccessor accessor = entry.getValue();
-                    AnyConfig propertyConfig = AnyConfig.fromAccessorConsideringField(
-                                    accessor, accessor.name(), type, canonicalName, utils)
-                            .merge(config);
-                    String externalName = PropertyName.resolvePropertyName(propertyConfig, canonicalName);
-                    return new OutputProperty(canonicalName, externalName, accessor, propertyConfig);
-                })
-                .toList();
-    }
-
-    protected record OutputProperty(
-            String canonicalName, String externalName, ReadAccessor accessor, AnyConfig config) {}
 
     protected sealed interface LHS {
 

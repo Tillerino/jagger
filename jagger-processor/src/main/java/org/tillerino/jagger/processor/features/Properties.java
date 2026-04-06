@@ -1,18 +1,36 @@
 package org.tillerino.jagger.processor.features;
 
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import javax.lang.model.element.*;
 import javax.lang.model.type.DeclaredType;
 import javax.lang.model.type.TypeMirror;
 import org.tillerino.jagger.processor.AnnotationProcessorUtils;
+import org.tillerino.jagger.processor.config.AnyConfig;
 import org.tillerino.jagger.processor.features.Generics.TypeVar;
 import org.tillerino.jagger.processor.util.Accessor;
 import org.tillerino.jagger.processor.util.Accessor.AccessorKind;
 import org.tillerino.jagger.processor.util.Accessor.ElementAccessor;
+import org.tillerino.jagger.processor.util.Accessor.ReadAccessor;
 import org.tillerino.jagger.processor.util.Exceptions;
 
 public record Properties(AnnotationProcessorUtils utils) {
+
+    public List<OutputProperty> outputProperties(TypeMirror type, AnyConfig config) {
+        return utils.properties.listReadAccessors(type).entrySet().stream()
+                .map(entry -> {
+                    String canonicalName = entry.getKey();
+                    ReadAccessor accessor = entry.getValue();
+                    AnyConfig propertyConfig = AnyConfig.fromAccessorConsideringField(
+                                    accessor, accessor.name(), type, canonicalName, utils)
+                            .merge(config);
+                    String externalName = PropertyName.resolvePropertyName(propertyConfig, canonicalName);
+                    return new OutputProperty(canonicalName, externalName, accessor, propertyConfig);
+                })
+                .toList();
+    }
+
     public Map<String, Accessor.ReadAccessor> listReadAccessors(TypeMirror type) {
         Map<String, Accessor.ReadAccessor> accessors = new LinkedHashMap<>();
 
@@ -140,4 +158,6 @@ public record Properties(AnnotationProcessorUtils utils) {
     private String getPropertyNameFromSetter(String setterName) {
         return Character.toLowerCase(setterName.charAt(3)) + setterName.substring(4);
     }
+
+    public record OutputProperty(String canonicalName, String externalName, ReadAccessor accessor, AnyConfig config) {}
 }
