@@ -85,6 +85,7 @@ Include the following in your POM:
     </configuration>
 </plugin>
 ```
+(See [Lombok](docs/lombok.md) for compatibility)
 
 To generate readers and writers, create an interface and annotate a method with `@JsonInput` or `@JsonOutput`:
 

@@ -92,14 +92,14 @@
                 <configuration>
                     <annotationProcessorPaths>
                         <annotationProcessorPath>
-                            <groupId>org.tillerino.jagger</groupId>
-                            <artifactId>jagger-processor</artifactId>
-                            <version>${project.version}</version>
-                        </annotationProcessorPath>
-                        <annotationProcessorPath>
                             <groupId>org.projectlombok</groupId>
                             <artifactId>lombok</artifactId>
                             <version>${lombok.version}</version>
+                        </annotationProcessorPath>
+                        <annotationProcessorPath>
+                            <groupId>org.tillerino.jagger</groupId>
+                            <artifactId>jagger-processor</artifactId>
+                            <version>${project.version}</version>
                         </annotationProcessorPath>
                     </annotationProcessorPaths>
                     <compilerArgs>
