@@ -15,14 +15,8 @@ public class AbstractCodeGenerator<SELF extends AbstractCodeGenerator<SELF>> {
     }
 
     public AbstractCodeGenerator(AbstractCodeGenerator<SELF> parent) {
-        if (parent != null) {
-            this.code = parent.code;
-            this.variables = parent.variables;
-        } else {
-            this.code = CodeBlock.builder();
-            this.variables = new Stack<>();
-            this.variables.push(new LinkedHashSet<>());
-        }
+        this.code = parent.code;
+        this.variables = parent.variables;
     }
 
     protected AbstractCodeGenerator<SELF> addStatement(Snippet s) {

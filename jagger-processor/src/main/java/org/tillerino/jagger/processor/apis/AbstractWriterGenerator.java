@@ -50,11 +50,7 @@ public abstract class AbstractWriterGenerator<SELF extends AbstractWriterGenerat
                 utils,
                 generatedClass,
                 prototype,
-                null,
-                prototype.instantiatedParameters().get(0).type(),
-                true,
-                null,
-                null);
+                prototype.instantiatedParameters().get(0).type());
         this.rhs = new RHS.Variable(
                 prototype.methodElement().getParameters().get(0).getSimpleName().toString(), true);
         this.lhs = new LHS.Return();

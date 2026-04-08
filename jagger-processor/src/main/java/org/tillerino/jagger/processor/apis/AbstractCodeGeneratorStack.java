@@ -18,11 +18,11 @@ public abstract class AbstractCodeGeneratorStack<SELF extends AbstractCodeGenera
     protected final AnnotationProcessorUtils utils;
     protected final GeneratedClass generatedClass;
     protected final JaggerPrototype prototype;
+    protected final TypeMirror type;
 
     @Nullable
     protected final SELF parent;
 
-    protected final TypeMirror type;
     protected final boolean stackRelevantType;
 
     @Nullable
@@ -32,43 +32,47 @@ public abstract class AbstractCodeGeneratorStack<SELF extends AbstractCodeGenera
 
     protected final AnyConfig config;
 
+    // for creating the root generator
+    protected AbstractCodeGeneratorStack(
+            AnnotationProcessorUtils utils, GeneratedClass generatedClass, JaggerPrototype prototype, TypeMirror type) {
+        super(); // blank code builder and variable stack
+        this.utils = utils;
+        this.generatedClass = Objects.requireNonNull(generatedClass);
+        this.prototype = prototype;
+        this.type = type;
+
+        this.parent = null;
+        this.stackRelevantType = true;
+        this.property = null;
+        this.canBePolyChild = prototype.contextParameter().isPresent()
+                && stackDepth() == 1
+                && Polymorphism.isSomeChild(type, utils.types);
+        this.config = type instanceof DeclaredType dt && dt.asElement() != null
+                ? AnyConfig.create(dt.asElement(), ConfigProperty.LocationKind.DTO, utils)
+                        .merge(prototype.config())
+                : prototype.config();
+    }
+
+    // for nesting generators
     protected AbstractCodeGeneratorStack(
             @Nonnull SELF parent,
             TypeMirror type,
             boolean stackRelevantType,
             @Nullable Property property,
             AnyConfig config) {
-        this(parent.utils, parent.generatedClass, parent.prototype, parent, type, stackRelevantType, property, config);
-    }
-
-    protected AbstractCodeGeneratorStack(
-            AnnotationProcessorUtils utils,
-            GeneratedClass generatedClass,
-            JaggerPrototype prototype,
-            SELF parent,
-            TypeMirror type,
-            boolean stackRelevantType,
-            @Nullable Property property,
-            AnyConfig config) {
         super(parent);
-        this.prototype = prototype;
-        this.utils = utils;
+        this.utils = parent.utils;
+        this.generatedClass = Objects.requireNonNull(parent.generatedClass);
+        this.prototype = parent.prototype;
         this.type = type;
+
         this.parent = parent;
-        this.generatedClass = Objects.requireNonNull(generatedClass);
         this.stackRelevantType = stackRelevantType;
         this.property = property;
         this.canBePolyChild = prototype.contextParameter().isPresent()
                 && stackDepth() == 1
                 && Polymorphism.isSomeChild(type, utils.types);
-        if (parent != null) {
-            this.config = config;
-        } else {
-            this.config = type instanceof DeclaredType dt && dt.asElement() != null
-                    ? AnyConfig.create(dt.asElement(), ConfigProperty.LocationKind.DTO, utils)
-                            .merge(prototype.config())
-                    : prototype.config();
-        }
+        this.config = config;
     }
 
     protected void detectSelfReferencingType() {

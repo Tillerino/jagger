@@ -57,7 +57,7 @@ public abstract class AbstractReaderGenerator<SELF extends AbstractReaderGenerat
     protected final LHS lhs;
 
     AbstractReaderGenerator(AnnotationProcessorUtils utils, JaggerPrototype prototype, GeneratedClass generatedClass) {
-        super(utils, generatedClass, prototype, null, prototype.instantiatedReturnType(), true, null, null);
+        super(utils, generatedClass, prototype, prototype.instantiatedReturnType());
         lhs = new LHS.Return();
     }
 
