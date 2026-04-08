@@ -13,6 +13,12 @@ format:
 test args="":
   {{mvn}} clean spotless:apply test {{args}}
 
+test-single project args="":
+  {{mvn}} clean spotless:apply test -pl :jagger-tests-{{project}} -am {{args}}
+
+install-processor:
+  {{mvn}} clean install -pl :jagger-processor -am
+
 # show all available updates
 updates:
   {{mvn}} versions:display-plugin-updates {{updates-flags}} && { grep -- "->" updates.txt */updates.txt */*/updates.txt | sed 's/\.\+/./g'; }
