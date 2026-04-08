@@ -63,12 +63,6 @@ public class AbstractCodeGenerator<SELF extends AbstractCodeGenerator<SELF>> {
         return this;
     }
 
-    protected static Object[] flatten(Object... all) {
-        List<Object> aggregator = new ArrayList<>();
-        Snippet.collectInto(all, aggregator);
-        return aggregator.toArray();
-    }
-
     protected ScopedVar createVariable(String name) {
         if (variables.peek().add(name)) {
             return new ScopedVar(name);

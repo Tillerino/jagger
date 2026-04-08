@@ -34,7 +34,7 @@ public class JacksonJsonGeneratorWriterGenerator extends AbstractWriterGenerator
     @Override
     protected void writeNull() {
         if (lhs instanceof LHS.Field f) {
-            addStatement("$L.writeNullField(" + f.format() + ")", flatten(generatorVariable.getSimpleName(), f.args()));
+            addStatement("$L.writeNullField($C)", generatorVariable.getSimpleName(), f);
         } else {
             addStatement("$L.writeNull()", generatorVariable.getSimpleName());
         }
@@ -44,21 +44,16 @@ public class JacksonJsonGeneratorWriterGenerator extends AbstractWriterGenerator
     protected void writeString(StringKind stringKind) {
         if (lhs instanceof LHS.Field f) {
             if (stringKind == StringKind.STRING) {
-                addStatement(
-                        "$L.writeStringField(" + f.format() + ", " + rhs.format() + ")",
-                        flatten(generatorVariable.getSimpleName(), f.args(), rhs.args()));
+                addStatement("$L.writeStringField($C, $C)", generatorVariable.getSimpleName(), f, rhs);
                 return;
             } else {
-                addStatement(
-                        "$L.writeFieldName(" + f.format() + ")", flatten(generatorVariable.getSimpleName(), f.args()));
+                addStatement("$L.writeFieldName($C)", generatorVariable.getSimpleName(), f);
             }
         }
         switch (stringKind) {
-            case STRING -> addStatement(
-                    "$L.writeString(" + rhs.format() + ")", flatten(generatorVariable.getSimpleName(), rhs.args()));
+            case STRING -> addStatement("$L.writeString($C)", generatorVariable.getSimpleName(), rhs);
             case CHAR_ARRAY -> addStatement(
-                    "$L.writeString(" + rhs.format() + ", 0, " + rhs.format() + ".length)",
-                    flatten(generatorVariable.getSimpleName(), rhs.args(), rhs.args()));
+                    "$L.writeString($C, 0, $C.length)", generatorVariable.getSimpleName(), rhs, rhs);
         }
     }
 
@@ -66,14 +61,13 @@ public class JacksonJsonGeneratorWriterGenerator extends AbstractWriterGenerator
     protected void writeBinary(BinaryKind binaryKind) {
         addFieldNameIfRequired();
         switch (binaryKind) {
-            case BYTE_ARRAY -> addStatement(
-                    "$L.writeBinary(" + rhs.format() + ")", flatten(generatorVariable.getSimpleName(), rhs.args()));
+            case BYTE_ARRAY -> addStatement("$L.writeBinary($C)", generatorVariable.getSimpleName(), rhs);
         }
     }
 
     private boolean addFieldNameIfRequired() {
         if (lhs instanceof LHS.Field f) {
-            addStatement("$L.writeFieldName(" + f.format() + ")", flatten(generatorVariable.getSimpleName(), f.args()));
+            addStatement("$L.writeFieldName($C)", generatorVariable.getSimpleName(), f);
             return true;
         }
         return false;
@@ -83,30 +77,19 @@ public class JacksonJsonGeneratorWriterGenerator extends AbstractWriterGenerator
     public void writePrimitive(TypeMirror typeMirror) {
         if (lhs instanceof LHS.Field f) {
             if (typeMirror.getKind() == TypeKind.BOOLEAN) {
-                addStatement(
-                        "$L.writeBooleanField(" + f.format() + ", " + rhs.format() + ")",
-                        flatten(generatorVariable.getSimpleName(), f.args(), rhs.args()));
+                addStatement("$L.writeBooleanField($C, $C)", generatorVariable.getSimpleName(), f, rhs);
             } else if (typeMirror.getKind() == TypeKind.CHAR) {
-                addStatement(
-                        "$L.writeStringField(" + f.format() + ", String.valueOf(" + rhs.format() + "))",
-                        flatten(generatorVariable.getSimpleName(), f.args(), rhs.args()));
+                addStatement("$L.writeStringField($C, String.valueOf($C))", generatorVariable.getSimpleName(), f, rhs);
             } else {
-                addStatement(
-                        "$L.writeNumberField(" + f.format() + ", " + rhs.format() + ")",
-                        flatten(generatorVariable.getSimpleName(), f.args(), rhs.args()));
+                addStatement("$L.writeNumberField($C, $C)", generatorVariable.getSimpleName(), f, rhs);
             }
         } else {
             if (typeMirror.getKind() == TypeKind.BOOLEAN) {
-                addStatement(
-                        "$L.writeBoolean(" + rhs.format() + ")",
-                        flatten(generatorVariable.getSimpleName(), rhs.args()));
+                addStatement("$L.writeBoolean($C)", generatorVariable.getSimpleName(), rhs);
             } else if (typeMirror.getKind() == TypeKind.CHAR) {
-                addStatement(
-                        "$L.writeString(String.valueOf(" + rhs.format() + "))",
-                        flatten(generatorVariable.getSimpleName(), rhs.args()));
+                addStatement("$L.writeString(String.valueOf($C))", generatorVariable.getSimpleName(), rhs);
             } else {
-                addStatement(
-                        "$L.writeNumber(" + rhs.format() + ")", flatten(generatorVariable.getSimpleName(), rhs.args()));
+                addStatement("$L.writeNumber($C)", generatorVariable.getSimpleName(), rhs);
             }
         }
     }

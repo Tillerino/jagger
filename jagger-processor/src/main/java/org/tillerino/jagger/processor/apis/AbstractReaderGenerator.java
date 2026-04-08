@@ -161,10 +161,11 @@ public abstract class AbstractReaderGenerator<SELF extends AbstractReaderGenerat
             if (canBePolyChild) {
                 branch.controlFlow(
                         this,
-                        "!$L.isObjectOpen(false) && " + cond.format(),
-                        flatten(prototype.contextParameter().get(), cond.args()));
+                        "!$L.isObjectOpen(false) && $C",
+                        prototype.contextParameter().get(),
+                        cond);
             } else {
-                branch.controlFlow(this, cond.format(), cond.args());
+                branch.controlFlow(this, cond);
             }
             addStatement(lhs.assign("null"));
             readNullCheckedObject(Branch.ELSE_IF, lastCase);
@@ -844,25 +845,25 @@ public abstract class AbstractReaderGenerator<SELF extends AbstractReaderGenerat
             TypeMirror type, @Nullable Property property, LHS lhs, boolean stackRelevantType, AnyConfig config);
 
     protected sealed interface LHS {
-        default Snippet assign(Snippet s) {
-            return assign(s.format(), s.args());
+        default Snippet assign(String string, Object... args) {
+            return assign(Snippet.of(string, args));
         }
 
-        default Snippet assign(String string, Object... args) {
+        default Snippet assign(Snippet s) {
             if (this instanceof Return) {
-                return Snippet.of("return " + string, args);
+                return Snippet.of("return $C", s);
             } else if (this instanceof Variable v) {
-                return Snippet.of("$L = " + string, flatten(v.name(), args));
+                return Snippet.of("$C = $C", v, s);
             } else if (this instanceof Array a) {
-                return Snippet.of("$L[$L++] = " + string, flatten(a.arrayVar(), a.indexVar(), args));
+                return Snippet.of("$L[$L++] = $C", a.arrayVar(), a.indexVar(), s);
             } else if (this instanceof Collection c) {
-                return Snippet.of("$L.add(" + string + ")", flatten(c.variable(), args));
+                return Snippet.of("$L.add($C)", c.variable(), s);
             } else if (this instanceof Map m) {
-                return Snippet.of("$L.put($L, " + string + ")", flatten(m.mapVar(), m.keyVar(), args));
+                return Snippet.of("$L.put($L, $C)", m.mapVar(), m.keyVar(), s);
             } else if (this instanceof Field f) {
-                return Snippet.of("$L.$L = " + string, flatten(f.objectVar(), f.fieldName(), args));
-            } else if (this instanceof Setter s) {
-                return Snippet.of("$L.$L(" + string + ")", flatten(s.objectVar(), s.methodName(), args));
+                return Snippet.of("$L.$L = $C", f.objectVar(), f.fieldName(), s);
+            } else if (this instanceof Setter set) {
+                return Snippet.of("$L.$L($C)", set.objectVar(), set.methodName(), s);
             } else {
                 throw new ContextedRuntimeException(this.toString());
             }

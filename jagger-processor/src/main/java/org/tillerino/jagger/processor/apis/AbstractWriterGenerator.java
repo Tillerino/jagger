@@ -71,7 +71,7 @@ public abstract class AbstractWriterGenerator<SELF extends AbstractWriterGenerat
             if (List.of(TypeKind.FLOAT, TypeKind.DOUBLE).contains(pt.getKind())
                     && features().onlySupportsFiniteNumbers()) {
                 TypeMirror boxedType = utils.types.boxedClass(pt).asType();
-                beginControlFlow("if ($T.isFinite(" + rhs.format() + "))", flatten(boxedType, rhs.args()));
+                beginControlFlow("if ($T.isFinite($C))", boxedType, rhs);
                 writePrimitive(type);
                 nextControlFlow("else");
                 RHS asString = new RHS.AnySnippet(Snippet.of("$T.toString($C)", boxedType, rhs), false);
@@ -104,7 +104,7 @@ public abstract class AbstractWriterGenerator<SELF extends AbstractWriterGenerat
             } else {
                 RHS.Variable nest = new RHS.Variable(
                         createVariable(property.canonicalName()).name(), true);
-                addStatement("$T $L = " + rhs.format(), flatten(type, nest.name(), rhs.args()));
+                addStatement("$T $L = $C", type, nest.name(), rhs);
                 nest(type, lhs, null, nest, false, config).writeNullable();
                 return;
             }
@@ -188,7 +188,7 @@ public abstract class AbstractWriterGenerator<SELF extends AbstractWriterGenerat
                 config.propagateTo(PropagationKind.PROPERTY));
         startArray();
         ScopedVar firstMarker = writeCommaMarkerIfNecessary();
-        beginControlFlow("for ($T $L : " + rhs.format() + ")", flatten(nested.type, elemVar.name(), rhs.args()));
+        beginControlFlow("for ($T $L : $C)", nested.type, elemVar.name(), rhs);
         writeCommaIfNecessary(firstMarker);
         Exceptions.runWithContext(nested::build, "component", componentType);
         endControlFlow();
@@ -229,9 +229,7 @@ public abstract class AbstractWriterGenerator<SELF extends AbstractWriterGenerat
                 nest(valueType, key, Property.VALUE, value, true, config.propagateTo(PropagationKind.PROPERTY));
 
         startObject();
-        beginControlFlow(
-                "for ($T<$T, $T> $L : " + rhs.format() + ".entrySet())",
-                flatten(Map.Entry.class, keyType, valueType, entry.name(), rhs.args()));
+        beginControlFlow("for ($T<$T, $T> $L : $C.entrySet())", Map.Entry.class, keyType, valueType, entry.name(), rhs);
         Exceptions.runWithContext(valueNested::build, "value", valueType);
         endControlFlow();
         endObject();
@@ -253,11 +251,11 @@ public abstract class AbstractWriterGenerator<SELF extends AbstractWriterGenerat
     private void writePolymorphicObject(Polymorphism polymorphism) {
         Branch branch = Branch.IF;
         for (Polymorphism.Child child : polymorphism.children()) {
-            branch.controlFlow(this, rhs.format() + " instanceof $T", flatten(rhs.args(), child.type()));
+            branch.controlFlow(this, "$C instanceof $T", rhs, child.type());
             branch = Branch.ELSE_IF;
             RHS.Variable casted =
                     new RHS.Variable(createVariable(propertyName() + "Cast").name(), false);
-            addStatement("$T $L = ($T) " + rhs.format(), flatten(child.type(), casted.name, child.type(), rhs.args()));
+            addStatement("$T $L = ($T) $C", child.type(), casted.name, child.type(), rhs);
 
             AnyConfig childConfig = config.propagateTo(
                     PropagationKind.SUBSTITUTE /* this is fine with the configuration options that we
@@ -377,8 +375,7 @@ public abstract class AbstractWriterGenerator<SELF extends AbstractWriterGenerat
     private void writeEnum() {
         RHS.Variable enumValue =
                 new RHS.Variable(createVariable(propertyName() + "String").name(), false);
-        addStatement(
-                "$T $L = " + rhs.format() + ".name()", flatten(utils.commonTypes.string, enumValue.name(), rhs.args()));
+        addStatement("$T $L = $C.name()", utils.commonTypes.string, enumValue.name(), rhs);
         nest(utils.commonTypes.string, lhs, null, enumValue, false, config.propagateTo(PropagationKind.SUBSTITUTE))
                 .build();
     }

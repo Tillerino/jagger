@@ -42,7 +42,7 @@ public class JaggerWriterGenerator extends AbstractWriterGenerator<JaggerWriterG
     @Override
     protected void writeNull() {
         if (lhs instanceof LHS.Field f) {
-            addStatement("$L.writeNullField(" + f.format() + ")", flatten(generatorVariable.getSimpleName(), f.args()));
+            addStatement("$L.writeNullField($C)", generatorVariable.getSimpleName(), f);
         } else {
             addStatement("$L.writeNull()", generatorVariable.getSimpleName());
         }
@@ -89,8 +89,7 @@ public class JaggerWriterGenerator extends AbstractWriterGenerator<JaggerWriterG
     @Override
     protected void startArray() {
         if (lhs instanceof LHS.Field f) {
-            addStatement(
-                    "$L.startArrayField(" + f.format() + ")", flatten(generatorVariable.getSimpleName(), f.args()));
+            addStatement("$L.startArrayField($C)", generatorVariable.getSimpleName(), f);
         } else {
             addStatement("$L.startArray()", generatorVariable.getSimpleName());
         }
@@ -104,8 +103,7 @@ public class JaggerWriterGenerator extends AbstractWriterGenerator<JaggerWriterG
     @Override
     protected void startObject() {
         if (lhs instanceof LHS.Field f) {
-            addStatement(
-                    "$L.startObjectField(" + f.format() + ")", flatten(generatorVariable.getSimpleName(), f.args()));
+            addStatement("$L.startObjectField($C)", generatorVariable.getSimpleName(), f);
         } else {
             addStatement("$L.startObject()", generatorVariable.getSimpleName());
         }

@@ -40,7 +40,7 @@ public class JakartaJsonGeneratorGenerator extends AbstractWriterGenerator<Jakar
     @Override
     protected void writeNull() {
         if (lhs instanceof LHS.Field f) {
-            addStatement("$L.writeNull(" + f.format() + ")", flatten(generatorVariable.getSimpleName(), f.args()));
+            addStatement("$L.writeNull($C)", generatorVariable.getSimpleName(), f);
         } else {
             addStatement("$L.writeNull()", generatorVariable.getSimpleName());
         }
@@ -66,7 +66,7 @@ public class JakartaJsonGeneratorGenerator extends AbstractWriterGenerator<Jakar
 
     private boolean addFieldNameIfRequired() {
         if (lhs instanceof LHS.Field f) {
-            addStatement("$L.writeKey(" + f.format() + ")", flatten(generatorVariable.getSimpleName(), f.args()));
+            addStatement("$L.writeKey($C)", generatorVariable.getSimpleName(), f);
             return true;
         }
         return false;

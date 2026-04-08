@@ -43,7 +43,7 @@ public class NanojsonWriterGenerator extends AbstractWriterGenerator<NanojsonWri
     @Override
     protected void writeNull() {
         if (lhs instanceof LHS.Field f) {
-            addStatement("$L.nul(" + f.format() + ")", flatten(generatorVariable.getSimpleName(), f.args()));
+            addStatement("$L.nul($C)", generatorVariable.getSimpleName(), f);
         } else {
             addStatement("$L.nul()", generatorVariable.getSimpleName());
         }
@@ -90,7 +90,7 @@ public class NanojsonWriterGenerator extends AbstractWriterGenerator<NanojsonWri
     @Override
     protected void startArray() {
         if (lhs instanceof LHS.Field f) {
-            addStatement("$L.array(" + f.format() + ")", flatten(generatorVariable.getSimpleName(), f.args()));
+            addStatement("$L.array($C)", generatorVariable.getSimpleName(), f);
         } else {
             addStatement("$L.array()", generatorVariable.getSimpleName());
         }
@@ -104,7 +104,7 @@ public class NanojsonWriterGenerator extends AbstractWriterGenerator<NanojsonWri
     @Override
     protected void startObject() {
         if (lhs instanceof LHS.Field f) {
-            addStatement("$L.object(" + f.format() + ")", flatten(generatorVariable.getSimpleName(), f.args()));
+            addStatement("$L.object($C)", generatorVariable.getSimpleName(), f);
         } else {
             addStatement("$L.object()", generatorVariable.getSimpleName());
         }
