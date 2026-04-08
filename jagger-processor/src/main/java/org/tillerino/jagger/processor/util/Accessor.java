@@ -3,6 +3,7 @@ package org.tillerino.jagger.processor.util;
 import javax.lang.model.element.Element;
 import javax.lang.model.type.TypeMirror;
 import org.tillerino.jagger.processor.Snippet;
+import org.tillerino.jagger.processor.Snippet.TypedSnippet;
 
 public sealed interface Accessor {
     TypeMirror type();
@@ -16,6 +17,14 @@ public sealed interface Accessor {
     sealed interface ReadAccessor extends Accessor {
         default Snippet readSnippet(Snippet object) {
             return Snippet.of(
+                    "$C.$L" + (kind() == AccessorKind.GETTER ? "()" : ""),
+                    object,
+                    element().getSimpleName().toString());
+        }
+
+        default TypedSnippet readSnippet(TypedSnippet object) {
+            return TypedSnippet.of(
+                    object.type(),
                     "$C.$L" + (kind() == AccessorKind.GETTER ? "()" : ""),
                     object,
                     element().getSimpleName().toString());

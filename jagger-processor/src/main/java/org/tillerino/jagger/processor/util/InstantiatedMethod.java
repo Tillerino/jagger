@@ -12,6 +12,7 @@ import javax.lang.model.element.TypeParameterElement;
 import javax.lang.model.type.*;
 import org.tillerino.jagger.processor.AnnotationProcessorUtils;
 import org.tillerino.jagger.processor.Snippet;
+import org.tillerino.jagger.processor.Snippet.TypedSnippet;
 import org.tillerino.jagger.processor.config.AnyConfig;
 
 /** Need this to instantiate generics. */
@@ -80,7 +81,7 @@ public record InstantiatedMethod(
         return new InstantiatedMethod(name, returnType, parameters, element, config);
     }
 
-    public record InstantiatedVariable(TypeMirror type, String name, AnyConfig config) implements Snippet {
+    public record InstantiatedVariable(TypeMirror type, String name, AnyConfig config) implements TypedSnippet {
         @Override
         public String toString() {
             return ShortName.of(type) + " " + name();
