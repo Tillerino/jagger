@@ -35,7 +35,7 @@ public abstract class AbstractCodeGeneratorStack<SELF extends AbstractCodeGenera
     // for creating the root generator
     protected AbstractCodeGeneratorStack(
             AnnotationProcessorUtils utils, GeneratedClass generatedClass, JaggerPrototype prototype, TypeMirror type) {
-        super(); // blank code builder and variable stack
+        super(prototype.asInstantiatedMethod()); // add method parameters to variables scope
         this.utils = utils;
         this.generatedClass = Objects.requireNonNull(generatedClass);
         this.prototype = prototype;

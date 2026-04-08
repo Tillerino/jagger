@@ -3,15 +3,21 @@ package org.tillerino.jagger.processor.apis;
 import com.squareup.javapoet.CodeBlock;
 import java.util.*;
 import org.tillerino.jagger.processor.Snippet;
+import org.tillerino.jagger.processor.util.InstantiatedMethod;
+import org.tillerino.jagger.processor.util.InstantiatedMethod.InstantiatedVariable;
 
 public class AbstractCodeGenerator<SELF extends AbstractCodeGenerator<SELF>> {
     protected final CodeBlock.Builder code;
     protected final Stack<Set<String>> variables;
 
-    public AbstractCodeGenerator() {
+    public AbstractCodeGenerator(InstantiatedMethod method) {
         this.code = CodeBlock.builder();
         this.variables = new Stack<>();
-        this.variables.push(new LinkedHashSet<>());
+        LinkedHashSet<String> rootVariables = new LinkedHashSet<>();
+        for (InstantiatedVariable parameter : method.parameters()) {
+            rootVariables.add(parameter.name());
+        }
+        this.variables.push(rootVariables);
     }
 
     public AbstractCodeGenerator(AbstractCodeGenerator<SELF> parent) {
