@@ -57,16 +57,7 @@ public abstract class AbstractReaderGenerator<SELF extends AbstractReaderGenerat
     protected final LHS lhs;
 
     AbstractReaderGenerator(AnnotationProcessorUtils utils, JaggerPrototype prototype, GeneratedClass generatedClass) {
-        super(
-                utils,
-                generatedClass,
-                prototype,
-                CodeBlock.builder(),
-                null,
-                prototype.instantiatedReturnType(),
-                true,
-                null,
-                null);
+        super(utils, generatedClass, prototype, null, prototype.instantiatedReturnType(), true, null, null);
         lhs = new LHS.Return();
     }
 
@@ -945,16 +936,16 @@ public abstract class AbstractReaderGenerator<SELF extends AbstractReaderGenerat
         ELSE_IF,
         ;
 
-        <T extends AbstractCodeGeneratorStack<T>> AbstractCodeGeneratorStack<T> controlFlow(
-                AbstractCodeGeneratorStack<T> code, String s, Object... args) {
+        <T extends AbstractCodeGenerator<T>> AbstractCodeGenerator<T> controlFlow(
+                AbstractCodeGenerator<T> code, String s, Object... args) {
             return switch (this) {
                 case IF -> code.beginControlFlow("if (" + s + ")", args);
                 case ELSE_IF -> code.nextControlFlow("else if (" + s + ")", args);
             };
         }
 
-        <T extends AbstractCodeGeneratorStack<T>> AbstractCodeGeneratorStack<T> controlFlow(
-                AbstractCodeGeneratorStack<T> code, Snippet snippet) {
+        <T extends AbstractCodeGenerator<T>> AbstractCodeGenerator<T> controlFlow(
+                AbstractCodeGenerator<T> code, Snippet snippet) {
             return switch (this) {
                 case IF -> code.beginControlFlow("if ($C)", snippet);
                 case ELSE_IF -> code.nextControlFlow("else if ($C)", snippet);

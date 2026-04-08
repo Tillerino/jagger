@@ -50,7 +50,6 @@ public abstract class AbstractWriterGenerator<SELF extends AbstractWriterGenerat
                 utils,
                 generatedClass,
                 prototype,
-                CodeBlock.builder(),
                 null,
                 prototype.instantiatedParameters().get(0).type(),
                 true,

@@ -1,0 +1,94 @@
+package org.tillerino.jagger.processor.apis;
+
+import com.squareup.javapoet.CodeBlock;
+import java.util.*;
+import org.tillerino.jagger.processor.Snippet;
+
+public class AbstractCodeGenerator<SELF extends AbstractCodeGenerator<SELF>> {
+    protected final CodeBlock.Builder code;
+    protected final Stack<Set<String>> variables;
+
+    public AbstractCodeGenerator() {
+        this.code = CodeBlock.builder();
+        this.variables = new Stack<>();
+        this.variables.push(new LinkedHashSet<>());
+    }
+
+    public AbstractCodeGenerator(AbstractCodeGenerator<SELF> parent) {
+        if (parent != null) {
+            this.code = parent.code;
+            this.variables = parent.variables;
+        } else {
+            this.code = CodeBlock.builder();
+            this.variables = new Stack<>();
+            this.variables.push(new LinkedHashSet<>());
+        }
+    }
+
+    protected AbstractCodeGenerator<SELF> addStatement(Snippet s) {
+        code.addStatement(s.format(), s.args());
+        return this;
+    }
+
+    protected AbstractCodeGenerator<SELF> addStatement(String format, Object... args) {
+        return addStatement(Snippet.of(format, args));
+    }
+
+    protected AbstractCodeGenerator<SELF> beginControlFlow(Snippet s) {
+        code.beginControlFlow(s.format(), s.args());
+        variables.push(new LinkedHashSet<>(variables.peek()));
+        return this;
+    }
+
+    protected AbstractCodeGenerator<SELF> beginControlFlow(String controlFlow, Object... args) {
+        return beginControlFlow(Snippet.of(controlFlow, args));
+    }
+
+    protected AbstractCodeGenerator<SELF> nextControlFlow(Snippet s) {
+        variables.pop();
+        assert !variables.isEmpty();
+        code.nextControlFlow(s.format(), s.args());
+        variables.push(new LinkedHashSet<>(variables.peek()));
+        return this;
+    }
+
+    protected AbstractCodeGenerator<SELF> nextControlFlow(String controlFlow, Object... args) {
+        return nextControlFlow(Snippet.of(controlFlow, args));
+    }
+
+    protected AbstractCodeGenerator<SELF> endControlFlow() {
+        variables.pop();
+        assert !variables.isEmpty();
+        code.endControlFlow();
+        return this;
+    }
+
+    protected static Object[] flatten(Object... all) {
+        List<Object> aggregator = new ArrayList<>();
+        Snippet.collectInto(all, aggregator);
+        return aggregator.toArray();
+    }
+
+    protected ScopedVar createVariable(String name) {
+        if (variables.peek().add(name)) {
+            return new ScopedVar(name);
+        }
+        int suf = 2;
+        while (!variables.peek().add(name + suf)) {
+            suf++;
+        }
+        return new ScopedVar(name + suf);
+    }
+
+    protected record ScopedVar(String name) implements Snippet {
+        @Override
+        public String format() {
+            return "$L";
+        }
+
+        @Override
+        public Object[] args() {
+            return new Object[] {name()};
+        }
+    }
+}
