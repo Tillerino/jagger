@@ -901,13 +901,8 @@ public abstract class AbstractReaderGenerator<SELF extends AbstractReaderGenerat
             }
 
             @Override
-            public String format() {
-                return "$L";
-            }
-
-            @Override
-            public Object[] args() {
-                return new Object[] {name};
+            public Flattened flatten() {
+                return Flattened.of("$L", name);
             }
         }
 
@@ -919,13 +914,8 @@ public abstract class AbstractReaderGenerator<SELF extends AbstractReaderGenerat
 
         record Field(String objectVar, String fieldName) implements LHS, Snippet {
             @Override
-            public String format() {
-                return "$L.$L";
-            }
-
-            @Override
-            public Object[] args() {
-                return new Object[] {objectVar, fieldName};
+            public Flattened flatten() {
+                return Flattened.of("$L.$L", objectVar, fieldName);
             }
         }
 

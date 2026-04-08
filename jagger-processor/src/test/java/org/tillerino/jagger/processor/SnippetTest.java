@@ -3,6 +3,7 @@ package org.tillerino.jagger.processor;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import org.junit.jupiter.api.Test;
+import org.tillerino.jagger.processor.Snippet.Flattened;
 
 class SnippetTest {
     @Test
@@ -31,7 +32,8 @@ class SnippetTest {
     }
 
     static void assertEqual(Snippet s, String format, Object... args) {
-        assertThat(s.format()).isEqualTo(format);
-        assertThat(s.args()).containsExactly(args);
+        Flattened flattened = s.flatten();
+        assertThat(flattened.format()).isEqualTo(format);
+        assertThat(flattened.args()).containsExactly(args);
     }
 }

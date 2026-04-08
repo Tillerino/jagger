@@ -88,13 +88,8 @@ public record InstantiatedMethod(
         }
 
         @Override
-        public String format() {
-            return "$L";
-        }
-
-        @Override
-        public Object[] args() {
-            return new Object[] {name};
+        public Flattened flatten() {
+            return Flattened.of("$L", name);
         }
     }
 }

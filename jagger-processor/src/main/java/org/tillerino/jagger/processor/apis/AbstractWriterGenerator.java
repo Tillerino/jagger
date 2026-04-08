@@ -426,33 +426,24 @@ public abstract class AbstractWriterGenerator<SELF extends AbstractWriterGenerat
 
         record Array() implements LHS {}
 
-        record Field(String format, Object[] args) implements LHS, Snippet {}
+        record Field(String format, Object[] args) implements LHS, Snippet {
+            @Override
+            public Flattened flatten() {
+                return new Flattened(format, args);
+            }
+        }
     }
 
     sealed interface RHS extends Snippet {
-        default String format() {
-            if (this instanceof Variable) {
-                return "$L";
-            } else if (this instanceof Accessor a) {
-                return a.accessor.format();
-            } else if (this instanceof StringLiteral) {
-                return "$S";
-            } else if (this instanceof AnySnippet a) {
-                return a.snippet().format();
-            } else {
-                throw new ContextedRuntimeException();
-            }
-        }
-
-        default Object[] args() {
+        default Flattened flatten() {
             if (this instanceof Variable v) {
-                return new Object[] {v.name()};
+                return Flattened.of("$L", v.name());
             } else if (this instanceof Accessor a) {
-                return a.accessor.args();
+                return a.accessor.flatten();
             } else if (this instanceof StringLiteral s) {
-                return new Object[] {s.value()};
+                return Flattened.of("$S", s.value());
             } else if (this instanceof AnySnippet a) {
-                return a.snippet().args();
+                return a.snippet().flatten();
             } else {
                 throw new ContextedRuntimeException();
             }

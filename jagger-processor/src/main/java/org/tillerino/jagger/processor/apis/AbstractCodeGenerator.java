@@ -1,8 +1,11 @@
 package org.tillerino.jagger.processor.apis;
 
 import com.squareup.javapoet.CodeBlock;
-import java.util.*;
+import java.util.LinkedHashSet;
+import java.util.Set;
+import java.util.Stack;
 import org.tillerino.jagger.processor.Snippet;
+import org.tillerino.jagger.processor.Snippet.Flattened;
 import org.tillerino.jagger.processor.util.InstantiatedMethod;
 import org.tillerino.jagger.processor.util.InstantiatedMethod.InstantiatedVariable;
 
@@ -26,7 +29,8 @@ public class AbstractCodeGenerator<SELF extends AbstractCodeGenerator<SELF>> {
     }
 
     protected AbstractCodeGenerator<SELF> addStatement(Snippet s) {
-        code.addStatement(s.format(), s.args());
+        Flattened f = s.flatten();
+        code.addStatement(f.format(), f.args());
         return this;
     }
 
@@ -35,7 +39,8 @@ public class AbstractCodeGenerator<SELF extends AbstractCodeGenerator<SELF>> {
     }
 
     protected AbstractCodeGenerator<SELF> beginControlFlow(Snippet s) {
-        code.beginControlFlow(s.format(), s.args());
+        Flattened f = s.flatten();
+        code.beginControlFlow(f.format(), f.args());
         variables.push(new LinkedHashSet<>(variables.peek()));
         return this;
     }
@@ -45,9 +50,10 @@ public class AbstractCodeGenerator<SELF extends AbstractCodeGenerator<SELF>> {
     }
 
     protected AbstractCodeGenerator<SELF> nextControlFlow(Snippet s) {
+        Flattened f = s.flatten();
         variables.pop();
         assert !variables.isEmpty();
-        code.nextControlFlow(s.format(), s.args());
+        code.nextControlFlow(f.format(), f.args());
         variables.push(new LinkedHashSet<>(variables.peek()));
         return this;
     }
@@ -76,13 +82,8 @@ public class AbstractCodeGenerator<SELF extends AbstractCodeGenerator<SELF>> {
 
     protected record ScopedVar(String name) implements Snippet {
         @Override
-        public String format() {
-            return "$L";
-        }
-
-        @Override
-        public Object[] args() {
-            return new Object[] {name()};
+        public Flattened flatten() {
+            return Flattened.of("$L", name());
         }
     }
 }

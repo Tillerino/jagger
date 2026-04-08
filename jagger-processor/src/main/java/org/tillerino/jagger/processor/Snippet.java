@@ -5,7 +5,6 @@ import java.util.*;
 import java.util.stream.Collectors;
 import javax.lang.model.element.Element;
 import javax.lang.model.type.TypeMirror;
-import org.apache.commons.lang3.Validate;
 import org.tillerino.jagger.processor.util.Named;
 
 /**
@@ -14,50 +13,55 @@ import org.tillerino.jagger.processor.util.Named;
  * insert a nested snippet. Using {@link Element} or {@link Named} as arguments will automatically extract the name.
  */
 public interface Snippet {
-    String format();
-
-    Object[] args();
+    Flattened flatten();
 
     static Snippet of(String format, Object... args) {
+        record A(String f, Object a) {}
+        List<Object> deconstructed = new ArrayList<>();
+
         Queue<Object> remainingArgs = new LinkedList<>(Arrays.asList(args));
-        StringBuilder sb = new StringBuilder();
-        List<Object> flatArgs = new ArrayList<>();
         for (int i = 0; i < format.length(); ) {
             int j = format.indexOf('$', i);
             if (j == -1 || j == format.length() - 1) {
-                sb.append(format, i, format.length());
+                deconstructed.add(format.substring(i));
                 break;
             }
             switch (format.charAt(j + 1)) {
                 case '$' -> {
-                    sb.append(format, i, j + 2);
+                    deconstructed.add(format.substring(i, j + 2));
                 }
                 case 'C' -> {
-                    sb.append(format, i, j);
-                    Snippet nested = (Snippet) remainingArgs.remove();
-                    sb.append(nested.format());
-                    collectInto(nested.args(), flatArgs);
+                    deconstructed.add(format.substring(i, j));
+                    Object o = remainingArgs.remove();
+                    if (!(o instanceof Snippet s)) {
+                        throw new IllegalArgumentException();
+                    }
+                    deconstructed.add(s);
                 }
                 default -> {
-                    sb.append(format, i, j + 2);
-                    collectInto(remainingArgs.remove(), flatArgs);
+                    deconstructed.add(new A(format.substring(i, j + 2), remainingArgs.remove()));
                 }
             }
             i = j + 2;
         }
-        Validate.isTrue(remainingArgs.isEmpty(), "Too many arguments");
-        String flatFormat = sb.toString();
-        Object[] flatArgsArray = flatArgs.toArray();
-        return new Snippet() {
-            @Override
-            public String format() {
-                return flatFormat;
-            }
 
-            @Override
-            public Object[] args() {
-                return flatArgsArray;
+        return () -> {
+            StringBuilder builder = new StringBuilder();
+            List<Object> flatArgs = new ArrayList<>();
+            for (Object o : deconstructed) {
+                if (o instanceof String s) {
+                    builder.append(s);
+                } else if (o instanceof A a) {
+                    builder.append(a.f);
+                    collectInto(a.a, flatArgs);
+                } else {
+                    Snippet s = (Snippet) o;
+                    Flattened f = s.flatten();
+                    builder.append(f.format);
+                    collectInto(f.args, flatArgs);
+                }
             }
+            return new Flattened(builder.toString(), flatArgs.toArray());
         };
     }
 
@@ -66,14 +70,14 @@ public interface Snippet {
     }
 
     static Snippet join(Collection<? extends Snippet> snippets, String delimiter, String before, String after) {
-        String format = snippets.stream().map(Snippet::format).collect(Collectors.joining(delimiter, before, after));
-        Object[] args = snippets.stream().flatMap(s -> Arrays.stream(s.args())).toArray();
+        String format = snippets.stream().map(__ -> "$C").collect(Collectors.joining(delimiter, before, after));
+        Object[] args = snippets.toArray();
         return Snippet.of(format, args);
     }
 
     static Snippet joinPrependingCommaToEach(Collection<? extends Snippet> snippets) {
-        String format = snippets.stream().map(s -> ", " + s.format()).collect(Collectors.joining());
-        Object[] args = snippets.stream().flatMap(s -> Arrays.stream(s.args())).toArray();
+        String format = snippets.stream().map(s -> ", $C").collect(Collectors.joining());
+        Object[] args = snippets.toArray();
         return Snippet.of(format, args);
     }
 
@@ -100,19 +104,25 @@ public interface Snippet {
                 }
 
                 @Override
-                public String format() {
-                    return nested.format();
-                }
-
-                @Override
-                public Object[] args() {
-                    return nested.args();
+                public Flattened flatten() {
+                    return nested.flatten();
                 }
             };
         }
 
         static TypedSnippet of(TypeMirror type, String format, Object... args) {
             return of(type, Snippet.of(format, args));
+        }
+    }
+
+    record Flattened(String format, Object[] args) implements Snippet {
+        @Override
+        public Flattened flatten() {
+            return this;
+        }
+
+        public static Flattened of(String format, Object... args) {
+            return new Flattened(format, args);
         }
     }
 }
