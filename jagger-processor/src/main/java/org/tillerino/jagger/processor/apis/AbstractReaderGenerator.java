@@ -26,7 +26,6 @@ import java.util.function.Consumer;
 import javax.lang.model.element.ElementKind;
 import javax.lang.model.element.Modifier;
 import javax.lang.model.element.TypeElement;
-import javax.lang.model.element.VariableElement;
 import javax.lang.model.type.DeclaredType;
 import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
@@ -161,7 +160,7 @@ public abstract class AbstractReaderGenerator<SELF extends AbstractReaderGenerat
             if (canBePolyChild) {
                 branch.controlFlow(
                         this,
-                        "!$L.isObjectOpen(false) && $C",
+                        "!$C.isObjectOpen(false) && $C",
                         prototype.contextParameter().get(),
                         cond);
             } else {
@@ -394,7 +393,7 @@ public abstract class AbstractReaderGenerator<SELF extends AbstractReaderGenerat
     private void readCollection(Branch branch, boolean lastCase) {
         branch.controlFlow(this, arrayCaseCondition());
         {
-            TypeMirror componentType = utils.commonTypes.iterableComponentType(type);
+            TypeMirror componentType = utils.commonTypes.getComponentType(type, Iterable.class);
             TypeMirror collectionType = determineCollectionType();
             String varName = instantiateContainer(collectionType);
 
@@ -497,7 +496,7 @@ public abstract class AbstractReaderGenerator<SELF extends AbstractReaderGenerat
         Snippet cond = objectCaseCondition();
         if (canBePolyChild) {
             cond = Snippet.of(
-                    "$L.isObjectOpen(true) || $C", prototype.contextParameter().get(), cond);
+                    "$C.isObjectOpen(true) || $C", prototype.contextParameter().get(), cond);
         }
         branch.controlFlow(this, cond);
 
@@ -538,16 +537,16 @@ public abstract class AbstractReaderGenerator<SELF extends AbstractReaderGenerat
                     .findDelegatee(child.type(), prototype, false, true, config, generatedClass)
                     .ifPresentOrElse(
                             delegatee -> {
-                                VariableElement callerContext = prototype
+                                InstantiatedVariable callerContext = prototype
                                         .contextParameter()
                                         .orElseThrow(() -> new ContextedRuntimeException(
                                                 "Prototype method must have a context parameter"));
-                                if (!delegatee.method().hasParameterAssignableFrom(callerContext.asType(), utils)) {
+                                if (!delegatee.method().hasParameterAssignableFrom(callerContext.type(), utils)) {
                                     throw new ContextedRuntimeException(
                                             "Delegate method must have a context parameter");
                                 }
                                 addStatement(
-                                        "$L.markObjectOpen()",
+                                        "$C.markObjectOpen()",
                                         prototype.contextParameter().get());
                                 Exceptions.runWithContext(
                                         () -> nested.invokeDelegate(delegatee.fieldOrParameter(), delegatee.method()),
@@ -612,7 +611,7 @@ public abstract class AbstractReaderGenerator<SELF extends AbstractReaderGenerat
             Snippet defaultValue = utils.defaultValues
                     .findInputDefaultValue(prototype.blueprint(), nest.type, propertyConfig)
                     .map(m -> of("$C()", m.callSymbol(utils)))
-                    .orElse(of("$L", utils.commonTypes.getNullValueRaw(nest.type)));
+                    .orElse(of("$C", utils.commonTypes.getNullValueRaw(nest.type)));
             addStatement(of("$T $L = $C", nest.type, varName, defaultValue));
             if (propertyConfig.resolveProperty(IGNORE_PROPERTY).value()) {
                 // we do need the default value to call the creator, so we only skip reading the value
@@ -797,7 +796,7 @@ public abstract class AbstractReaderGenerator<SELF extends AbstractReaderGenerat
     private Snippet safeNonObjectCase(Snippet leCase) {
         return prototype
                 .contextParameter()
-                .map(ctx -> Snippet.of("!$L.isObjectOpen(false) && $C", ctx, leCase))
+                .map(ctx -> Snippet.of("!$C.isObjectOpen(false) && $C", ctx, leCase))
                 .orElse(leCase);
     }
 

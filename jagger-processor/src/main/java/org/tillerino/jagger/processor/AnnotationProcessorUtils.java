@@ -19,6 +19,8 @@ import javax.lang.model.util.SimpleAnnotationValueVisitor14;
 import javax.lang.model.util.Types;
 import org.tillerino.jagger.api.DeserializationContext;
 import org.tillerino.jagger.api.SerializationContext;
+import org.tillerino.jagger.processor.Snippet.PerfectSnippet;
+import org.tillerino.jagger.processor.Snippet.PerfectSnippet.Literal;
 import org.tillerino.jagger.processor.features.*;
 import org.tillerino.jagger.processor.util.Annotations;
 import org.tillerino.jagger.processor.util.Exceptions;
@@ -137,9 +139,9 @@ public class AnnotationProcessorUtils {
             return isAssignableTo(types.erasure(type), Iterable.class) || type.getKind() == TypeKind.ARRAY;
         }
 
-        public TypeMirror iterableComponentType(TypeMirror type) {
+        public TypeMirror getComponentType(TypeMirror type, Class<?> parameterizedClass) {
             return generics.recordTypeBindingsFor(
-                            (DeclaredType) type, elements.getTypeElement(Iterable.class.getName()))
+                            (DeclaredType) type, elements.getTypeElement(parameterizedClass.getName()))
                     .values()
                     .iterator()
                     .next();
@@ -160,7 +162,7 @@ public class AnnotationProcessorUtils {
             if (type.getKind() == TypeKind.ARRAY) {
                 return getArrayComponentType(type);
             } else if (isIterable(type)) {
-                return iterableComponentType(type);
+                return getComponentType(type, Iterable.class);
             }
             return type;
         }
@@ -177,14 +179,14 @@ public class AnnotationProcessorUtils {
             return types.isAssignable(type1, type(cls));
         }
 
-        public String getNullValueRaw(TypeMirror type) {
+        public PerfectSnippet getNullValueRaw(TypeMirror type) {
             return switch (type.getKind()) {
-                case BOOLEAN -> "false";
-                case BYTE, SHORT, INT, CHAR -> "0";
-                case LONG -> "0L";
-                case FLOAT -> "0.0f";
-                case DOUBLE -> "0.0d";
-                case ARRAY, DECLARED, TYPEVAR, WILDCARD, UNION, INTERSECTION -> "null";
+                case BOOLEAN -> new Literal(type, "false");
+                case BYTE, SHORT, INT, CHAR -> new Literal(type, "0");
+                case LONG -> new Literal(type, "0L");
+                case FLOAT -> new Literal(type, "0.0f");
+                case DOUBLE -> new Literal(type, "0.0d");
+                case ARRAY, DECLARED, TYPEVAR, WILDCARD, UNION, INTERSECTION -> new Literal(type, "null");
                 default -> throw Exceptions.unexpected();
             };
         }

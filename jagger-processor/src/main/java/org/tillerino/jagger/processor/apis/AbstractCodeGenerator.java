@@ -4,8 +4,10 @@ import com.squareup.javapoet.CodeBlock;
 import java.util.LinkedHashSet;
 import java.util.Set;
 import java.util.Stack;
+import javax.lang.model.type.TypeMirror;
 import org.tillerino.jagger.processor.Snippet;
 import org.tillerino.jagger.processor.Snippet.Flattened;
+import org.tillerino.jagger.processor.Snippet.PerfectSnippet.TypedVariable;
 import org.tillerino.jagger.processor.util.InstantiatedMethod;
 import org.tillerino.jagger.processor.util.InstantiatedMethod.InstantiatedVariable;
 
@@ -84,6 +86,10 @@ public class AbstractCodeGenerator<SELF extends AbstractCodeGenerator<SELF>> {
         @Override
         public Flattened flatten() {
             return Flattened.of("$L", name());
+        }
+
+        public TypedVariable withType(TypeMirror type) {
+            return new TypedVariable(type, name);
         }
     }
 }

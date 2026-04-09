@@ -4,7 +4,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Stream;
-import javax.lang.model.element.VariableElement;
 import javax.lang.model.type.DeclaredType;
 import javax.lang.model.type.TypeMirror;
 import org.apache.commons.lang3.exception.ContextedRuntimeException;
@@ -22,6 +21,7 @@ import org.tillerino.jagger.processor.features.Generics.TypeVar;
 import org.tillerino.jagger.processor.util.Accessor.ReadAccessor;
 import org.tillerino.jagger.processor.util.Annotations.AnnotationValueWrapper;
 import org.tillerino.jagger.processor.util.Exceptions;
+import org.tillerino.jagger.processor.util.InstantiatedMethod.InstantiatedVariable;
 
 public record References(AnnotationProcessorUtils utils) {
     public static ConfigProperty<Config> REFERENCES = ConfigProperty.createConfigProperty(
@@ -63,7 +63,7 @@ public record References(AnnotationProcessorUtils utils) {
             throw Exceptions.unexpected();
         }
         TypeMirror idType = generatorTypeBindings.values().iterator().next();
-        VariableElement context = prototype
+        InstantiatedVariable context = prototype
                 .contextParameter()
                 .orElseThrow(
                         () -> new ContextedRuntimeException(
@@ -78,7 +78,7 @@ public record References(AnnotationProcessorUtils utils) {
                         .asType()),
                 config.resolver.orElseGet(
                         () -> utils.elements.getTypeElement("java.lang.Object").asType()),
-                Snippet.of("$L", context)));
+                context));
     }
 
     record Config(

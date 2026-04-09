@@ -3,7 +3,6 @@ package org.tillerino.jagger.processor.apis;
 import com.squareup.javapoet.CodeBlock;
 import java.util.*;
 import javax.lang.model.element.TypeElement;
-import javax.lang.model.element.VariableElement;
 import javax.lang.model.type.*;
 import org.apache.commons.lang3.exception.ContextedRuntimeException;
 import org.tillerino.jagger.processor.AnnotationProcessorUtils;
@@ -24,6 +23,7 @@ import org.tillerino.jagger.processor.features.References.Setup;
 import org.tillerino.jagger.processor.features.Verification.ProtoAndProps;
 import org.tillerino.jagger.processor.util.Exceptions;
 import org.tillerino.jagger.processor.util.InstantiatedMethod;
+import org.tillerino.jagger.processor.util.InstantiatedMethod.InstantiatedVariable;
 
 public abstract class AbstractWriterGenerator<SELF extends AbstractWriterGenerator<SELF>>
         extends AbstractCodeGeneratorStack<SELF> {
@@ -264,19 +264,16 @@ public abstract class AbstractWriterGenerator<SELF extends AbstractWriterGenerat
                     .findDelegatee(child.type(), prototype, false, true, config, generatedClass)
                     .ifPresentOrElse(
                             delegatee -> {
-                                VariableElement callerContext = prototype
+                                InstantiatedVariable callerContext = prototype
                                         .contextParameter()
                                         .orElseThrow(() -> new ContextedRuntimeException(
                                                 "Prototype method must have a context parameter"));
-                                if (!delegatee.method().hasParameterAssignableFrom(callerContext.asType(), utils)) {
+                                if (!delegatee.method().hasParameterAssignableFrom(callerContext.type(), utils)) {
                                     throw new ContextedRuntimeException(
                                             "Delegate method must have a context parameter");
                                 }
-                                if (!utils.types.isAssignable(callerContext.asType(), callerContext.asType())) {
-                                    throw new ContextedRuntimeException("Context types must be compatible");
-                                }
                                 addStatement(
-                                        "$L.setPendingDiscriminator($S, $S)",
+                                        "$C.setPendingDiscriminator($S, $S)",
                                         callerContext,
                                         polymorphism.discriminator(),
                                         child.name());
@@ -315,21 +312,17 @@ public abstract class AbstractWriterGenerator<SELF extends AbstractWriterGenerat
 
     void writeObjectPropertiesAsFields() {
         if (canBePolyChild) {
-            VariableElement context = prototype.contextParameter().orElseThrow();
-            beginControlFlow("if ($L.isDiscriminatorPending())", context);
+            InstantiatedVariable context = prototype.contextParameter().orElseThrow();
+            beginControlFlow("if ($C.isDiscriminatorPending())", context);
             nest(
                             utils.commonTypes.string,
-                            new LHS.Field("$L.pendingDiscriminatorProperty", new Object[] {context.getSimpleName()}),
+                            new LHS.Field("$L.pendingDiscriminatorProperty", new Object[] {context.name()}),
                             Property.DISCRIMINATOR,
-                            new RHS.Accessor(
-                                    Snippet.of(
-                                            "$L.pendingDiscriminatorValue",
-                                            context.getSimpleName().toString()),
-                                    false),
+                            new RHS.Accessor(Snippet.of("$L.pendingDiscriminatorValue", context.name()), false),
                             false,
                             config.propagateTo(PropagationKind.PROPERTY))
                     .build();
-            addStatement("$L.pendingDiscriminatorProperty = null", context);
+            addStatement("$C.pendingDiscriminatorProperty = null", context);
             endControlFlow();
         }
 

@@ -7,7 +7,6 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 import javax.lang.model.element.ExecutableElement;
 import javax.lang.model.element.TypeParameterElement;
-import javax.lang.model.element.VariableElement;
 import javax.lang.model.type.*;
 import org.apache.commons.lang3.NotImplementedException;
 import org.tillerino.jagger.processor.config.AnyConfig;
@@ -124,10 +123,10 @@ public record JaggerPrototype(
         return false;
     }
 
-    public Optional<VariableElement> contextParameter() {
-        for (VariableElement parameter : methodElement.getParameters()) {
+    public Optional<InstantiatedVariable> contextParameter() {
+        for (InstantiatedVariable parameter : instantiatedParameters()) {
             if (utils.types.isAssignable(
-                    parameter.asType(),
+                    parameter.type(),
                     switch (kind.direction()) {
                         case INPUT -> utils.commonTypes.deserializationContext;
                         case OUTPUT -> utils.commonTypes.serializationContext;

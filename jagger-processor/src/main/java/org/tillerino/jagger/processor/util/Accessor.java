@@ -3,6 +3,8 @@ package org.tillerino.jagger.processor.util;
 import javax.lang.model.element.Element;
 import javax.lang.model.type.TypeMirror;
 import org.tillerino.jagger.processor.Snippet;
+import org.tillerino.jagger.processor.Snippet.PerfectSnippet;
+import org.tillerino.jagger.processor.Snippet.PerfectSnippet.ReadAccessorInvocation;
 import org.tillerino.jagger.processor.Snippet.TypedSnippet;
 
 public sealed interface Accessor {
@@ -24,10 +26,15 @@ public sealed interface Accessor {
 
         default TypedSnippet readSnippet(TypedSnippet object) {
             return TypedSnippet.of(
-                    object.type(),
+                    type(),
                     "$C.$L" + (kind() == AccessorKind.GETTER ? "()" : ""),
                     object,
                     element().getSimpleName().toString());
+        }
+
+        default PerfectSnippet readSnippet(PerfectSnippet object) {
+            return new ReadAccessorInvocation(
+                    type(), object, element().getSimpleName().toString() + (kind() == AccessorKind.GETTER ? "()" : ""));
         }
     }
 
