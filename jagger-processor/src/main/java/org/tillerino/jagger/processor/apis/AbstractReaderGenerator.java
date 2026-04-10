@@ -262,9 +262,9 @@ public abstract class AbstractReaderGenerator<SELF extends AbstractReaderGenerat
             readEnum(branch, lastCase);
         } else if (type.getKind() == TypeKind.ARRAY) {
             readArray(branch, lastCase);
-        } else if (utils.commonTypes.isIterable(type)) {
+        } else if (utils.commonTypes.isIterableOrArray(type)) {
             readCollection(branch, lastCase);
-        } else if (utils.commonTypes.isMap(type)) {
+        } else if (utils.commonTypes.isErasureAssignableTo(type, Map.class)) {
             readMap(branch, lastCase);
         } else {
             if (!(type instanceof DeclaredType dt)) {

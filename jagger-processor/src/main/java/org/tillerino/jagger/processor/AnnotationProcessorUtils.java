@@ -1,9 +1,6 @@
 package org.tillerino.jagger.processor;
 
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import javax.annotation.processing.Messager;
 import javax.annotation.processing.ProcessingEnvironment;
 import javax.lang.model.element.AnnotationValue;
@@ -22,6 +19,7 @@ import org.tillerino.jagger.api.SerializationContext;
 import org.tillerino.jagger.processor.Snippet.PerfectSnippet;
 import org.tillerino.jagger.processor.Snippet.PerfectSnippet.Literal;
 import org.tillerino.jagger.processor.features.*;
+import org.tillerino.jagger.processor.features.Properties;
 import org.tillerino.jagger.processor.util.Annotations;
 import org.tillerino.jagger.processor.util.Exceptions;
 
@@ -135,8 +133,12 @@ public class AnnotationProcessorUtils {
             return element != null && element.getKind() == ElementKind.ENUM;
         }
 
-        public boolean isIterable(TypeMirror type) {
-            return isAssignableTo(types.erasure(type), Iterable.class) || type.getKind() == TypeKind.ARRAY;
+        public boolean isIterableOrArray(TypeMirror type) {
+            return isErasureAssignableTo(type, Iterable.class) || type.getKind() == TypeKind.ARRAY;
+        }
+
+        public boolean isErasureAssignableTo(TypeMirror type, Class<?> cls) {
+            return isAssignableTo(types.erasure(type), cls);
         }
 
         public TypeMirror getComponentType(TypeMirror type, Class<?> parameterizedClass) {
@@ -145,10 +147,6 @@ public class AnnotationProcessorUtils {
                     .values()
                     .iterator()
                     .next();
-        }
-
-        public boolean isMap(TypeMirror type) {
-            return isAssignableTo(types.erasure(type), Map.class);
         }
 
         public TypeMirror getArrayComponentType(TypeMirror type) {
@@ -161,7 +159,7 @@ public class AnnotationProcessorUtils {
         public TypeMirror unwrapArraysAndIterables(TypeMirror type) {
             if (type.getKind() == TypeKind.ARRAY) {
                 return getArrayComponentType(type);
-            } else if (isIterable(type)) {
+            } else if (isIterableOrArray(type)) {
                 return getComponentType(type, Iterable.class);
             }
             return type;

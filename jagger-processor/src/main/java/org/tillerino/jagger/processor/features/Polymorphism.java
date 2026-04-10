@@ -1,6 +1,5 @@
 package org.tillerino.jagger.processor.features;
 
-import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -11,20 +10,29 @@ import javax.lang.model.element.PackageElement;
 import javax.lang.model.element.TypeElement;
 import javax.lang.model.type.DeclaredType;
 import javax.lang.model.type.TypeMirror;
-import javax.lang.model.util.Types;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ContextedRuntimeException;
 import org.tillerino.jagger.processor.AnnotationProcessorUtils;
+import org.tillerino.jagger.processor.util.Annotations.AnnotationMirrorWrapper;
 import org.tillerino.jagger.processor.util.Annotations.AnnotationValueWrapper;
 
-public record Polymorphism(String discriminator, JsonTypeInfo.Id id, List<Child> children) {
+public record Polymorphism(String discriminator, JsonTypeInfoId id, List<Child> children) {
     public static Optional<Polymorphism> of(TypeElement type, AnnotationProcessorUtils utils) {
-        JsonTypeInfo annotation = type.getAnnotation(JsonTypeInfo.class);
-        if (annotation == null) {
+        Optional<AnnotationMirrorWrapper> annotationMaybe =
+                utils.annotations.findAnnotation(type, "com.fasterxml.jackson.annotation.JsonTypeInfo");
+        if (annotationMaybe.isEmpty()) {
             return Optional.empty();
         }
-        String discriminator = StringUtils.defaultIfEmpty(
-                annotation.property(), annotation.use().getDefaultPropertyName());
+        AnnotationMirrorWrapper annotation = annotationMaybe.get();
+        JsonTypeInfoId use = annotation
+                .method("use", true)
+                .map(wrapper -> wrapper.asEnum(JsonTypeInfoId.class))
+                .get();
+        String discriminator = annotation
+                .method("property", false)
+                .map(wrapper -> wrapper.asString())
+                .filter(StringUtils::isNotEmpty)
+                .orElse(use.getDefaultPropertyName());
         List<Child> children = utils.annotations
                 .findAnnotation(type, "com.fasterxml.jackson.annotation.JsonSubTypes")
                 .flatMap(subTypes -> subTypes.method("value", false))
@@ -39,7 +47,7 @@ public record Polymorphism(String discriminator, JsonTypeInfo.Id id, List<Child>
                             Optional<String> nameFromTypeAnnotation =
                                     subTypeAnnotation.method("name", false).map(AnnotationValueWrapper::asString);
                             String name = name(
-                                    annotation.use(),
+                                    use,
                                     utils.elements.getTypeElement(subType.toString()),
                                     type,
                                     nameFromTypeAnnotation);
@@ -53,19 +61,14 @@ public record Polymorphism(String discriminator, JsonTypeInfo.Id id, List<Child>
                     }
                     return type.getPermittedSubclasses().stream()
                             .map(e -> new Child(
-                                    e,
-                                    name(
-                                            annotation.use(),
-                                            utils.elements.getTypeElement(e.toString()),
-                                            type,
-                                            Optional.empty())))
+                                    e, name(use, utils.elements.getTypeElement(e.toString()), type, Optional.empty())))
                             .toList();
                 });
 
-        return Optional.of(new Polymorphism(discriminator, annotation.use(), children));
+        return Optional.of(new Polymorphism(discriminator, use, children));
     }
 
-    static String name(JsonTypeInfo.Id id, TypeElement subType, TypeElement superType, Optional<String> name) {
+    static String name(JsonTypeInfoId id, TypeElement subType, TypeElement superType, Optional<String> name) {
         return switch (id) {
             case CLASS -> fullName(subType);
             case MINIMAL_CLASS -> minimalName(subType, superType);
@@ -116,12 +119,15 @@ public record Polymorphism(String discriminator, JsonTypeInfo.Id id, List<Child>
         }
     }
 
-    public static boolean isSomeChild(TypeMirror type, Types types) {
+    public static boolean isSomeChild(TypeMirror type, AnnotationProcessorUtils utils) {
         // this test is pretty half-assed, but false-positives only produce a bit of extra code
-        for (TypeMirror directSupertype : types.directSupertypes(type)) {
+        for (TypeMirror directSupertype : utils.types.directSupertypes(type)) {
             // care: annotations not on type, only on element
-            if (directSupertype instanceof DeclaredType d && d.asElement().getAnnotation(JsonTypeInfo.class) != null
-                    || isSomeChild(directSupertype, types)) {
+            if (directSupertype instanceof DeclaredType d
+                            && utils.annotations
+                                    .findAnnotation(d.asElement(), "com.fasterxml.jackson.annotation.JsonTypeInfo")
+                                    .isPresent()
+                    || isSomeChild(directSupertype, utils)) {
                 return true;
             }
         }
@@ -136,5 +142,25 @@ public record Polymorphism(String discriminator, JsonTypeInfo.Id id, List<Child>
                         ? Stream.of(dt)
                         : Stream.empty())
                 .toList();
+    }
+
+    public enum JsonTypeInfoId {
+        NONE(null),
+        CLASS("@class"),
+        MINIMAL_CLASS("@c"),
+        NAME("@type"),
+        SIMPLE_NAME("@type"),
+        DEDUCTION(null),
+        CUSTOM(null);
+
+        private final String _defaultPropertyName;
+
+        JsonTypeInfoId(String defProp) {
+            _defaultPropertyName = defProp;
+        }
+
+        public String getDefaultPropertyName() {
+            return _defaultPropertyName;
+        }
     }
 }

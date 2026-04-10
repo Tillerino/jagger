@@ -44,9 +44,8 @@ public abstract class AbstractCodeGeneratorStack<SELF extends AbstractCodeGenera
         this.parent = null;
         this.stackRelevantType = true;
         this.property = null;
-        this.canBePolyChild = prototype.contextParameter().isPresent()
-                && stackDepth() == 1
-                && Polymorphism.isSomeChild(type, utils.types);
+        this.canBePolyChild =
+                prototype.contextParameter().isPresent() && stackDepth() == 1 && Polymorphism.isSomeChild(type, utils);
         this.config = type instanceof DeclaredType dt && dt.asElement() != null
                 ? AnyConfig.create(dt.asElement(), ConfigProperty.LocationKind.DTO, utils)
                         .merge(prototype.config())
@@ -69,9 +68,8 @@ public abstract class AbstractCodeGeneratorStack<SELF extends AbstractCodeGenera
         this.parent = parent;
         this.stackRelevantType = stackRelevantType;
         this.property = property;
-        this.canBePolyChild = prototype.contextParameter().isPresent()
-                && stackDepth() == 1
-                && Polymorphism.isSomeChild(type, utils.types);
+        this.canBePolyChild =
+                prototype.contextParameter().isPresent() && stackDepth() == 1 && Polymorphism.isSomeChild(type, utils);
         this.config = config;
     }
 
