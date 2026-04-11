@@ -157,9 +157,9 @@ public abstract class AbstractWriterGenerator<SELF extends AbstractWriterGenerat
             writeEnum();
         } else if (utils.commonTypes.isArrayOf(type, TypeKind.BYTE)) {
             writeBinary(BinaryKind.BYTE_ARRAY);
-        } else if (utils.commonTypes.isIterable(type)) {
+        } else if (utils.commonTypes.isIterableOrArray(type)) {
             writeIterable();
-        } else if (utils.commonTypes.isMap(type)) {
+        } else if (utils.commonTypes.isErasureAssignableTo(type, Map.class)) {
             writeMap();
         } else if (type.getKind() == TypeKind.TYPEVAR) {
             throw new ContextedRuntimeException("Missing serializer for type variable " + type);

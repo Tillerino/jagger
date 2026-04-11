@@ -11,6 +11,13 @@
 
     <dependencies>
         <dependency>
+            <!-- workaround for https://issues.apache.org/jira/browse/MCOMPILER-203?focusedCommentId=15114055&page=com.atlassian.jira.plugin.system.issuetabpanels%3Acomment-tabpanel#comment-15114055 -->
+            <groupId>org.tillerino.jagger</groupId>
+            <artifactId>jagger-processor</artifactId>
+            <version>${project.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
             <groupId>com.github.javaparser</groupId>
             <artifactId>javaparser-core</artifactId>
             <scope>provided</scope>

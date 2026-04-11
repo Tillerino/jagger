@@ -37,12 +37,6 @@
             <version>${project.version}</version>
         </dependency>
         <dependency>
-            <!-- workaround for https://issues.apache.org/jira/browse/MCOMPILER-203?focusedCommentId=15114055&page=com.atlassian.jira.plugin.system.issuetabpanels%3Acomment-tabpanel#comment-15114055 -->
-            <groupId>org.tillerino.jagger</groupId>
-            <artifactId>jagger-processor</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-annotations</artifactId>
         </dependency>
@@ -240,4 +234,58 @@
             </plugin>
         </plugins>
     </build>
+
+    <profiles>
+        <profile>
+            <id>shaded</id>
+            <!-- With this profile, we make sure that the shaded variant of the jagger-processor is working.
+                 By default, the annotationProcessorPaths will resolve to jagger-processor/target/classes.
+                 We build our own -processorpath argument, which references the shaded jar.
+                 Maven will always build its own -processorpath argument, but our own is appended to the command later,
+                 so it takes precedence.
+                 As insurance, we fill the annotationProcessorPaths with a bogus element so that it really is useless.
+                 Since we Lombok in our tests, we need to copy it so that we can reference its path.
+                 Referring to ~/.m2/repository/... would be too brittle. -->
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-dependency-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <id>copy-lombok</id>
+                                <goals>
+                                    <goal>copy-dependencies</goal>
+                                </goals>
+                                <phase>initialize</phase>
+                                <configuration>
+                                    <includeScope>provided</includeScope>
+                                    <includeArtifactIds>lombok</includeArtifactIds>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-compiler-plugin</artifactId>
+                        <configuration>
+                            <annotationProcessorPaths>
+                                <annotationProcessorPath>
+                                    <!-- bogus element to make sure that the argument is not filled with all dependencies -->
+                                    <groupId>org.tillerino.jagger</groupId>
+                                    <artifactId>jagger-core</artifactId>
+                                    <version>${project.version}</version>
+                                </annotationProcessorPath>
+                            </annotationProcessorPaths>
+                            <compilerArgs>
+                                <arg>-parameters</arg>
+                                <arg>-processorpath</arg>
+                                <arg>${project.build.directory}/dependency/lombok-${lombok.version}.jar:${basedir}/../../jagger-processor/target/jagger-processor-${project.version}.jar</arg>
+                            </compilerArgs>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
 </project>

@@ -1,7 +1,5 @@
 package org.tillerino.jagger.processor.features;
 
-import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonCreator.Mode;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -26,7 +24,7 @@ public record Creators(AnnotationProcessorUtils utils) {
         Map<TypeVar, TypeMirror> typeBindings = utils.generics.recordTypeBindings(dt);
         for (ExecutableElement constructor :
                 ElementFilter.constructorsIn(dt.asElement().getEnclosedElements())) {
-            Optional<JsonCreator.Mode> annotation = jsonCreatorType(constructor);
+            Optional<JsonCreatorMode> annotation = jsonCreatorType(constructor);
             if (annotation.isEmpty()) {
                 continue;
             }
@@ -35,7 +33,7 @@ public record Creators(AnnotationProcessorUtils utils) {
                     utils.generics.instantiateMethod(constructor, typeBindings, LocationKind.CREATOR)));
         }
         for (ExecutableElement method : ElementFilter.methodsIn(dt.asElement().getEnclosedElements())) {
-            Optional<JsonCreator.Mode> annotation = jsonCreatorType(method);
+            Optional<JsonCreatorMode> annotation = jsonCreatorType(method);
             if (annotation.isEmpty()
                     || method.getReturnType().getKind() == TypeKind.VOID
                     || !method.getModifiers().contains(javax.lang.model.element.Modifier.STATIC)) {
@@ -56,17 +54,17 @@ public record Creators(AnnotationProcessorUtils utils) {
         return Optional.empty();
     }
 
-    private Optional<JsonCreator.Mode> jsonCreatorType(ExecutableElement element) {
+    private Optional<JsonCreatorMode> jsonCreatorType(ExecutableElement element) {
         return utils.annotations
                 .findAnnotation(element, "com.fasterxml.jackson.annotation.JsonCreator")
                 .map(wrapper -> wrapper.method("mode", true)
                         .orElseThrow(Exceptions::unexpected)
-                        .asEnum(JsonCreator.Mode.class))
-                .filter(mode -> mode != Mode.DISABLED);
+                        .asEnum(JsonCreatorMode.class))
+                .filter(mode -> mode != JsonCreatorMode.DISABLED);
     }
 
     public sealed interface Creator {
-        static Creator of(JsonCreator.Mode mode, InstantiatedMethod method) {
+        static Creator of(JsonCreatorMode mode, InstantiatedMethod method) {
             return switch (mode) {
                 case DEFAULT -> method.parameters().size() == 1 ? new Converter(method) : new Properties(method);
                 case DELEGATING -> new Converter(method);
@@ -78,5 +76,12 @@ public record Creators(AnnotationProcessorUtils utils) {
         record Converter(InstantiatedMethod method) implements Creator {}
 
         record Properties(InstantiatedMethod method) implements Creator {}
+    }
+
+    public enum JsonCreatorMode {
+        DEFAULT,
+        DELEGATING,
+        PROPERTIES,
+        DISABLED
     }
 }

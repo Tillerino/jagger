@@ -13,6 +13,11 @@ format:
 test args="":
   {{mvn}} clean spotless:apply test {{args}}
 
+test-shaded args="":
+  {{mvn}} clean spotless:apply
+  {{mvn}} verify -pl :jagger-processor -am
+  {{mvn}} test -P shaded {{args}}
+
 test-single project args="":
   {{mvn}} clean spotless:apply test -pl :jagger-tests-{{project}} -am {{args}}
 
