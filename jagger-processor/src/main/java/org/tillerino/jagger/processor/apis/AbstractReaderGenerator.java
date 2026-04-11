@@ -425,6 +425,8 @@ public abstract class AbstractReaderGenerator<SELF extends AbstractReaderGenerat
             return utils.types.erasure(utils.commonTypes.type(LinkedHashSet.class));
         } else if (utils.commonTypes.isAssignableTo(rawType, List.class)) {
             return utils.types.erasure(utils.commonTypes.type(ArrayList.class));
+        } else if (utils.commonTypes.isErasureAssignableTo(rawType, Map.class)) {
+            return utils.types.erasure(utils.commonTypes.type(LinkedHashMap.class));
         } else {
             throw new ContextedRuntimeException(type.toString());
         }
@@ -453,7 +455,7 @@ public abstract class AbstractReaderGenerator<SELF extends AbstractReaderGenerat
                 throw new ContextedRuntimeException("Only String keys supported for now.");
             }
             TypeMirror valueType = typeBindings[1];
-            TypeMirror mapType = determineMapType();
+            TypeMirror mapType = determineCollectionType();
             String varName = instantiateContainer(mapType);
             iterateOverFields();
             {
@@ -480,15 +482,6 @@ public abstract class AbstractReaderGenerator<SELF extends AbstractReaderGenerat
             }
         }
         elseThrowUnexpected("object", lastCase);
-    }
-
-    private TypeMirror determineMapType() {
-        TypeMirror rawType = utils.types.erasure(type);
-        if (!((DeclaredType) rawType).asElement().getModifiers().contains(Modifier.ABSTRACT)) {
-            return rawType;
-        } else {
-            return utils.types.erasure(utils.commonTypes.type(LinkedHashMap.class));
-        }
     }
 
     private void readObject(
