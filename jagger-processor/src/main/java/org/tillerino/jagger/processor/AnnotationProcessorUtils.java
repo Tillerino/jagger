@@ -1,6 +1,9 @@
 package org.tillerino.jagger.processor;
 
-import java.util.*;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import javax.annotation.processing.Messager;
 import javax.annotation.processing.ProcessingEnvironment;
 import javax.lang.model.element.AnnotationValue;
@@ -19,7 +22,6 @@ import org.tillerino.jagger.api.SerializationContext;
 import org.tillerino.jagger.processor.Snippet.PerfectSnippet;
 import org.tillerino.jagger.processor.Snippet.PerfectSnippet.Literal;
 import org.tillerino.jagger.processor.features.*;
-import org.tillerino.jagger.processor.features.Properties;
 import org.tillerino.jagger.processor.util.Annotations;
 import org.tillerino.jagger.processor.util.Exceptions;
 

@@ -18,6 +18,12 @@
             <groupId>org.tillerino.jagger</groupId>
             <artifactId>jagger-core</artifactId>
             <version>${project.version}</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>*</groupId>
+                    <artifactId>*</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>com.google.auto.service</groupId>
@@ -27,6 +33,7 @@
         <dependency>
             <groupId>jakarta.annotation</groupId>
             <artifactId>jakarta.annotation-api</artifactId>
+            <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>com.squareup</groupId>
@@ -62,20 +69,57 @@
                         </goals>
                         <configuration>
                             <minimizeJar>true</minimizeJar>
+                            <artifactSet>
+                                <includes>
+                                    <include>org.tillerino.jagger:*</include>
+                                    <include>org.apache.commons:*</include>
+                                    <!-- Apache License 2.0, obviously :) -->
+                                    <include>com.squareup:javapoet</include>
+                                    <!-- Apache License 2.0 -->
+                                </includes>
+                            </artifactSet>
                             <relocations>
-                                <relocation>
-                                    <pattern>com.squareup</pattern>
-                                    <shadedPattern>org.tillerino.jagger.shaded.com.squareup</shadedPattern>
-                                </relocation>
                                 <relocation>
                                     <pattern>org.apache</pattern>
                                     <shadedPattern>org.tillerino.jagger.shaded.org.apache</shadedPattern>
                                 </relocation>
                                 <relocation>
-                                    <pattern>jakarta.annotation</pattern>
-                                    <shadedPattern>org.tillerino.jagger.shaded.jakarta.annotation</shadedPattern>
+                                    <pattern>com.squareup</pattern>
+                                    <shadedPattern>org.tillerino.jagger.shaded.com.squareup</shadedPattern>
                                 </relocation>
                             </relocations>
+                            <filters>
+                                <filter>
+                                    <artifact>org.apache.commons:*</artifact>
+                                    <excludes>
+                                        <exclude>META-INF/MANIFEST.MF</exclude>
+                                    </excludes>
+                                </filter>
+                                <filter>
+                                    <artifact>com.squareup:javapoet</artifact>
+                                    <excludes>
+                                        <exclude>META-INF/**</exclude>
+                                    </excludes>
+                                </filter>
+                            </filters>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-failsafe-plugin</artifactId>
+                <version>${maven-failsafe-plugin.version}</version>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>integration-test</goal>
+                            <goal>verify</goal>
+                        </goals>
+                        <configuration>
+                            <includes>
+                                <include>**/ShadedJarIT.java</include>
+                            </includes>
                         </configuration>
                     </execution>
                 </executions>

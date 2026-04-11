@@ -15,7 +15,7 @@ test args="":
 
 test-shaded args="":
   {{mvn}} clean spotless:apply
-  {{mvn}} package -pl :jagger-processor -am
+  {{mvn}} verify -pl :jagger-processor -am
   {{mvn}} test -P shaded {{args}}
 
 test-single project args="":
