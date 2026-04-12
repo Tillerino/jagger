@@ -40,6 +40,7 @@ public class AnnotationProcessorUtils {
     public final Creators creators;
     public final References references;
     public final Properties properties;
+    public final CodeGeneration codeGeneration;
 
     public final Messager messager;
 
@@ -57,6 +58,7 @@ public class AnnotationProcessorUtils {
         creators = new Creators(this);
         references = new References(this);
         properties = new Properties(this);
+        codeGeneration = new CodeGeneration(this);
         messager = processingEnv.getMessager();
     }
 

@@ -21,7 +21,7 @@ class RequiredPropertyWithSetter {
 However, it is important that you order Lombok before Jagger in the annotation processors:
 
 ```xml
-<!-- ../jagger-tests/pom.xml#L91-L111 -->
+<!-- ../jagger-tests/pom.xml#L83-L103 -->
 
 <plugin>
     <groupId>org.apache.maven.plugins</groupId>

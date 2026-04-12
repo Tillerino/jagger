@@ -4,15 +4,17 @@ import static javax.tools.Diagnostic.Kind.ERROR;
 
 import com.google.auto.service.AutoService;
 import com.squareup.javapoet.*;
-import com.squareup.javapoet.TypeSpec.Builder;
 import java.io.IOException;
 import java.io.Writer;
+import java.lang.annotation.Annotation;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import javax.annotation.processing.*;
 import javax.lang.model.SourceVersion;
 import javax.lang.model.element.*;
@@ -27,6 +29,7 @@ import org.tillerino.jagger.annotations.JsonTemplate.JsonTemplates;
 import org.tillerino.jagger.processor.apis.*;
 import org.tillerino.jagger.processor.config.ConfigProperty;
 import org.tillerino.jagger.processor.config.ConfigProperty.LocationKind;
+import org.tillerino.jagger.processor.features.CodeGeneration;
 import org.tillerino.jagger.processor.util.Exceptions;
 import org.tillerino.jagger.processor.util.InstantiatedMethod;
 import org.tillerino.jagger.processor.util.PrototypeKind;
@@ -60,8 +63,10 @@ public class JaggerProcessor extends AbstractProcessor {
 
     private void collectElements(RoundEnvironment roundEnv) {
         collectJsonConfig(roundEnv);
-        collectJsonOutput(roundEnv);
-        collectJsonInput(roundEnv);
+        collect(
+                roundEnv,
+                new AnnotationAndConsumer(JsonOutput.class, this::collectJsonOutput),
+                new AnnotationAndConsumer(JsonInput.class, this::collectJsonInput));
         collectJsonTemplates(roundEnv); // collect last so that custom methods are appear first in implementations
     }
 
@@ -99,44 +104,59 @@ public class JaggerProcessor extends AbstractProcessor {
         });
     }
 
-    private void collectJsonOutput(RoundEnvironment roundEnv) {
-        roundEnv.getElementsAnnotatedWith(JsonOutput.class).forEach(element -> {
-            ExecutableElement exec = (ExecutableElement) element;
-            TypeElement type = (TypeElement) exec.getEnclosingElement();
-            setupUtils(processingEnv);
-            JaggerBlueprint blueprint = utils.blueprint(type);
-            InstantiatedMethod instantiated =
-                    utils.generics.instantiateMethod(exec, blueprint.typeBindings, LocationKind.PROTOTYPE);
-            PrototypeKind.of(instantiated, utils)
-                    .ifPresentOrElse(
-                            kind -> {
-                                JaggerPrototype method = JaggerPrototype.of(blueprint, instantiated, kind, utils, true);
-                                blueprint.prototypes.add(method);
-                            },
-                            () -> {
-                                logError("Signature unknown. Please see @JsonOutput for hints.", exec);
-                            });
-        });
+    private void collect(RoundEnvironment roundEnv, AnnotationAndConsumer... kinds) {
+        Set<TypeElement> types = Stream.of(kinds)
+                .flatMap(a -> roundEnv.getElementsAnnotatedWith(a.annotationClass()).stream())
+                .map(el -> (TypeElement) el.getEnclosingElement())
+                .collect(Collectors.toCollection(LinkedHashSet::new));
+        for (TypeElement type : types) {
+            // This is the point of this way of processing the annotations: the order of the methods in generated
+            // classes is supposed to be identical to the blueprint.
+            for (Element elem : type.getEnclosedElements()) {
+                for (AnnotationAndConsumer kind : kinds) {
+                    Annotation annotation = elem.getAnnotation(kind.annotationClass());
+                    if (annotation != null) {
+                        kind.action.accept(elem);
+                    }
+                }
+            }
+        }
     }
 
-    private void collectJsonInput(RoundEnvironment roundEnv) {
-        roundEnv.getElementsAnnotatedWith(JsonInput.class).forEach(element -> {
-            ExecutableElement exec = (ExecutableElement) element;
-            TypeElement type = (TypeElement) exec.getEnclosingElement();
-            setupUtils(processingEnv);
-            JaggerBlueprint blueprint = utils.blueprint(type);
-            InstantiatedMethod instantiated =
-                    utils.generics.instantiateMethod(exec, blueprint.typeBindings, LocationKind.PROTOTYPE);
-            PrototypeKind.of(instantiated, utils)
-                    .ifPresentOrElse(
-                            kind -> {
-                                JaggerPrototype method = JaggerPrototype.of(blueprint, instantiated, kind, utils, true);
-                                blueprint.prototypes.add(method);
-                            },
-                            () -> {
-                                logError("Signature unknown. Please see @JsonInput for hints.", exec);
-                            });
-        });
+    private void collectJsonOutput(Element element) {
+        ExecutableElement exec = (ExecutableElement) element;
+        TypeElement type = (TypeElement) exec.getEnclosingElement();
+        setupUtils(processingEnv);
+        JaggerBlueprint blueprint = utils.blueprint(type);
+        InstantiatedMethod instantiated =
+                utils.generics.instantiateMethod(exec, blueprint.typeBindings, LocationKind.PROTOTYPE);
+        PrototypeKind.of(instantiated, utils)
+                .ifPresentOrElse(
+                        kind -> {
+                            JaggerPrototype method = JaggerPrototype.of(blueprint, instantiated, kind, utils, true);
+                            blueprint.prototypes.add(method);
+                        },
+                        () -> {
+                            logError("Signature unknown. Please see @JsonOutput for hints.", exec);
+                        });
+    }
+
+    private void collectJsonInput(Element element) {
+        ExecutableElement exec = (ExecutableElement) element;
+        TypeElement type = (TypeElement) exec.getEnclosingElement();
+        setupUtils(processingEnv);
+        JaggerBlueprint blueprint = utils.blueprint(type);
+        InstantiatedMethod instantiated =
+                utils.generics.instantiateMethod(exec, blueprint.typeBindings, LocationKind.PROTOTYPE);
+        PrototypeKind.of(instantiated, utils)
+                .ifPresentOrElse(
+                        kind -> {
+                            JaggerPrototype method = JaggerPrototype.of(blueprint, instantiated, kind, utils, true);
+                            blueprint.prototypes.add(method);
+                        },
+                        () -> {
+                            logError("Signature unknown. Please see @JsonInput for hints.", exec);
+                        });
     }
 
     private void collectJsonTemplates(RoundEnvironment roundEnv) {
@@ -188,12 +208,28 @@ public class JaggerProcessor extends AbstractProcessor {
     private void generateCode(JaggerBlueprint blueprint) throws IOException {
         TypeSpec.Builder classBuilder = TypeSpec.classBuilder(blueprint.className.nameInCompilationUnit() + "Impl")
                 .addModifiers(Modifier.PUBLIC);
+        boolean addGenerated = blueprint
+                .config
+                .resolveProperty(CodeGeneration.ADD_GENERATED_ANNOTATION_TO_CLASS)
+                .value();
+        if (addGenerated) {
+            classBuilder.addAnnotation(AnnotationSpec.builder(
+                            ClassName.get(utils.elements.getTypeElement("org.tillerino.jagger.annotations.Generated")))
+                    .build());
+        }
+        for (TypeElement annotation : blueprint
+                .config
+                .resolveProperty(CodeGeneration.ON_GENERATED_CLASS)
+                .value()) {
+            classBuilder.addAnnotation(
+                    AnnotationSpec.builder(ClassName.get(annotation)).build());
+        }
         if (blueprint.typeElement.getKind() == ElementKind.INTERFACE) {
             classBuilder.addSuperinterface(blueprint.typeElement.asType());
         } else {
             classBuilder.superclass(blueprint.typeElement.asType());
-            copyConstructors(blueprint.typeElement, classBuilder);
         }
+        utils.codeGeneration.addRequiredConstructors(blueprint.typeElement, classBuilder, blueprint.config);
         List<MethodSpec> methods = new ArrayList<>();
         GeneratedClass generatedClass = new GeneratedClass(classBuilder, utils, blueprint);
         for (JaggerPrototype method : blueprint.prototypes) {
@@ -229,39 +265,18 @@ public class JaggerProcessor extends AbstractProcessor {
         generatedClass.verificationForBlueprint.finish();
     }
 
-    static void copyConstructors(TypeElement type, Builder classBuilder) {
-        List<ExecutableElement> constructors = type.getEnclosedElements().stream()
-                .filter(e -> e.getKind() == ElementKind.CONSTRUCTOR)
-                .map(e -> (ExecutableElement) e)
-                .toList();
-        for (ExecutableElement superConstructor : constructors) {
-            MethodSpec.Builder builder = MethodSpec.constructorBuilder();
-
-            if (superConstructor.getParameters().isEmpty() && constructors.size() == 1) {
-                // only default constructor, so not necessary to generate anything
-                return;
-            }
-
-            for (VariableElement parameter : superConstructor.getParameters()) {
-                builder.addParameter(
-                        TypeName.get(parameter.asType()),
-                        parameter.getSimpleName().toString());
-            }
-
-            builder.addStatement(
-                    "super($L)",
-                    superConstructor.getParameters().stream()
-                            .map(p -> p.getSimpleName().toString())
-                            .collect(Collectors.joining(", ")));
-
-            classBuilder.addMethod(builder.build());
-        }
-    }
-
     private MethodSpec generateMethod(JaggerPrototype method, GeneratedClass generatedClass) {
         MethodSpec.Builder methodBuilder = method.asInstantiatedMethod().methodSpec();
         if (method.overrides()) {
             methodBuilder.addAnnotation(Override.class);
+        }
+        boolean addGenerated = method.config()
+                .resolveProperty(CodeGeneration.ADD_GENERATED_ANNOTATION_TO_METHODS)
+                .value();
+        if (addGenerated) {
+            methodBuilder.addAnnotation(AnnotationSpec.builder(
+                            ClassName.get(utils.elements.getTypeElement("org.tillerino.jagger.annotations.Generated")))
+                    .build());
         }
         Supplier<CodeBlock.Builder> codeGenerator =
                 switch (method.kind().direction()) {
@@ -311,4 +326,6 @@ public class JaggerProcessor extends AbstractProcessor {
     private void logError(String msg, Element element) {
         processingEnv.getMessager().printMessage(ERROR, msg != null ? msg : "(null)", element);
     }
+
+    record AnnotationAndConsumer(Class<? extends Annotation> annotationClass, Consumer<Element> action) {}
 }

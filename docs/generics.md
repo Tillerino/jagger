@@ -62,14 +62,14 @@ interface GenericRecordSerde {
 The code generated for these generic prototypes will then delegate to the prototypes passed as a parameter:
 
 ```java
-// ../jagger-tests/jackson/target/generated-sources/annotations/org/tillerino/jagger/tests/base/features/GenericsSerde$GenericRecordSerdeImpl.java#L20-L21
+// ../jagger-tests/jackson/target/generated-sources/annotations/org/tillerino/jagger/tests/base/features/GenericsSerde$GenericRecordSerdeImpl.java#L55-L56
 
 gen.writeFieldName("f");
 fieldSerde.writeOnGenericInterface(obj.f(), gen);
 ```
 
 ```java
-// ../jagger-tests/jackson/target/generated-sources/annotations/org/tillerino/jagger/tests/base/features/GenericsSerde$GenericRecordSerdeImpl.java#L44-L47
+// ../jagger-tests/jackson/target/generated-sources/annotations/org/tillerino/jagger/tests/base/features/GenericsSerde$GenericRecordSerdeImpl.java#L31-L34
 
 case "f": {
   f = fieldSerde.readOnGenericInterface(parser);
@@ -104,18 +104,12 @@ From `@JsonConfig`, the prototypes for `GenericRecord<F>` and prototypes for `In
 implement these concrete prototypes like so:
 
 ```java
-// ../jagger-tests/jackson/target/generated-sources/annotations/org/tillerino/jagger/tests/base/features/GenericsSerde$IntegerRecordSerdeImpl.java#L10-L29
+// ../jagger-tests/jackson/target/generated-sources/annotations/org/tillerino/jagger/tests/base/features/GenericsSerde$IntegerRecordSerdeImpl.java#L12-L31
 
 public class GenericsSerde$IntegerRecordSerdeImpl implements GenericsSerde.IntegerRecordSerde {
   GenericsSerde.GenericRecordSerde genericRecordSerde$0$delegate = new GenericsSerde$GenericRecordSerdeImpl();
 
   DelegationSerde.BoxedScalarsSerde boxedScalarsSerde$1$delegate = new DelegationSerde$BoxedScalarsSerdeImpl();
-
-  @Override
-  public void writeIntegerRecord(GenericsModel.GenericRecord<Integer> obj, JsonGenerator gen) throws
-      Exception {
-    genericRecordSerde$0$delegate.writeGenericRecord(obj, gen, boxedScalarsSerde$1$delegate::writeBoxedIntX);
-  }
 
   @Override
   public GenericsModel.GenericRecord<Integer> readIntegerRecord(JsonParser parser) throws
@@ -124,6 +118,12 @@ public class GenericsSerde$IntegerRecordSerdeImpl implements GenericsSerde.Integ
       parser.nextToken();
     }
     return genericRecordSerde$0$delegate.readGenericRecord(parser, boxedScalarsSerde$1$delegate::readBoxedIntX);
+  }
+
+  @Override
+  public void writeIntegerRecord(GenericsModel.GenericRecord<Integer> obj, JsonGenerator gen) throws
+      Exception {
+    genericRecordSerde$0$delegate.writeGenericRecord(obj, gen, boxedScalarsSerde$1$delegate::writeBoxedIntX);
   }
 }
 ```
@@ -164,14 +164,14 @@ interface UsesGenericRecordSerde {
 automatically calls the generic prototype:
 
 ```java
-// ../jagger-tests/jackson/target/generated-sources/annotations/org/tillerino/jagger/tests/base/features/GenericsSerde$UsesGenericRecordSerdeImpl.java#L25-L26
+// ../jagger-tests/jackson/target/generated-sources/annotations/org/tillerino/jagger/tests/base/features/GenericsSerde$UsesGenericRecordSerdeImpl.java#L27-L28
 
 gen.writeFieldName("gi");
 genericRecordSerde$0$delegate.writeGenericRecord(usesGenericRecord.gi(), gen, boxedScalarsSerde$1$delegate::writeBoxedIntX);
 ```
 
 ```java
-// ../jagger-tests/jackson/target/generated-sources/annotations/org/tillerino/jagger/tests/base/features/GenericsSerde$UsesGenericRecordSerdeImpl.java#L48-L51
+// ../jagger-tests/jackson/target/generated-sources/annotations/org/tillerino/jagger/tests/base/features/GenericsSerde$UsesGenericRecordSerdeImpl.java#L50-L53
 
 case "gi": {
   gi = genericRecordSerde$0$delegate.readGenericRecord(parser, boxedScalarsSerde$1$delegate::readBoxedIntX);
@@ -195,7 +195,7 @@ the component type. This means that it has to be known at runtime.
 Jagger will instantiate this class parameter automatically when necessary:
 
 ```java
-// ../jagger-tests/jackson/target/generated-sources/annotations/org/tillerino/jagger/tests/base/features/GenericsSerde$ConcreteContainerSerdeImpl.java#L54-L60
+// ../jagger-tests/jackson/target/generated-sources/annotations/org/tillerino/jagger/tests/base/features/GenericsSerde$ConcreteContainerSerdeImpl.java#L56-L62
 
 @Override
 public Double[] readDoubleArray(JsonParser parser) throws Exception {

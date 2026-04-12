@@ -28,7 +28,7 @@ List<ScalarFieldsRecord> deserializeList(JsonParser parser) throws Exception;
 
 `deserializeList` will then refer to `deserializeSingle` instead of repeating the entire deserialization of `ScalarFieldsRecord`.
 ```java
-// ../jagger-tests/jackson/target/generated-sources/annotations/org/tillerino/jagger/tests/base/features/DelegationSerde$SimpleDelegationSerdeImpl.java#L326-L343
+// ../jagger-tests/jackson/target/generated-sources/annotations/org/tillerino/jagger/tests/base/features/DelegationSerde$SimpleDelegationSerdeImpl.java#L328-L345
 
 
 @Override
@@ -73,7 +73,7 @@ interface BoxedScalarsSerde {
 The implementation of `BoxedScalarsSerde` will then call instantiate and call the first serializer:
 
 ```java
-// ../jagger-tests/jackson/target/generated-sources/annotations/org/tillerino/jagger/tests/base/features/DelegationSerde$BoxedScalarsSerdeImpl.java#L23-L33
+// ../jagger-tests/jackson/target/generated-sources/annotations/org/tillerino/jagger/tests/base/features/DelegationSerde$BoxedScalarsSerdeImpl.java#L25-L35
 
 public class DelegationSerde$BoxedScalarsSerdeImpl implements DelegationSerde.BoxedScalarsSerde {
   PrimitiveScalarsSerde primitiveScalarsSerde$0$delegate = new PrimitiveScalarsSerdeImpl();
@@ -94,7 +94,7 @@ To keep the generated code small and readable, it is recommended to build a libr
 Even something as simple as reading a `Float[]` generates a lot of code:
 
 ```java
-// ../jagger-tests/jackson/target/generated-sources/annotations/org/tillerino/jagger/tests/base/ScalarArraysSerdeImpl.java#L705-L747
+// ../jagger-tests/jackson/target/generated-sources/annotations/org/tillerino/jagger/tests/base/ScalarArraysSerdeImpl.java#L707-L749
 
 @Override
 public Float[] readBoxedFloatArray(JsonParser parser) throws Exception {
@@ -229,7 +229,7 @@ List<SelfReferencingRecord> deserializeList(JsonParser input) throws Exception;
 This is because when serializing `SelfReferencingRecord`, a recursive call must be made:
 
 ```java
-// ../jagger-tests/jackson/target/generated-sources/annotations/org/tillerino/jagger/tests/base/features/DelegationSerde$SelfReferencingSerdeImpl.java#L66-L69
+// ../jagger-tests/jackson/target/generated-sources/annotations/org/tillerino/jagger/tests/base/features/DelegationSerde$SelfReferencingSerdeImpl.java#L68-L71
 
 case "self": {
   self = this.deserializeRecord(input);

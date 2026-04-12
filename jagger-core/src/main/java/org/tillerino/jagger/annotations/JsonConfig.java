@@ -21,6 +21,26 @@ public @interface JsonConfig {
     Class<?>[] config() default {};
 
     /**
+     * Add these annotations to the generated class.
+     *
+     * @return only annotations without non-default values can be used. E.g. {@code jakarta.inject.Inject}.
+     */
+    Class<?>[] onGeneratedClass() default {};
+
+    /**
+     * Add these annotations to the generated class.
+     *
+     * @return only annotations without non-default values can be used. E.g. {@code jakarta.inject.Inject}.
+     */
+    Class<?>[] onGeneratedConstructors() default {};
+
+    /** Adds {@link Generated} to generated classes. */
+    boolean addGeneratedAnnotationToClass() default true;
+
+    /** Adds {@link Generated} to generated constructors and methods. */
+    boolean addGeneratedAnnotationToMethods() default false;
+
+    /**
      * Determines if the annotated element should be implemented.
      *
      * <p>By default, all methods are implemented.

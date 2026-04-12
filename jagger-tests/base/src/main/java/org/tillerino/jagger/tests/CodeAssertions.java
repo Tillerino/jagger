@@ -5,8 +5,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.github.javaparser.ParseResult;
 import com.github.javaparser.ParserConfiguration;
 import com.github.javaparser.ast.CompilationUnit;
+import com.github.javaparser.ast.body.CallableDeclaration;
+import com.github.javaparser.ast.body.ConstructorDeclaration;
 import com.github.javaparser.ast.body.MethodDeclaration;
 import com.github.javaparser.ast.body.TypeDeclaration;
+import com.github.javaparser.ast.expr.AnnotationExpr;
 import com.github.javaparser.ast.expr.MethodCallExpr;
 import com.github.javaparser.ast.expr.MethodReferenceExpr;
 import com.github.javaparser.ast.stmt.BlockStmt;
@@ -15,6 +18,7 @@ import com.github.javaparser.utils.SourceRoot;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import org.apache.commons.lang3.function.Failable;
 import org.assertj.core.api.AbstractListAssert;
 import org.assertj.core.api.Assertions;
@@ -51,33 +55,72 @@ public class CodeAssertions {
         TypeDeclaration<?> primaryType = compilationUnit
                 .getPrimaryType()
                 .orElseThrow(() -> new AssertionError("No primary type in " + storage.getFileName()));
-        return new CompileUnitAssert(compilationUnit, primaryType, storage);
+        return new CompileUnitAssert(compilationUnit, primaryType, storage, primaryType.getAnnotations());
+    }
+
+    interface HasAnnotations<SELF extends HasAnnotations<SELF>> {
+        List<AnnotationExpr> annotations();
+
+        default SELF hasAnnotation(String annotationName) {
+            Assertions.assertThat(annotations()).map(AnnotationExpr::toString).contains(annotationName);
+            return (SELF) this;
+        }
+
+        default SELF doesNotHaveAnnotation(String annotationName) {
+            Assertions.assertThat(annotations()).map(AnnotationExpr::toString).doesNotContain(annotationName);
+            return (SELF) this;
+        }
     }
 
     public record CompileUnitAssert(
-            CompilationUnit cu, TypeDeclaration<?> primaryType, CompilationUnit.Storage storage) {
+            CompilationUnit cu,
+            TypeDeclaration<?> primaryType,
+            CompilationUnit.Storage storage,
+            List<AnnotationExpr> annotations)
+            implements HasAnnotations<CompileUnitAssert> {
         public MethodAssert method(String methodName) {
             List<MethodDeclaration> methods = primaryType.getMethodsByName(methodName);
             Assertions.assertThat(methods)
                     .as("Methods named %s in %s", methodName, storage.getFileName())
                     .hasSize(1);
-            return new MethodAssert(this, methods.get(0));
+            MethodDeclaration method = methods.get(0);
+            return new MethodAssert(this, method, method.getBody(), method.getAnnotations());
         }
 
         public ListAssert<MethodDeclaration> methods() {
             return assertThat(primaryType.getMethods());
         }
+
+        public MethodAssert singleConstructor() {
+            List<ConstructorDeclaration> constructors = primaryType.getConstructors();
+            Assertions.assertThat(constructors)
+                    .as("Constructors of %s", storage.getFileName())
+                    .hasSize(1);
+            ConstructorDeclaration constructor = constructors.get(0);
+            return new MethodAssert(
+                    this, constructor, Optional.of(constructor.getBody()), constructor.getAnnotations());
+        }
+
+        public void hasNoConstructor() {
+            Assertions.assertThat(primaryType.getConstructors())
+                    .as("Constructors of %s", storage.getFileName())
+                    .isEmpty();
+        }
     }
 
-    public record MethodAssert(CompileUnitAssert cu, MethodDeclaration decl) {
+    public record MethodAssert(
+            CompileUnitAssert cu,
+            CallableDeclaration<?> decl,
+            Optional<BlockStmt> body,
+            List<AnnotationExpr> annotations)
+            implements HasAnnotations<MethodAssert> {
         public MethodAssert calls(String name) {
             allCalls().contains(name);
             return this;
         }
 
         private AbstractListAssert<?, List<? extends String>, String, ObjectAssert<String>> allCalls() {
-            BlockStmt blockStmt =
-                    decl.getBody().orElseThrow(() -> new AssertionError("No body in " + decl.getNameAsString()));
+            BlockStmt blockStmt = body.orElseThrow(() -> new AssertionError("No body in " + decl.getNameAsString()));
             return Assertions.assertThat(blockStmt.findAll(MethodCallExpr.class))
                     .extracting(MethodCallExpr::getNameAsString);
         }
@@ -88,8 +131,7 @@ public class CodeAssertions {
         }
 
         public MethodAssert bodyContains(String code) {
-            assertThat(decl.getBody()
-                            .orElseThrow(() -> new AssertionError("No body in " + decl.getNameAsString()))
+            assertThat(body.orElseThrow(() -> new AssertionError("No body in " + decl.getNameAsString()))
                             .toString())
                     .contains(code);
             return this;
@@ -101,8 +143,7 @@ public class CodeAssertions {
         }
 
         private AbstractListAssert<?, List<? extends String>, String, ObjectAssert<String>> allReferences() {
-            BlockStmt blockStmt =
-                    decl.getBody().orElseThrow(() -> new AssertionError("No body in " + decl.getNameAsString()));
+            BlockStmt blockStmt = body.orElseThrow(() -> new AssertionError("No body in " + decl.getNameAsString()));
             return assertThat(blockStmt.findAll(MethodReferenceExpr.class))
                     .extracting(MethodReferenceExpr::getIdentifier);
         }

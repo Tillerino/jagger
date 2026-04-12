@@ -32,6 +32,10 @@ public final class AnyConfig {
         Verification.VERIFY_SYMMETRY,
         References.REFERENCES,
         RequiredProperty.REQUIRED_PROPERTY,
+        CodeGeneration.ON_GENERATED_CLASS,
+        CodeGeneration.ON_GENERATED_CONSTRUCTOR,
+        CodeGeneration.ADD_GENERATED_ANNOTATION_TO_CLASS,
+        CodeGeneration.ADD_GENERATED_ANNOTATION_TO_METHODS,
         // leave a trailing comma for cleaner diffs :)
     };
 
