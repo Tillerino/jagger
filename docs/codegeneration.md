@@ -79,14 +79,14 @@ abstract class WithAnnotationsOnClass {
 ```
 
 ```java
-// ../jagger-tests/jackson/target/generated-sources/annotations/org/tillerino/jagger/tests/base/features/CodeGenerationSerde$WithAnnotationsOnClassImpl.java#L11-L17
+// ../jagger-tests/jackson/target/generated-sources/annotations/org/tillerino/jagger/tests/base/features/CodeGenerationSerde$WithAnnotationsOnClassImpl.java#L12-L18
 
 @Generated
 @AnAnnotation
 public class CodeGenerationSerde$WithAnnotationsOnClassImpl extends CodeGenerationSerde.WithAnnotationsOnClass {
   @AnotherAnnotation
-  CodeGenerationSerde$WithAnnotationsOnClassImpl() {
-    super();
+  CodeGenerationSerde$WithAnnotationsOnClassImpl(ClassLoader cl) {
+    super(cl);
   }
 ```
 

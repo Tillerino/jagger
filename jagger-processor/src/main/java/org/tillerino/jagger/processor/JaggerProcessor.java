@@ -4,6 +4,7 @@ import static javax.tools.Diagnostic.Kind.ERROR;
 
 import com.google.auto.service.AutoService;
 import com.squareup.javapoet.*;
+import com.squareup.javapoet.TypeSpec.Builder;
 import java.io.IOException;
 import java.io.Writer;
 import java.lang.annotation.Annotation;
@@ -17,7 +18,9 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import javax.annotation.processing.*;
 import javax.lang.model.SourceVersion;
-import javax.lang.model.element.*;
+import javax.lang.model.element.Element;
+import javax.lang.model.element.ExecutableElement;
+import javax.lang.model.element.TypeElement;
 import javax.lang.model.util.ElementFilter;
 import javax.tools.JavaFileObject;
 import org.apache.commons.lang3.exception.ContextedRuntimeException;
@@ -26,8 +29,9 @@ import org.tillerino.jagger.annotations.JsonInput;
 import org.tillerino.jagger.annotations.JsonOutput;
 import org.tillerino.jagger.annotations.JsonTemplate;
 import org.tillerino.jagger.annotations.JsonTemplate.JsonTemplates;
+import org.tillerino.jagger.processor.FullyQualifiedName.FullyQualifiedClassName;
 import org.tillerino.jagger.processor.apis.*;
-import org.tillerino.jagger.processor.config.ConfigProperty;
+import org.tillerino.jagger.processor.config.AnyConfig;
 import org.tillerino.jagger.processor.config.ConfigProperty.LocationKind;
 import org.tillerino.jagger.processor.features.CodeGeneration;
 import org.tillerino.jagger.processor.util.Exceptions;
@@ -89,10 +93,7 @@ public class JaggerProcessor extends AbstractProcessor {
                                             JaggerPrototype.of(blueprint, instantiated, kind, utils, true);
                                     // should actually check if super method is not being generated and THIS is being
                                     // generated
-                                    if (method.config()
-                                            .resolveProperty(ConfigProperty.IMPLEMENT)
-                                            .value()
-                                            .shouldImplement()) {
+                                    if (CodeGeneration.shouldImplement(method.config())) {
                                         blueprint.prototypes.add(method);
                                     }
                                 });
@@ -184,10 +185,7 @@ public class JaggerProcessor extends AbstractProcessor {
             if (!generatedClasses.add(blueprint.generatedClassName())) {
                 continue;
             }
-            if (blueprint.prototypes.stream().anyMatch(method -> method.config()
-                    .resolveProperty(ConfigProperty.IMPLEMENT)
-                    .value()
-                    .shouldImplement())) {
+            if (blueprint.prototypes.stream().anyMatch(method -> CodeGeneration.shouldImplement(method.config()))) {
                 try {
                     setupUtils(processingEnv);
                     generateCode(blueprint);
@@ -206,50 +204,19 @@ public class JaggerProcessor extends AbstractProcessor {
     }
 
     private void generateCode(JaggerBlueprint blueprint) throws IOException {
-        TypeSpec.Builder classBuilder = TypeSpec.classBuilder(blueprint.className.nameInCompilationUnit() + "Impl")
-                .addModifiers(Modifier.PUBLIC);
-        boolean addGenerated = blueprint
-                .config
-                .resolveProperty(CodeGeneration.ADD_GENERATED_ANNOTATION_TO_CLASS)
-                .value();
-        if (addGenerated) {
-            classBuilder.addAnnotation(AnnotationSpec.builder(
-                            ClassName.get(utils.elements.getTypeElement("org.tillerino.jagger.annotations.Generated")))
-                    .build());
-        }
-        for (TypeElement annotation : blueprint
-                .config
-                .resolveProperty(CodeGeneration.ON_GENERATED_CLASS)
-                .value()) {
-            classBuilder.addAnnotation(
-                    AnnotationSpec.builder(ClassName.get(annotation)).build());
-        }
-        if (blueprint.typeElement.getKind() == ElementKind.INTERFACE) {
-            classBuilder.addSuperinterface(blueprint.typeElement.asType());
-        } else {
-            classBuilder.superclass(blueprint.typeElement.asType());
-        }
-        utils.codeGeneration.addRequiredConstructors(blueprint.typeElement, classBuilder, blueprint.config);
+        AnyConfig config = blueprint.config;
+        TypeElement typeElement = blueprint.typeElement;
+        FullyQualifiedClassName className = blueprint.className;
+        Builder classBuilder = utils.codeGeneration.getClassBuilder(className, typeElement, config);
         List<MethodSpec> methods = new ArrayList<>();
         GeneratedClass generatedClass = new GeneratedClass(classBuilder, utils, blueprint);
         for (JaggerPrototype method : blueprint.prototypes) {
-            if (!method.methodElement().getModifiers().contains(Modifier.ABSTRACT)
-                    || !method.config()
-                            .resolveProperty(ConfigProperty.IMPLEMENT)
-                            .value()
-                            .shouldImplement()) {
+            if (!CodeGeneration.isAbstractAndShouldImplement(method.methodElement(), method.config())) {
                 // method is implemented by user and can be used by us
                 continue;
             }
             Exceptions.runWithContext(
-                    () -> {
-                        MethodSpec e = generateMethod(method, generatedClass);
-                        if (e != null) {
-                            methods.add(e);
-                        }
-                    },
-                    "specification",
-                    method);
+                    () -> methods.add(generateMethod(method, generatedClass)), "specification", method);
         }
         generatedClass.buildFields(classBuilder);
         for (MethodSpec method : methods) {
@@ -257,7 +224,7 @@ public class JaggerProcessor extends AbstractProcessor {
         }
         JavaFileObject sourceFile = processingEnv.getFiler().createSourceFile(blueprint.generatedClassName());
         try (Writer writer = sourceFile.openWriter()) {
-            JavaFile.Builder builder = JavaFile.builder(blueprint.className.packageName(), classBuilder.build());
+            JavaFile.Builder builder = JavaFile.builder(className.packageName(), classBuilder.build());
             generatedClass.fileBuilderMods.forEach(mod -> mod.accept(builder));
             JavaFile file = builder.build();
             file.writeTo(writer);

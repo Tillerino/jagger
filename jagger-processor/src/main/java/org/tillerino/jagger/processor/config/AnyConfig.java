@@ -25,7 +25,7 @@ public final class AnyConfig {
         UnknownProperties.UNKNOWN_PROPERTIES,
         ConfigProperty.USES,
         Delegation.DELEGATE_TO,
-        ConfigProperty.IMPLEMENT,
+        CodeGeneration.IMPLEMENT,
         PropertyName.PROPERTY_NAME,
         IgnoreProperty.IGNORE_PROPERTY,
         IgnoreProperties.IGNORED_PROPERTIES,

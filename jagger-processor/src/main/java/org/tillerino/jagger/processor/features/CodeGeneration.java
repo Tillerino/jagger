@@ -2,26 +2,32 @@ package org.tillerino.jagger.processor.features;
 
 import static org.tillerino.jagger.processor.config.ConfigProperty.createConfigProperty;
 
-import com.squareup.javapoet.AnnotationSpec;
-import com.squareup.javapoet.ClassName;
-import com.squareup.javapoet.MethodSpec;
-import com.squareup.javapoet.TypeName;
+import com.squareup.javapoet.*;
 import com.squareup.javapoet.TypeSpec.Builder;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
-import javax.lang.model.element.ElementKind;
-import javax.lang.model.element.ExecutableElement;
-import javax.lang.model.element.TypeElement;
-import javax.lang.model.element.VariableElement;
+import javax.lang.model.element.*;
+import org.tillerino.jagger.annotations.JsonConfig;
 import org.tillerino.jagger.processor.AnnotationProcessorUtils;
+import org.tillerino.jagger.processor.FullyQualifiedName.FullyQualifiedClassName;
 import org.tillerino.jagger.processor.config.AnyConfig;
 import org.tillerino.jagger.processor.config.ConfigProperty;
 import org.tillerino.jagger.processor.config.ConfigProperty.ConfigPropertyRetriever;
+import org.tillerino.jagger.processor.config.ConfigProperty.LocationKind;
 import org.tillerino.jagger.processor.config.ConfigProperty.MergeFunction;
 import org.tillerino.jagger.processor.util.Annotations.AnnotationValueWrapper;
 
 public record CodeGeneration(AnnotationProcessorUtils utils) {
+
+    public static ConfigProperty<JsonConfig.ImplementationMode> IMPLEMENT = createConfigProperty(
+            List.of(LocationKind.BLUEPRINT, LocationKind.PROTOTYPE),
+            List.of(ConfigPropertyRetriever.jsonConfigPropertyRetriever(
+                    "implement", JsonConfig.ImplementationMode.class)),
+            JsonConfig.ImplementationMode.DEFAULT,
+            MergeFunction.notDefault(JsonConfig.ImplementationMode.DEFAULT),
+            List.of());
+
     public static ConfigProperty<Set<TypeElement>> ON_GENERATED_CLASS = createConfigProperty(
             List.of(ConfigProperty.LocationKind.BLUEPRINT),
             List.of(new ConfigPropertyRetriever<>(
@@ -68,6 +74,46 @@ public record CodeGeneration(AnnotationProcessorUtils utils) {
             false,
             MergeFunction.notDefault(false),
             ConfigProperty.PropagationKind.all());
+
+    public static boolean isAbstractAndShouldImplement(ExecutableElement method, AnyConfig config) {
+        return method.getModifiers().contains(Modifier.ABSTRACT) && shouldImplement(config);
+    }
+
+    public static boolean shouldImplement(AnyConfig config) {
+        return config.resolveProperty(IMPLEMENT).value().shouldImplement();
+    }
+
+    public Builder getClassBuilder(FullyQualifiedClassName className, TypeElement typeElement, AnyConfig config) {
+        Builder classBuilder = TypeSpec.classBuilder(className.nameInCompilationUnit() + "Impl")
+                .addModifiers(Modifier.PUBLIC);
+        addClassAnnotations(config, classBuilder);
+        addSuper(typeElement, classBuilder);
+        addRequiredConstructors(typeElement, classBuilder, config);
+        return classBuilder;
+    }
+
+    public void addClassAnnotations(AnyConfig config, Builder classBuilder) {
+        boolean addGenerated = config.resolveProperty(CodeGeneration.ADD_GENERATED_ANNOTATION_TO_CLASS)
+                .value();
+        if (addGenerated) {
+            classBuilder.addAnnotation(AnnotationSpec.builder(
+                            ClassName.get(utils.elements.getTypeElement("org.tillerino.jagger.annotations.Generated")))
+                    .build());
+        }
+        for (TypeElement annotation :
+                config.resolveProperty(CodeGeneration.ON_GENERATED_CLASS).value()) {
+            classBuilder.addAnnotation(
+                    AnnotationSpec.builder(ClassName.get(annotation)).build());
+        }
+    }
+
+    public void addSuper(TypeElement impl, Builder classBuilder) {
+        if (impl.getKind() == ElementKind.INTERFACE) {
+            classBuilder.addSuperinterface(impl.asType());
+        } else {
+            classBuilder.superclass(impl.asType());
+        }
+    }
 
     public void addRequiredConstructors(TypeElement type, Builder classBuilder, AnyConfig config) {
         Set<TypeElement> addAnnotations =

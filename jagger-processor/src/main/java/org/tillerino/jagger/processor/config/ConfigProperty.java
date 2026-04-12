@@ -5,7 +5,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collector;
 import java.util.stream.Collectors;
 import javax.lang.model.element.Element;
-import org.tillerino.jagger.annotations.JsonConfig;
 import org.tillerino.jagger.processor.AnnotationProcessorUtils;
 import org.tillerino.jagger.processor.JaggerBlueprint;
 import org.tillerino.jagger.processor.util.Annotations.AnnotationMirrorWrapper;
@@ -27,14 +26,6 @@ public final class ConfigProperty<T> {
             Set.of(),
             MergeFunction.mergeSets(),
             PropagationKind.all());
-
-    public static ConfigProperty<JsonConfig.ImplementationMode> IMPLEMENT = createConfigProperty(
-            List.of(LocationKind.BLUEPRINT, LocationKind.PROTOTYPE),
-            List.of(ConfigPropertyRetriever.jsonConfigPropertyRetriever(
-                    "implement", JsonConfig.ImplementationMode.class)),
-            JsonConfig.ImplementationMode.DEFAULT,
-            MergeFunction.notDefault(JsonConfig.ImplementationMode.DEFAULT),
-            List.of());
 
     final int index = counter.incrementAndGet();
 
