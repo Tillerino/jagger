@@ -24,6 +24,9 @@ test-single project args="":
 install-processor:
   {{mvn}} clean install -pl :jagger-processor -am
 
+install:
+  mvn clean install -T 99 -DinstallAtEnd=true
+
 # show all available updates
 updates:
   {{mvn}} versions:display-plugin-updates {{updates-flags}} && { grep -- "->" updates.txt */updates.txt */*/updates.txt | sed 's/\.\+/./g'; }

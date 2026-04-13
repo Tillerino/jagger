@@ -28,6 +28,7 @@
         <copy.reader>-</copy.reader>
         <copy.writerMode>-</copy.writerMode>
         <copy.features>JSON</copy.features>
+        <maven.install.skip>true</maven.install.skip>
     </properties>
 
     <dependencies>
