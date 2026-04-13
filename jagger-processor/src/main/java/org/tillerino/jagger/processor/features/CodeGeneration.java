@@ -17,6 +17,7 @@ import org.tillerino.jagger.processor.config.ConfigProperty.ConfigPropertyRetrie
 import org.tillerino.jagger.processor.config.ConfigProperty.LocationKind;
 import org.tillerino.jagger.processor.config.ConfigProperty.MergeFunction;
 import org.tillerino.jagger.processor.util.Annotations.AnnotationValueWrapper;
+import org.tillerino.jagger.processor.util.InstantiatedMethod;
 
 public record CodeGeneration(AnnotationProcessorUtils utils) {
 
@@ -177,5 +178,30 @@ public record CodeGeneration(AnnotationProcessorUtils utils) {
 
             classBuilder.addMethod(builder.build());
         }
+    }
+
+    public MethodSpec.Builder getMethodBuilder(InstantiatedMethod method, boolean overrides, AnyConfig config) {
+        MethodSpec.Builder methodBuilder = MethodSpec.methodBuilder(method.name());
+        methodBuilder
+                .addModifiers(Modifier.PUBLIC)
+                .addTypeVariables(method.element().getTypeParameters().stream()
+                        .map(TypeParameterElement::getSimpleName)
+                        .map(name -> TypeVariableName.get(name.toString()))
+                        .toList())
+                .returns(ClassName.get(method.returnType()));
+        method.parameters().forEach(param -> methodBuilder.addParameter(ClassName.get(param.type()), param.name()));
+        method.element().getThrownTypes().forEach(type -> methodBuilder.addException(ClassName.get(type)));
+        if (overrides) {
+            methodBuilder.addAnnotation(Override.class);
+        }
+        boolean addGenerated = config.resolveProperty(CodeGeneration.ADD_GENERATED_ANNOTATION_TO_METHODS)
+                .value();
+        if (addGenerated) {
+            methodBuilder.addAnnotation(AnnotationSpec.builder(
+                            ClassName.get(utils.elements.getTypeElement("org.tillerino.jagger.annotations.Generated")))
+                    .build());
+        }
+
+        return methodBuilder;
     }
 }

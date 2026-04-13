@@ -233,18 +233,8 @@ public class JaggerProcessor extends AbstractProcessor {
     }
 
     private MethodSpec generateMethod(JaggerPrototype method, GeneratedClass generatedClass) {
-        MethodSpec.Builder methodBuilder = method.asInstantiatedMethod().methodSpec();
-        if (method.overrides()) {
-            methodBuilder.addAnnotation(Override.class);
-        }
-        boolean addGenerated = method.config()
-                .resolveProperty(CodeGeneration.ADD_GENERATED_ANNOTATION_TO_METHODS)
-                .value();
-        if (addGenerated) {
-            methodBuilder.addAnnotation(AnnotationSpec.builder(
-                            ClassName.get(utils.elements.getTypeElement("org.tillerino.jagger.annotations.Generated")))
-                    .build());
-        }
+        MethodSpec.Builder methodBuilder = utils.codeGeneration.getMethodBuilder(
+                method.asInstantiatedMethod(), method.overrides(), method.config());
         Supplier<CodeBlock.Builder> codeGenerator =
                 switch (method.kind().direction()) {
                     case INPUT -> determineInputCodeGenerator(method, generatedClass);

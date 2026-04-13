@@ -1,14 +1,9 @@
 package org.tillerino.jagger.processor.util;
 
-import com.squareup.javapoet.ClassName;
-import com.squareup.javapoet.MethodSpec;
-import com.squareup.javapoet.TypeVariableName;
 import java.util.List;
 import java.util.stream.Collectors;
 import javax.lang.model.element.ElementKind;
 import javax.lang.model.element.ExecutableElement;
-import javax.lang.model.element.Modifier;
-import javax.lang.model.element.TypeParameterElement;
 import javax.lang.model.type.DeclaredType;
 import javax.lang.model.type.TypeMirror;
 import org.tillerino.jagger.processor.AnnotationProcessorUtils;
@@ -44,20 +39,6 @@ public record InstantiatedMethod(
         return element.getKind() == ElementKind.CONSTRUCTOR
                 ? new ConstructorCall(returnType, raw, diamond, args)
                 : new StaticMethodInvocation(returnType, raw, name, args);
-    }
-
-    public MethodSpec.Builder methodSpec() {
-        MethodSpec.Builder methodBuilder = MethodSpec.methodBuilder(name());
-        methodBuilder
-                .addModifiers(Modifier.PUBLIC)
-                .addTypeVariables(element().getTypeParameters().stream()
-                        .map(TypeParameterElement::getSimpleName)
-                        .map(name -> TypeVariableName.get(name.toString()))
-                        .toList())
-                .returns(ClassName.get(returnType()));
-        parameters().forEach(param -> methodBuilder.addParameter(ClassName.get(param.type()), param.name()));
-        element().getThrownTypes().forEach(type -> methodBuilder.addException(ClassName.get(type)));
-        return methodBuilder;
     }
 
     public boolean hasSameSignature(InstantiatedMethod other, AnnotationProcessorUtils utils) {
