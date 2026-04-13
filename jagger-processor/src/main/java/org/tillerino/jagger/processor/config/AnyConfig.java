@@ -97,31 +97,29 @@ public final class AnyConfig {
     /**
      * @param property the accessor. in recursive calls the element might be missing
      * @param accessorName to reconstruct the element in recursive calls
-     * @param dto the dto containing the property
+     * @param dtoType the dto containing the property
      * @param canonicalPropertyName to find the field
      * @return can return null in a recursive call
      */
     public static AnyConfig fromAccessorConsideringField(
             Accessor property,
             String accessorName,
-            TypeMirror dto,
+            TypeMirror dtoType,
             String canonicalPropertyName,
             AnnotationProcessorUtils utils) {
 
         // nullable during recursion. if element is null, this means the accessor does not exist in this type, but maybe
         // parent types.
-        AnyConfig accessorConfig = fromAccessorAndField(property, dto, canonicalPropertyName, utils);
+        AnyConfig accessorConfig = fromAccessorAndField(property, dtoType, canonicalPropertyName, utils);
 
         if (property.kind() != AccessorKind.GETTER && property.kind() != AccessorKind.SETTER) {
             return accessorConfig;
         }
 
-        for (DeclaredType d : Polymorphism.directSupertypes(dto, utils)) {
+        for (DeclaredType d : Polymorphism.directSupertypes(dtoType, utils)) {
             TypeElement superTypeElement = (TypeElement) d.asElement();
             Optional<ExecutableElement> superMethod =
-                    ElementFilter.methodsIn(superTypeElement.getEnclosedElements()).stream()
-                            .filter(m -> m.getSimpleName().contentEquals(accessorName))
-                            .findFirst();
+                    getFirstWithName(ElementFilter.methodsIn(superTypeElement.getEnclosedElements()), accessorName);
             ElementAccessor parentAccessor =
                     new ElementAccessor(property.type(), superMethod.orElse(null), property.kind());
             AnyConfig superConfig =
@@ -135,26 +133,38 @@ public final class AnyConfig {
     }
 
     private static AnyConfig fromAccessorAndField(
-            Accessor property, TypeMirror dto, String canonicalPropertyName, AnnotationProcessorUtils utils) {
-        AnyConfig accessorConfig =
-                property.element() != null ? create(property.element(), LocationKind.PROPERTY, utils) : null;
+            Accessor property, TypeMirror dtoType, String canonicalPropertyName, AnnotationProcessorUtils utils) {
+        AnyConfig config = property.element() != null ? create(property.element(), LocationKind.PROPERTY, utils) : null;
         if (property.kind() == AccessorKind.FIELD) {
-            return accessorConfig;
+            return config;
         }
-        if (!(dto instanceof DeclaredType d)) {
-            return accessorConfig;
+        if (!(dtoType instanceof DeclaredType d)) {
+            return config;
         }
 
-        Optional<AnyConfig> maybeFieldConfig = ElementFilter.fieldsIn(
-                        d.asElement().getEnclosedElements())
-                .stream()
+        AnyConfig fieldConfig = getFirstWithName(
+                        ElementFilter.fieldsIn(d.asElement().getEnclosedElements()), canonicalPropertyName)
+                .map(f -> create(f, LocationKind.PROPERTY, utils))
+                .orElse(null);
+        if (fieldConfig != null) {
+            config = config != null ? fieldConfig.merge(config) : fieldConfig;
+        }
+
+        AnyConfig recordComponentConfig = getFirstWithName(
+                        ElementFilter.recordComponentsIn(d.asElement().getEnclosedElements()), canonicalPropertyName)
+                .map(f -> create(f, LocationKind.PROPERTY, utils))
+                .orElse(null);
+        if (recordComponentConfig != null) {
+            config = config != null ? recordComponentConfig.merge(config) : recordComponentConfig;
+        }
+
+        return config;
+    }
+
+    private static <T extends Element> Optional<T> getFirstWithName(List<T> elements, String canonicalPropertyName) {
+        return elements.stream()
                 .filter(f -> f.getSimpleName().contentEquals(canonicalPropertyName))
-                .findFirst()
-                .map(f -> create(f, LocationKind.PROPERTY, utils));
-
-        return maybeFieldConfig
-                .map(anyConfig -> accessorConfig != null ? anyConfig.merge(accessorConfig) : anyConfig)
-                .orElse(accessorConfig);
+                .findFirst();
     }
 
     /**

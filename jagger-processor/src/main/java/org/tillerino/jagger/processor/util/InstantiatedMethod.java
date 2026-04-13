@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 import javax.lang.model.element.ElementKind;
 import javax.lang.model.element.ExecutableElement;
+import javax.lang.model.element.VariableElement;
 import javax.lang.model.type.DeclaredType;
 import javax.lang.model.type.TypeMirror;
 import org.tillerino.jagger.processor.AnnotationProcessorUtils;
@@ -75,7 +76,8 @@ public record InstantiatedMethod(
         return new InstantiatedMethod(name, returnType, parameters, element, config);
     }
 
-    public record InstantiatedVariable(TypeMirror type, String name, AnyConfig config) implements PerfectSnippet {
+    public record InstantiatedVariable(VariableElement elem, TypeMirror type, String name, AnyConfig config)
+            implements PerfectSnippet {
         @Override
         public String toString() {
             return ShortName.of(type) + " " + name();
