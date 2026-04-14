@@ -59,7 +59,7 @@ public record InstantiatedMethod(
     }
 
     public boolean hasParameterAssignableFrom(TypeMirror t, AnnotationProcessorUtils utils) {
-        return parameters.stream().anyMatch(p -> utils.types.isAssignable(t, p.type));
+        return parameters.stream().anyMatch(p -> utils.commonTypes.isAssignable(t, p.type));
     }
 
     @Override

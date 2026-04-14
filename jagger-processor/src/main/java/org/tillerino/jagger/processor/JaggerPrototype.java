@@ -125,7 +125,7 @@ public record JaggerPrototype(
 
     public Optional<InstantiatedVariable> contextParameter() {
         for (InstantiatedVariable parameter : instantiatedParameters()) {
-            if (utils.types.isAssignable(
+            if (utils.commonTypes.isAssignable(
                     parameter.type(),
                     switch (kind.direction()) {
                         case INPUT -> utils.commonTypes.deserializationContext;

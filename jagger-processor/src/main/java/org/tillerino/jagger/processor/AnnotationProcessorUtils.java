@@ -142,7 +142,7 @@ public class AnnotationProcessorUtils {
         }
 
         public boolean isErasureAssignableTo(TypeMirror type, Class<?> cls) {
-            return isAssignableTo(types.erasure(type), cls);
+            return isAssignable(types.erasure(type), cls);
         }
 
         public TypeMirror getComponentType(TypeMirror type, Class<?> parameterizedClass) {
@@ -177,8 +177,19 @@ public class AnnotationProcessorUtils {
             return elem(cls).asType();
         }
 
-        public boolean isAssignableTo(TypeMirror type1, Class<?> cls) {
-            return types.isAssignable(type1, type(cls));
+        /** Checks if the first type is assignable to the second. */
+        public boolean isAssignable(TypeMirror type1, Class<?> cls) {
+            return isAssignable(type1, type(cls));
+        }
+
+        /**
+         * Checks if the first type is assignable to the second. There is some extra checking, so use this instead of
+         * {@link Types#isAssignable(TypeMirror, TypeMirror)}!
+         */
+        public boolean isAssignable(TypeMirror type1, TypeMirror type2) {
+            // If type1 is an error type, it becomes assignable for some reason.
+            // Since that leads to all kinds of bonkers follow-up errors, we specifically filter it out here.
+            return type1.getKind() != TypeKind.ERROR && types.isAssignable(type1, type2);
         }
 
         public PerfectSnippet getNullValueRaw(TypeMirror type) {

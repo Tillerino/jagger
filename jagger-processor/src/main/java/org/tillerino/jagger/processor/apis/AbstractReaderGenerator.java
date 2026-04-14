@@ -421,9 +421,9 @@ public abstract class AbstractReaderGenerator<SELF extends AbstractReaderGenerat
         TypeMirror rawType = utils.types.erasure(type);
         if (!((DeclaredType) rawType).asElement().getModifiers().contains(Modifier.ABSTRACT)) {
             return rawType;
-        } else if (utils.commonTypes.isAssignableTo(rawType, Set.class)) {
+        } else if (utils.commonTypes.isAssignable(rawType, Set.class)) {
             return utils.types.erasure(utils.commonTypes.type(LinkedHashSet.class));
-        } else if (utils.commonTypes.isAssignableTo(rawType, List.class)) {
+        } else if (utils.commonTypes.isAssignable(rawType, List.class)) {
             return utils.types.erasure(utils.commonTypes.type(ArrayList.class));
         } else if (utils.commonTypes.isErasureAssignableTo(rawType, Map.class)) {
             return utils.types.erasure(utils.commonTypes.type(LinkedHashMap.class));

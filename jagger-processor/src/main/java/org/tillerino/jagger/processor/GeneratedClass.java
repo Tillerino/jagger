@@ -61,7 +61,7 @@ public class GeneratedClass {
 
     private String getOrCreateUsedBlueprintWithTypeField(
             TypeMirror targetType, JaggerBlueprint calleeBlueprint, @Nullable AnyConfig config) {
-        if (utils.types.isAssignable(calleeBlueprint.typeElement.asType(), targetType)) {
+        if (utils.commonTypes.isAssignable(calleeBlueprint.typeElement.asType(), targetType)) {
             return getOrCreateDelegateeField(this.blueprint, calleeBlueprint, false); // TODO probably wrong
         }
         if (config == null) {

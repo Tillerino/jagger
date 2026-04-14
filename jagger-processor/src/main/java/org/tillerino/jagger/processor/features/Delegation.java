@@ -117,7 +117,7 @@ public record Delegation(AnnotationProcessorUtils utils) {
             JaggerPrototype caller, GeneratedClass generatedClass, InstantiatedVariable targetArgument) {
         // search in caller's own parameters
         for (InstantiatedVariable instantiatedParameter : caller.instantiatedParameters()) {
-            if (utils.types.isAssignable(instantiatedParameter.type(), targetArgument.type())) {
+            if (utils.commonTypes.isAssignable(instantiatedParameter.type(), targetArgument.type())) {
                 return Optional.of(Snippet.of("$L", instantiatedParameter.name()));
             }
         }

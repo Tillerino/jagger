@@ -66,7 +66,7 @@ public sealed interface PrototypeKind {
             }
             TypeMirror jaggerReaderRaw = utils.types.erasure(
                     utils.elements.getTypeElement(JAGGER_READER).asType());
-            if (utils.types.isAssignable(m.parameters().get(0).type(), jaggerReaderRaw)) {
+            if (utils.commonTypes.isAssignable(m.parameters().get(0).type(), jaggerReaderRaw)) {
                 return Optional.of(new Input(
                         jaggerReaderRaw,
                         m.returnType(),
@@ -90,7 +90,7 @@ public sealed interface PrototypeKind {
             }
             TypeMirror jaggerWriterRaw = utils.types.erasure(
                     utils.elements.getTypeElement(JAGGER_WRITER).asType());
-            if (utils.types.isAssignable(m.parameters().get(1).type(), jaggerWriterRaw)) {
+            if (utils.commonTypes.isAssignable(m.parameters().get(1).type(), jaggerWriterRaw)) {
                 return Optional.of(new Output(
                         jaggerWriterRaw,
                         m.parameters().get(0).type(),
