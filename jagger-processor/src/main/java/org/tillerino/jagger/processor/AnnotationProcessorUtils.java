@@ -17,6 +17,7 @@ import javax.lang.model.type.TypeMirror;
 import javax.lang.model.util.Elements;
 import javax.lang.model.util.SimpleAnnotationValueVisitor14;
 import javax.lang.model.util.Types;
+import org.apache.commons.lang3.exception.ContextedRuntimeException;
 import org.tillerino.jagger.api.DeserializationContext;
 import org.tillerino.jagger.api.SerializationContext;
 import org.tillerino.jagger.processor.Snippet.PerfectSnippet;
@@ -202,6 +203,15 @@ public class AnnotationProcessorUtils {
                 case ARRAY, DECLARED, TYPEVAR, WILDCARD, UNION, INTERSECTION -> new Literal(type, "null");
                 default -> throw Exceptions.unexpected();
             };
+        }
+
+        /** Use instead of {@link Types#asElement(TypeMirror)} - will throw instead of returning null. */
+        public Element asElement(TypeMirror type) {
+            Element element = types.asElement(type);
+            if (element == null) {
+                throw new ContextedRuntimeException("Not as much of a type as expected: " + type);
+            }
+            return element;
         }
     }
 }
