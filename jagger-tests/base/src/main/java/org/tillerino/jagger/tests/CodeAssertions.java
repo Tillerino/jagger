@@ -12,6 +12,7 @@ import com.github.javaparser.ast.body.TypeDeclaration;
 import com.github.javaparser.ast.expr.AnnotationExpr;
 import com.github.javaparser.ast.expr.MethodCallExpr;
 import com.github.javaparser.ast.expr.MethodReferenceExpr;
+import com.github.javaparser.ast.expr.ObjectCreationExpr;
 import com.github.javaparser.ast.stmt.BlockStmt;
 import com.github.javaparser.utils.CodeGenerationUtils;
 import com.github.javaparser.utils.SourceRoot;
@@ -119,10 +120,22 @@ public class CodeAssertions {
             return this;
         }
 
+        public MethodAssert callsConstructor(String name) {
+            allConstructorCalls().contains(name);
+            return this;
+        }
+
         private AbstractListAssert<?, List<? extends String>, String, ObjectAssert<String>> allCalls() {
             BlockStmt blockStmt = body.orElseThrow(() -> new AssertionError("No body in " + decl.getNameAsString()));
             return Assertions.assertThat(blockStmt.findAll(MethodCallExpr.class))
                     .extracting(MethodCallExpr::getNameAsString);
+        }
+
+        private AbstractListAssert<?, List<? extends String>, String, ObjectAssert<String>> allConstructorCalls() {
+            BlockStmt blockStmt = body.orElseThrow(() -> new AssertionError("No body in " + decl.getNameAsString()));
+            return assertThat(blockStmt.findAll(ObjectCreationExpr.class))
+                    .extracting(
+                            objectCreationExpr -> objectCreationExpr.getType().getNameAsString());
         }
 
         public MethodAssert doesNotCall(String name) {

@@ -53,10 +53,8 @@ public class AbstractCodeGenerator<SELF extends AbstractCodeGenerator<SELF>> {
 
     protected AbstractCodeGenerator<SELF> nextControlFlow(Snippet s) {
         Flattened f = s.flatten();
-        variables.pop();
-        assert !variables.isEmpty();
-        code.nextControlFlow(f.format(), f.args());
-        variables.push(new LinkedHashSet<>(variables.peek()));
+        popVariablesStack();
+        pushVariablesStack(f);
         return this;
     }
 
@@ -65,10 +63,19 @@ public class AbstractCodeGenerator<SELF extends AbstractCodeGenerator<SELF>> {
     }
 
     protected AbstractCodeGenerator<SELF> endControlFlow() {
-        variables.pop();
-        assert !variables.isEmpty();
+        popVariablesStack();
         code.endControlFlow();
         return this;
+    }
+
+    protected void pushVariablesStack(Flattened f) {
+        code.nextControlFlow(f.format(), f.args());
+        variables.push(new LinkedHashSet<>(variables.peek()));
+    }
+
+    protected void popVariablesStack() {
+        variables.pop();
+        assert !variables.isEmpty();
     }
 
     protected ScopedVar createVariable(String name) {

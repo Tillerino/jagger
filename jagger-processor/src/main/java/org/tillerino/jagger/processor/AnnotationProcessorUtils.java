@@ -1,9 +1,6 @@
 package org.tillerino.jagger.processor;
 
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import javax.annotation.processing.Messager;
 import javax.annotation.processing.ProcessingEnvironment;
 import javax.lang.model.element.AnnotationValue;
@@ -23,6 +20,8 @@ import org.tillerino.jagger.api.SerializationContext;
 import org.tillerino.jagger.processor.Snippet.PerfectSnippet;
 import org.tillerino.jagger.processor.Snippet.PerfectSnippet.Literal;
 import org.tillerino.jagger.processor.features.*;
+import org.tillerino.jagger.processor.features.Generics.TypeVar;
+import org.tillerino.jagger.processor.features.Properties;
 import org.tillerino.jagger.processor.util.Annotations;
 import org.tillerino.jagger.processor.util.Exceptions;
 
@@ -147,11 +146,9 @@ public class AnnotationProcessorUtils {
         }
 
         public TypeMirror getComponentType(TypeMirror type, Class<?> parameterizedClass) {
-            return generics.recordTypeBindingsFor(
-                            (DeclaredType) type, elements.getTypeElement(parameterizedClass.getName()))
-                    .values()
-                    .iterator()
-                    .next();
+            Map<TypeVar, TypeMirror> typeBindings = generics.recordTypeBindingsFor(
+                    (DeclaredType) type, elements.getTypeElement(parameterizedClass.getName()));
+            return typeBindings.values().iterator().next();
         }
 
         public TypeMirror getArrayComponentType(TypeMirror type) {
@@ -161,11 +158,13 @@ public class AnnotationProcessorUtils {
             return null;
         }
 
-        public TypeMirror unwrapArraysAndIterables(TypeMirror type) {
+        public TypeMirror unwrapContainer(TypeMirror type) {
             if (type.getKind() == TypeKind.ARRAY) {
                 return getArrayComponentType(type);
-            } else if (isIterableOrArray(type)) {
+            } else if (isErasureAssignableTo(type, Iterable.class)) {
                 return getComponentType(type, Iterable.class);
+            } else if (isErasureAssignableTo(type, Optional.class)) {
+                return getComponentType(type, Optional.class);
             }
             return type;
         }
