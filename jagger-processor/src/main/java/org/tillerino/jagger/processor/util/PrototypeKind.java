@@ -8,8 +8,6 @@ import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ContextedRuntimeException;
-import org.tillerino.jagger.annotations.JsonInput;
-import org.tillerino.jagger.annotations.JsonOutput;
 import org.tillerino.jagger.processor.AnnotationProcessorUtils;
 
 public sealed interface PrototypeKind {
@@ -30,9 +28,7 @@ public sealed interface PrototypeKind {
     String JAGGER_READER = "org.tillerino.jagger.api.JaggerReader";
     String JAGGER_WRITER = "org.tillerino.jagger.api.JaggerWriter";
 
-    default Direction direction() {
-        return this instanceof Input ? Direction.INPUT : Direction.OUTPUT;
-    }
+    Direction direction();
 
     TypeMirror jsonType();
 
@@ -41,7 +37,7 @@ public sealed interface PrototypeKind {
     List<InstantiatedMethod.InstantiatedVariable> otherParameters();
 
     default String defaultMethodName() {
-        String prefix = this instanceof Input ? "read" : "write";
+        String prefix = direction() == Direction.INPUT ? "read" : "write";
         return prefix + simpleTypeName(javaType());
     }
 
@@ -54,12 +50,16 @@ public sealed interface PrototypeKind {
     }
 
     static Optional<PrototypeKind> of(InstantiatedMethod m, AnnotationProcessorUtils utils) {
-        if (m.element().getAnnotation(JsonInput.class) != null
+        return detectJsonInput(m, utils).or(() -> detectJsonOutput(m, utils));
+    }
+
+    private static Optional<PrototypeKind> detectJsonInput(InstantiatedMethod m, AnnotationProcessorUtils utils) {
+        if (m.element().getAnnotation(org.tillerino.jagger.annotations.JsonInput.class) != null
                 && m.returnType().getKind() != TypeKind.VOID
                 && !m.parameters().isEmpty()) {
             if (List.of(JACKSON_JSON_PARSER, GSON_JSON_READER, FASTJSON_2_JSONREADER, JAKARTA_JSON_PARSER)
                     .contains(m.parameters().get(0).type().toString())) {
-                return Optional.of(new Input(
+                return Optional.of(new JsonInput(
                         m.parameters().get(0).type(),
                         m.returnType(),
                         m.parameters().subList(1, m.parameters().size())));
@@ -67,13 +67,17 @@ public sealed interface PrototypeKind {
             TypeMirror jaggerReaderRaw = utils.types.erasure(
                     utils.elements.getTypeElement(JAGGER_READER).asType());
             if (utils.commonTypes.isAssignable(m.parameters().get(0).type(), jaggerReaderRaw)) {
-                return Optional.of(new Input(
+                return Optional.of(new JsonInput(
                         jaggerReaderRaw,
                         m.returnType(),
                         m.parameters().subList(1, m.parameters().size())));
             }
         }
-        if (m.element().getAnnotation(JsonOutput.class) != null
+        return Optional.empty();
+    }
+
+    private static Optional<PrototypeKind> detectJsonOutput(InstantiatedMethod m, AnnotationProcessorUtils utils) {
+        if (m.element().getAnnotation(org.tillerino.jagger.annotations.JsonOutput.class) != null
                 && m.returnType().getKind() == TypeKind.VOID
                 && m.parameters().size() >= 2) {
             if (List.of(
@@ -83,7 +87,7 @@ public sealed interface PrototypeKind {
                             JAKARTA_JSON_GENERATOR,
                             NANOJSON_JSON_WRITER)
                     .contains(m.parameters().get(1).type().toString())) {
-                return Optional.of(new Output(
+                return Optional.of(new JsonOutput(
                         m.parameters().get(1).type(),
                         m.parameters().get(0).type(),
                         m.parameters().subList(2, m.parameters().size())));
@@ -91,7 +95,7 @@ public sealed interface PrototypeKind {
             TypeMirror jaggerWriterRaw = utils.types.erasure(
                     utils.elements.getTypeElement(JAGGER_WRITER).asType());
             if (utils.commonTypes.isAssignable(m.parameters().get(1).type(), jaggerWriterRaw)) {
-                return Optional.of(new Output(
+                return Optional.of(new JsonOutput(
                         jaggerWriterRaw,
                         m.parameters().get(0).type(),
                         m.parameters().subList(2, m.parameters().size())));
@@ -116,21 +120,31 @@ public sealed interface PrototypeKind {
         return d.asElement().getSimpleName().toString();
     }
 
-    record Input(
+    record JsonInput(
             TypeMirror jsonType, TypeMirror javaType, List<InstantiatedMethod.InstantiatedVariable> otherParameters)
             implements PrototypeKind {
         @Override
         public PrototypeKind withJavaType(TypeMirror newType) {
-            return new Input(jsonType, newType, otherParameters);
+            return new JsonInput(jsonType, newType, otherParameters);
+        }
+
+        @Override
+        public Direction direction() {
+            return Direction.INPUT;
         }
     }
 
-    record Output(
+    record JsonOutput(
             TypeMirror jsonType, TypeMirror javaType, List<InstantiatedMethod.InstantiatedVariable> otherParameters)
             implements PrototypeKind {
         @Override
         public PrototypeKind withJavaType(TypeMirror newType) {
-            return new Output(jsonType, newType, otherParameters);
+            return new JsonOutput(jsonType, newType, otherParameters);
+        }
+
+        @Override
+        public Direction direction() {
+            return Direction.OUTPUT;
         }
     }
 
