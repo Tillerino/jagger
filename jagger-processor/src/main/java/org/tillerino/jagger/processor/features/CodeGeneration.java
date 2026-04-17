@@ -129,7 +129,7 @@ public record CodeGeneration(AnnotationProcessorUtils utils) {
                 .toList();
 
         for (ExecutableElement superConstructor : constructors) {
-            MethodSpec.Builder builder = MethodSpec.constructorBuilder();
+            MethodSpec.Builder builder = MethodSpec.constructorBuilder().addModifiers(Modifier.PUBLIC);
 
             if (superConstructor.getParameters().isEmpty() && constructors.size() == 1 && addAnnotations.isEmpty()) {
                 // only default constructor, so not necessary to generate anything
@@ -163,7 +163,7 @@ public record CodeGeneration(AnnotationProcessorUtils utils) {
         }
 
         if (constructors.isEmpty() && !addAnnotations.isEmpty()) {
-            MethodSpec.Builder builder = MethodSpec.constructorBuilder();
+            MethodSpec.Builder builder = MethodSpec.constructorBuilder().addModifiers(Modifier.PUBLIC);
 
             if (addGeneratedAnnotation) {
                 builder.addAnnotation(AnnotationSpec.builder(ClassName.get(

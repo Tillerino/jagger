@@ -11,21 +11,21 @@ format:
   {{mvn}} -q spotless:apply
 
 test args="":
-  {{mvn}} clean spotless:apply test {{args}}
+  JAGGER_DEBUG=true {{mvn}} clean spotless:apply test {{args}}
 
 test-shaded args="":
   {{mvn}} clean spotless:apply
   {{mvn}} verify -pl :jagger-processor -am
-  {{mvn}} test -P shaded {{args}}
+  JAGGER_DEBUG=true {{mvn}} test -P shaded {{args}}
 
 test-single project args="":
-  {{mvn}} clean spotless:apply test -pl :jagger-tests-{{project}} -am {{args}}
+  JAGGER_DEBUG=true {{mvn}} clean spotless:apply test -pl :jagger-tests-{{project}} -am {{args}}
 
 install-processor:
   {{mvn}} clean install -pl :jagger-processor -am
 
 install:
-  mvn clean install -T 99 -DinstallAtEnd=true
+  JAGGER_DEBUG=true mvn clean install -T 99 -DinstallAtEnd=true
 
 # show all available updates
 updates:

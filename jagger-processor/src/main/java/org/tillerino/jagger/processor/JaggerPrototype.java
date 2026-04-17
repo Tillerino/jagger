@@ -9,6 +9,7 @@ import javax.lang.model.element.ExecutableElement;
 import javax.lang.model.element.TypeParameterElement;
 import javax.lang.model.type.*;
 import org.apache.commons.lang3.NotImplementedException;
+import org.tillerino.jagger.processor.JaggerProcessor.Trigger;
 import org.tillerino.jagger.processor.config.AnyConfig;
 import org.tillerino.jagger.processor.config.ConfigProperty;
 import org.tillerino.jagger.processor.features.Generics.TypeVar;
@@ -29,14 +30,16 @@ public record JaggerPrototype(
         TypeMirror instantiatedReturnType,
         List<InstantiatedVariable> instantiatedParameters,
         AnyConfig config,
-        boolean overrides) {
+        boolean overrides,
+        Trigger trigger) {
 
     public static JaggerPrototype of(
             JaggerBlueprint blueprint,
             InstantiatedMethod instantiated,
             PrototypeKind kind,
             AnnotationProcessorUtils utils,
-            boolean overrides) {
+            boolean overrides,
+            Trigger trigger) {
         AnyConfig config = AnyConfig.create(instantiated.element(), ConfigProperty.LocationKind.PROTOTYPE, utils)
                 .merge(blueprint.config);
 
@@ -49,7 +52,8 @@ public record JaggerPrototype(
                 instantiated.returnType(),
                 instantiated.parameters(),
                 config,
-                overrides);
+                overrides,
+                trigger);
     }
 
     /** Checks if reads/writes the given type and matches the signature of a reference method. */

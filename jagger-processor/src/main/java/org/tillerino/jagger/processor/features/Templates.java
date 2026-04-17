@@ -10,6 +10,7 @@ import org.tillerino.jagger.annotations.JsonTemplate;
 import org.tillerino.jagger.annotations.JsonTemplate.JsonTemplates;
 import org.tillerino.jagger.processor.AnnotationProcessorUtils;
 import org.tillerino.jagger.processor.JaggerBlueprint;
+import org.tillerino.jagger.processor.JaggerProcessor.Trigger;
 import org.tillerino.jagger.processor.JaggerPrototype;
 import org.tillerino.jagger.processor.config.ConfigProperty.LocationKind;
 import org.tillerino.jagger.processor.features.Generics.TypeVar;
@@ -52,8 +53,13 @@ public record Templates(AnnotationProcessorUtils utils) {
                         .applyTypeBindings(template.method, Map.of(template.typeVar, type))
                         .withName(prototypeKind.defaultMethodName());
 
-                instantiatedPrototypes.add(
-                        JaggerPrototype.of(blueprint, instantiatedMethod, prototypeKind, utils, false));
+                instantiatedPrototypes.add(JaggerPrototype.of(
+                        blueprint,
+                        instantiatedMethod,
+                        prototypeKind,
+                        utils,
+                        false,
+                        new Trigger(blueprint.typeElement)));
             }
         }
         return instantiatedPrototypes;

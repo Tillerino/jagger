@@ -266,9 +266,11 @@ public abstract class AbstractReaderGenerator<SELF extends AbstractReaderGenerat
             readCollection(branch, lastCase);
         } else if (utils.commonTypes.isErasureAssignableTo(type, Map.class)) {
             readMap(branch, lastCase);
+        } else if (type.getKind() == TypeKind.TYPEVAR) {
+            throw new ContextedRuntimeException("Missing deserializer for type variable " + type);
         } else {
             if (!(type instanceof DeclaredType dt)) {
-                throw Exceptions.unexpected();
+                throw new ContextedRuntimeException("I don't know what to do with this type: " + type);
             }
             readObject(branch, null, (TypeElement) dt.asElement(), lastCase);
         }

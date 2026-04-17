@@ -3,7 +3,9 @@ package org.tillerino.jagger.processor;
 import static javax.tools.Diagnostic.Kind.ERROR;
 
 import com.google.auto.service.AutoService;
-import com.squareup.javapoet.*;
+import com.squareup.javapoet.CodeBlock;
+import com.squareup.javapoet.JavaFile;
+import com.squareup.javapoet.MethodSpec;
 import com.squareup.javapoet.TypeSpec.Builder;
 import java.io.IOException;
 import java.io.Writer;
@@ -34,7 +36,6 @@ import org.tillerino.jagger.processor.apis.*;
 import org.tillerino.jagger.processor.config.AnyConfig;
 import org.tillerino.jagger.processor.config.ConfigProperty.LocationKind;
 import org.tillerino.jagger.processor.features.CodeGeneration;
-import org.tillerino.jagger.processor.util.Exceptions;
 import org.tillerino.jagger.processor.util.InstantiatedMethod;
 import org.tillerino.jagger.processor.util.PrototypeKind;
 
@@ -69,8 +70,8 @@ public class JaggerProcessor extends AbstractProcessor {
         collectJsonConfig(roundEnv);
         collect(
                 roundEnv,
-                new AnnotationAndConsumer(JsonOutput.class, this::collectJsonOutput),
-                new AnnotationAndConsumer(JsonInput.class, this::collectJsonInput));
+                new AnnotationAndConsumer(JsonOutput.class, element -> addPrototype(element, "@JsonOutput")),
+                new AnnotationAndConsumer(JsonInput.class, element -> addPrototype(element, "@JsonInput")));
         collectJsonTemplates(roundEnv); // collect last so that custom methods are appear first in implementations
     }
 
@@ -80,28 +81,27 @@ public class JaggerProcessor extends AbstractProcessor {
                 return;
             }
             setupUtils(processingEnv);
-            Exceptions.runWithContext(
-                    () -> {
-                        JaggerBlueprint blueprint = utils.blueprint(type);
-                        for (ExecutableElement exec :
-                                ElementFilter.methodsIn(utils.elements.getAllMembers((TypeElement) element))) {
-                            if (!exec.getEnclosingElement().equals(element)) {
-                                InstantiatedMethod instantiated = utils.generics.instantiateMethod(
-                                        exec, blueprint.typeBindings, LocationKind.PROTOTYPE);
-                                PrototypeKind.of(instantiated, utils).ifPresent(kind -> {
-                                    JaggerPrototype method =
-                                            JaggerPrototype.of(blueprint, instantiated, kind, utils, true);
-                                    // should actually check if super method is not being generated and THIS is being
-                                    // generated
-                                    if (CodeGeneration.shouldImplement(method.config())) {
-                                        blueprint.prototypes.add(method);
-                                    }
-                                });
+            try {
+                JaggerBlueprint blueprint = utils.blueprint(type);
+                for (ExecutableElement exec :
+                        ElementFilter.methodsIn(utils.elements.getAllMembers((TypeElement) element))) {
+                    if (!exec.getEnclosingElement().equals(element)) {
+                        InstantiatedMethod instantiated =
+                                utils.generics.instantiateMethod(exec, blueprint.typeBindings, LocationKind.PROTOTYPE);
+                        PrototypeKind.of(instantiated, utils).ifPresent(kind -> {
+                            JaggerPrototype method = JaggerPrototype.of(
+                                    blueprint, instantiated, kind, utils, true, new Trigger(element));
+                            // should actually check if super method is not being generated and THIS is being
+                            // generated
+                            if (CodeGeneration.shouldImplement(method.config())) {
+                                blueprint.prototypes.add(method);
                             }
-                        }
-                    },
-                    "config",
-                    element);
+                        });
+                    }
+                }
+            } catch (Exception e) {
+                logError(e, element);
+            }
         });
     }
 
@@ -117,14 +117,18 @@ public class JaggerProcessor extends AbstractProcessor {
                 for (AnnotationAndConsumer kind : kinds) {
                     Annotation annotation = elem.getAnnotation(kind.annotationClass());
                     if (annotation != null) {
-                        kind.action.accept(elem);
+                        try {
+                            kind.action.accept(elem);
+                        } catch (Exception e) {
+                            logError(e, elem);
+                        }
                     }
                 }
             }
         }
     }
 
-    private void collectJsonOutput(Element element) {
+    private void addPrototype(Element element, String nick) {
         ExecutableElement exec = (ExecutableElement) element;
         TypeElement type = (TypeElement) exec.getEnclosingElement();
         setupUtils(processingEnv);
@@ -134,49 +138,41 @@ public class JaggerProcessor extends AbstractProcessor {
         PrototypeKind.of(instantiated, utils)
                 .ifPresentOrElse(
                         kind -> {
-                            JaggerPrototype method = JaggerPrototype.of(blueprint, instantiated, kind, utils, true);
+                            JaggerPrototype method =
+                                    JaggerPrototype.of(blueprint, instantiated, kind, utils, true, new Trigger(exec));
                             blueprint.prototypes.add(method);
                         },
                         () -> {
-                            logError("Signature unknown. Please see @JsonOutput for hints.", exec);
-                        });
-    }
-
-    private void collectJsonInput(Element element) {
-        ExecutableElement exec = (ExecutableElement) element;
-        TypeElement type = (TypeElement) exec.getEnclosingElement();
-        setupUtils(processingEnv);
-        JaggerBlueprint blueprint = utils.blueprint(type);
-        InstantiatedMethod instantiated =
-                utils.generics.instantiateMethod(exec, blueprint.typeBindings, LocationKind.PROTOTYPE);
-        PrototypeKind.of(instantiated, utils)
-                .ifPresentOrElse(
-                        kind -> {
-                            JaggerPrototype method = JaggerPrototype.of(blueprint, instantiated, kind, utils, true);
-                            blueprint.prototypes.add(method);
-                        },
-                        () -> {
-                            logError("Signature unknown. Please see @JsonInput for hints.", exec);
+                            logError("Signature unknown. Please see " + nick + " for hints.", exec);
                         });
     }
 
     private void collectJsonTemplates(RoundEnvironment roundEnv) {
         roundEnv.getElementsAnnotatedWith(JsonTemplate.class).forEach(element -> {
-            if (!(element instanceof TypeElement type)) {
-                return;
+            try {
+                if (!(element instanceof TypeElement type)) {
+                    return;
+                }
+                setupUtils(processingEnv);
+                JaggerBlueprint blueprint = utils.blueprint(type);
+                blueprint.prototypes.addAll(
+                        utils.templates.instantiateTemplatedPrototypesFromSingleAnnotation(blueprint));
+            } catch (Exception e) {
+                logError(e, element);
             }
-            setupUtils(processingEnv);
-            JaggerBlueprint blueprint = utils.blueprint(type);
-            blueprint.prototypes.addAll(utils.templates.instantiateTemplatedPrototypesFromSingleAnnotation(blueprint));
         });
         roundEnv.getElementsAnnotatedWith(JsonTemplates.class).forEach(element -> {
-            if (!(element instanceof TypeElement type)) {
-                return;
+            try {
+                if (!(element instanceof TypeElement type)) {
+                    return;
+                }
+                setupUtils(processingEnv);
+                JaggerBlueprint blueprint = utils.blueprint(type);
+                blueprint.prototypes.addAll(
+                        utils.templates.instantiateTemplatedPrototypesFromMultipleAnnotations(blueprint));
+            } catch (Exception e) {
+                logError(e, element);
             }
-            setupUtils(processingEnv);
-            JaggerBlueprint blueprint = utils.blueprint(type);
-            blueprint.prototypes.addAll(
-                    utils.templates.instantiateTemplatedPrototypesFromMultipleAnnotations(blueprint));
         });
     }
 
@@ -190,14 +186,7 @@ public class JaggerProcessor extends AbstractProcessor {
                     setupUtils(processingEnv);
                     generateCode(blueprint);
                 } catch (Exception e) {
-                    if (e instanceof ContextedRuntimeException) {
-                        System.out.println(((ContextedRuntimeException) e).getContextEntries());
-                    }
-                    e.printStackTrace();
-                    String msg = e.getMessage() != null
-                            ? e.getMessage()
-                            : e.getClass().getName();
-                    processingEnv.getMessager().printMessage(ERROR, msg);
+                    logError(e, blueprint.typeElement);
                 }
             }
         }
@@ -210,13 +199,16 @@ public class JaggerProcessor extends AbstractProcessor {
         Builder classBuilder = utils.codeGeneration.getClassBuilder(className, typeElement, config);
         List<MethodSpec> methods = new ArrayList<>();
         GeneratedClass generatedClass = new GeneratedClass(classBuilder, utils, blueprint);
-        for (JaggerPrototype method : blueprint.prototypes) {
-            if (!CodeGeneration.isAbstractAndShouldImplement(method.methodElement(), method.config())) {
-                // method is implemented by user and can be used by us
-                continue;
+        for (JaggerPrototype prototype : blueprint.prototypes) {
+            try {
+                if (!CodeGeneration.isAbstractAndShouldImplement(prototype.methodElement(), prototype.config())) {
+                    // method is implemented by user and can be used by us
+                    continue;
+                }
+                methods.add(generateMethod(prototype, generatedClass));
+            } catch (Exception ex) {
+                logError(ex, prototype.trigger().element());
             }
-            Exceptions.runWithContext(
-                    () -> methods.add(generateMethod(method, generatedClass)), "specification", method);
         }
         generatedClass.buildFields(classBuilder);
         for (MethodSpec method : methods) {
@@ -284,5 +276,15 @@ public class JaggerProcessor extends AbstractProcessor {
         processingEnv.getMessager().printMessage(ERROR, msg != null ? msg : "(null)", element);
     }
 
+    private void logError(Exception e, Element element) {
+        String msg = e != null ? e.getMessage() : null;
+        if (System.getenv("JAGGER_DEBUG") != null) {
+            e.printStackTrace();
+        }
+        logError(msg, element);
+    }
+
     record AnnotationAndConsumer(Class<? extends Annotation> annotationClass, Consumer<Element> action) {}
+
+    public record Trigger(Element element) {}
 }

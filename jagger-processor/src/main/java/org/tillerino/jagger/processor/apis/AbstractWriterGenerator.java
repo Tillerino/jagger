@@ -237,7 +237,7 @@ public abstract class AbstractWriterGenerator<SELF extends AbstractWriterGenerat
 
     protected void writeObjectAsMap() {
         if (!(type instanceof DeclaredType dt)) {
-            throw new ContextedRuntimeException("Trying to write object which has no type element: " + type);
+            throw new ContextedRuntimeException("I don't know what to do with this type: " + type);
         }
         TypeElement typeElement = (TypeElement) dt.asElement();
         Polymorphism.of(typeElement, utils).ifPresentOrElse(this::writePolymorphicObject, () -> {
