@@ -194,7 +194,7 @@ public interface Snippet {
 
             @Override
             public Flattened flatten() {
-                return Snippet.of("$T.$L($L)", classType, methodName, arguments.toArray())
+                return Snippet.of("$T.$L($C)", classType, methodName, join(arguments, ", "))
                         .flatten();
             }
         }
@@ -213,7 +213,7 @@ public interface Snippet {
 
             @Override
             public Flattened flatten() {
-                return Snippet.of("$C.$L($L)", object, methodName, arguments.toArray())
+                return Snippet.of("$C.$L($C)", object, methodName, join(arguments, ", "))
                         .flatten();
             }
         }

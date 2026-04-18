@@ -1,6 +1,7 @@
 package org.tillerino.jagger.processor.features;
 
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Stream;
@@ -9,6 +10,8 @@ import javax.lang.model.element.Modifier;
 import javax.lang.model.type.TypeMirror;
 import org.tillerino.jagger.processor.AnnotationProcessorUtils;
 import org.tillerino.jagger.processor.JaggerBlueprint;
+import org.tillerino.jagger.processor.JaggerPrototype;
+import org.tillerino.jagger.processor.Snippet.PerfectSnippet;
 import org.tillerino.jagger.processor.config.AnyConfig;
 import org.tillerino.jagger.processor.features.Generics.TypeVar;
 import org.tillerino.jagger.processor.util.InstantiatedMethod;
@@ -29,6 +32,12 @@ public record DefaultValues(AnnotationProcessorUtils utils) {
                     return Stream.empty();
                 })
                 .findFirst();
+    }
+
+    public PerfectSnippet getDefaultValue(JaggerPrototype prototype, TypeMirror type, AnyConfig propertyConfig) {
+        return findInputDefaultValue(prototype.blueprint(), type, propertyConfig)
+                .map(m -> m.invoke(utils, List.of()))
+                .orElseGet(() -> utils.commonTypes.getNullValueRaw(type));
     }
 
     public boolean isInputDefaultValue(ExecutableElement methodElement) {

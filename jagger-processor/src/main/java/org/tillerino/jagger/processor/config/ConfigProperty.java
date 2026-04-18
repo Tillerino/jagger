@@ -15,7 +15,7 @@ public final class ConfigProperty<T> {
 
     public static ConfigProperty<Set<JaggerBlueprint>> USES = createConfigProperty(
             List.of(LocationKind.values()),
-            List.of(new ConfigPropertyRetriever<>(
+            List.of(new AnnotationConfigPropertyRetriever<>(
                     "org.tillerino.jagger.annotations.JsonConfig", (wrapper, utils) -> wrapper.method("uses", true)
                             .map(AnnotationValueWrapper::asArray)
                             .map(classNames -> classNames.stream()
@@ -63,12 +63,10 @@ public final class ConfigProperty<T> {
             return Optional.empty();
         }
         return retrievers.stream()
-                .flatMap(retriever -> utils
-                        .annotations
-                        .findAnnotation(element, retriever.annotationClass)
-                        .flatMap(annotation -> retriever.valueRetriever.retrieve(annotation, utils))
-                        .map(value -> new InstantiatedProperty<>(
-                                ConfigProperty.this, elementType, value, retriever.annotationClass + " on " + element))
+                .flatMap(retriever -> retriever
+                        .retrieve(element, utils)
+                        .map(occurrence -> new InstantiatedProperty<>(
+                                ConfigProperty.this, elementType, occurrence.value, occurrence.sourceLocation))
                         .stream())
                 .reduce(merger::merge);
     }
@@ -143,21 +141,39 @@ public final class ConfigProperty<T> {
         }
     }
 
-    public record ConfigPropertyRetriever<T>(
-            String annotationClass, ConfigPropertyRetrieverFunction<T> valueRetriever) {
+    public interface ConfigPropertyRetriever<T> {
+        Optional<PropertyOccurrence<T>> retrieve(Element element, AnnotationProcessorUtils utils);
+    }
 
-        public static <T extends Enum<T>> ConfigPropertyRetriever<T> jsonConfigPropertyRetriever(
+    public record AnnotationConfigPropertyRetriever<T>(
+            String annotationClass, AnnotationPropertyRetriever<T> valueRetriever)
+            implements ConfigPropertyRetriever<T> {
+
+        public static <T extends Enum<T>> AnnotationConfigPropertyRetriever<T> jsonConfigPropertyRetriever(
                 String method, Class<T> enumClass) {
-            return new ConfigPropertyRetriever<>(
+            return new AnnotationConfigPropertyRetriever<>(
                     "org.tillerino.jagger.annotations.JsonConfig", (wrapper, utils) -> wrapper.method(method, false)
                             .map(annotationValueWrapper -> annotationValueWrapper.asEnum(enumClass)));
         }
 
-        public interface ConfigPropertyRetrieverFunction<T> {
+        @Override
+        public Optional<PropertyOccurrence<T>> retrieve(Element element, AnnotationProcessorUtils utils) {
+            return utils
+                    .annotations
+                    .findAnnotation(element, annotationClass)
+                    .flatMap(annotation -> valueRetriever.retrieve(annotation, utils))
+                    .map(value -> new PropertyOccurrence<>(value, annotationClass + " on " + element))
+                    .stream()
+                    .findFirst();
+        }
+
+        public interface AnnotationPropertyRetriever<T> {
             Optional<T> retrieve(AnnotationMirrorWrapper annotation, AnnotationProcessorUtils utils);
         }
     }
 
     public record InstantiatedProperty<T>(
             ConfigProperty<T> property, LocationKind locationKind, T value, String sourceLocation) {}
+
+    public record PropertyOccurrence<T>(T value, String sourceLocation) {}
 }

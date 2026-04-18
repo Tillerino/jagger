@@ -13,7 +13,7 @@ import org.tillerino.jagger.processor.Snippet;
 import org.tillerino.jagger.processor.config.AnyConfig;
 import org.tillerino.jagger.processor.config.AnyConfig.ResolvedProperty;
 import org.tillerino.jagger.processor.config.ConfigProperty;
-import org.tillerino.jagger.processor.config.ConfigProperty.ConfigPropertyRetriever;
+import org.tillerino.jagger.processor.config.ConfigProperty.AnnotationConfigPropertyRetriever;
 import org.tillerino.jagger.processor.config.ConfigProperty.InstantiatedProperty;
 import org.tillerino.jagger.processor.config.ConfigProperty.LocationKind;
 import org.tillerino.jagger.processor.config.ConfigProperty.PropagationKind;
@@ -26,7 +26,7 @@ import org.tillerino.jagger.processor.util.InstantiatedMethod.InstantiatedVariab
 public record References(AnnotationProcessorUtils utils) {
     public static ConfigProperty<Config> REFERENCES = ConfigProperty.createConfigProperty(
             List.of(LocationKind.DTO),
-            List.of(new ConfigPropertyRetriever<>(
+            List.of(new AnnotationConfigPropertyRetriever<>(
                     "com.fasterxml.jackson.annotation.JsonIdentityInfo",
                     ((annotation, utils) -> Optional.of(new Config(
                             annotation.method("property", false).map(AnnotationValueWrapper::asString),

@@ -4,6 +4,7 @@ import java.util.List;
 import org.tillerino.jagger.annotations.JsonConfig;
 import org.tillerino.jagger.processor.config.AnyConfig;
 import org.tillerino.jagger.processor.config.ConfigProperty;
+import org.tillerino.jagger.processor.config.ConfigProperty.AnnotationConfigPropertyRetriever;
 import org.tillerino.jagger.processor.config.ConfigProperty.PropagationKind;
 import org.tillerino.jagger.processor.util.Annotations;
 
@@ -16,14 +17,14 @@ public class UnknownProperties {
                             ConfigProperty.LocationKind.CREATOR,
                             ConfigProperty.LocationKind.DTO),
                     List.of(
-                            new ConfigProperty.ConfigPropertyRetriever<>(
+                            new AnnotationConfigPropertyRetriever<>(
                                     "com.fasterxml.jackson.annotation.JsonIgnoreProperties",
                                     (wrapper, utils) -> wrapper.method("ignoreUnknown", true)
                                             .map(Annotations.AnnotationValueWrapper::asBoolean)
                                             .map(i -> i
                                                     ? JsonConfig.UnknownPropertiesMode.IGNORE
                                                     : JsonConfig.UnknownPropertiesMode.THROW)),
-                            ConfigProperty.ConfigPropertyRetriever.jsonConfigPropertyRetriever(
+                            AnnotationConfigPropertyRetriever.jsonConfigPropertyRetriever(
                                     "unknownProperties", JsonConfig.UnknownPropertiesMode.class)),
                     JsonConfig.UnknownPropertiesMode.DEFAULT,
                     ConfigProperty.MergeFunction.notDefault(JsonConfig.UnknownPropertiesMode.DEFAULT),

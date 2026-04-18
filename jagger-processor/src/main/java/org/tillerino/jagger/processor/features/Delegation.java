@@ -11,7 +11,7 @@ import org.tillerino.jagger.annotations.JsonConfig;
 import org.tillerino.jagger.processor.*;
 import org.tillerino.jagger.processor.config.AnyConfig;
 import org.tillerino.jagger.processor.config.ConfigProperty;
-import org.tillerino.jagger.processor.config.ConfigProperty.ConfigPropertyRetriever;
+import org.tillerino.jagger.processor.config.ConfigProperty.AnnotationConfigPropertyRetriever;
 import org.tillerino.jagger.processor.config.ConfigProperty.LocationKind;
 import org.tillerino.jagger.processor.config.ConfigProperty.MergeFunction;
 import org.tillerino.jagger.processor.config.ConfigProperty.PropagationKind;
@@ -23,7 +23,8 @@ import org.tillerino.jagger.processor.util.ShortName;
 public record Delegation(AnnotationProcessorUtils utils) {
     public static ConfigProperty<JsonConfig.DelegateeMode> DELEGATE_TO = ConfigProperty.createConfigProperty(
             List.of(LocationKind.BLUEPRINT, LocationKind.PROTOTYPE),
-            List.of(ConfigPropertyRetriever.jsonConfigPropertyRetriever("delegateTo", JsonConfig.DelegateeMode.class)),
+            List.of(AnnotationConfigPropertyRetriever.jsonConfigPropertyRetriever(
+                    "delegateTo", JsonConfig.DelegateeMode.class)),
             JsonConfig.DelegateeMode.DEFAULT,
             MergeFunction.notDefault(JsonConfig.DelegateeMode.DEFAULT),
             List.of());

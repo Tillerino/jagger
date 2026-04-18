@@ -13,7 +13,7 @@ import org.tillerino.jagger.processor.AnnotationProcessorUtils;
 import org.tillerino.jagger.processor.FullyQualifiedName.FullyQualifiedClassName;
 import org.tillerino.jagger.processor.config.AnyConfig;
 import org.tillerino.jagger.processor.config.ConfigProperty;
-import org.tillerino.jagger.processor.config.ConfigProperty.ConfigPropertyRetriever;
+import org.tillerino.jagger.processor.config.ConfigProperty.AnnotationConfigPropertyRetriever;
 import org.tillerino.jagger.processor.config.ConfigProperty.LocationKind;
 import org.tillerino.jagger.processor.config.ConfigProperty.MergeFunction;
 import org.tillerino.jagger.processor.util.Annotations.AnnotationValueWrapper;
@@ -23,7 +23,7 @@ public record CodeGeneration(AnnotationProcessorUtils utils) {
 
     public static ConfigProperty<JsonConfig.ImplementationMode> IMPLEMENT = createConfigProperty(
             List.of(LocationKind.BLUEPRINT, LocationKind.PROTOTYPE),
-            List.of(ConfigPropertyRetriever.jsonConfigPropertyRetriever(
+            List.of(AnnotationConfigPropertyRetriever.jsonConfigPropertyRetriever(
                     "implement", JsonConfig.ImplementationMode.class)),
             JsonConfig.ImplementationMode.DEFAULT,
             MergeFunction.notDefault(JsonConfig.ImplementationMode.DEFAULT),
@@ -31,7 +31,7 @@ public record CodeGeneration(AnnotationProcessorUtils utils) {
 
     public static ConfigProperty<Set<TypeElement>> ON_GENERATED_CLASS = createConfigProperty(
             List.of(ConfigProperty.LocationKind.BLUEPRINT),
-            List.of(new ConfigPropertyRetriever<>(
+            List.of(new AnnotationConfigPropertyRetriever<>(
                     "org.tillerino.jagger.annotations.JsonConfig", (ann, utils) -> ann.method("onGeneratedClass", false)
                             .map(AnnotationValueWrapper::asArray)
                             .map(arr -> arr.stream()
@@ -44,7 +44,7 @@ public record CodeGeneration(AnnotationProcessorUtils utils) {
 
     public static ConfigProperty<Set<TypeElement>> ON_GENERATED_CONSTRUCTOR = createConfigProperty(
             List.of(ConfigProperty.LocationKind.BLUEPRINT),
-            List.of(new ConfigPropertyRetriever<>(
+            List.of(new AnnotationConfigPropertyRetriever<>(
                     "org.tillerino.jagger.annotations.JsonConfig",
                     (ann, utils) -> ann.method("onGeneratedConstructors", false)
                             .map(AnnotationValueWrapper::asArray)
@@ -58,7 +58,7 @@ public record CodeGeneration(AnnotationProcessorUtils utils) {
 
     public static ConfigProperty<Boolean> ADD_GENERATED_ANNOTATION_TO_CLASS = createConfigProperty(
             List.of(ConfigProperty.LocationKind.BLUEPRINT),
-            List.of(new ConfigPropertyRetriever<>(
+            List.of(new AnnotationConfigPropertyRetriever<>(
                     "org.tillerino.jagger.annotations.JsonConfig",
                     (ann, utils) ->
                             ann.method("addGeneratedAnnotationToClass", false).map(AnnotationValueWrapper::asBoolean))),
@@ -68,7 +68,7 @@ public record CodeGeneration(AnnotationProcessorUtils utils) {
 
     public static ConfigProperty<Boolean> ADD_GENERATED_ANNOTATION_TO_METHODS = createConfigProperty(
             List.of(ConfigProperty.LocationKind.BLUEPRINT, ConfigProperty.LocationKind.PROTOTYPE),
-            List.of(new ConfigPropertyRetriever<>(
+            List.of(new AnnotationConfigPropertyRetriever<>(
                     "org.tillerino.jagger.annotations.JsonConfig",
                     (ann, utils) -> ann.method("addGeneratedAnnotationToMethods", false)
                             .map(AnnotationValueWrapper::asBoolean))),

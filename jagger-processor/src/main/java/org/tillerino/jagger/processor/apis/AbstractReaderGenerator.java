@@ -13,7 +13,6 @@ import static org.tillerino.jagger.processor.apis.AbstractReaderGenerator.LHS.Co
 import static org.tillerino.jagger.processor.apis.AbstractReaderGenerator.LHS.Variable;
 import static org.tillerino.jagger.processor.apis.AbstractReaderGenerator.LHS.from;
 import static org.tillerino.jagger.processor.config.AnyConfig.fromAccessorConsideringField;
-import static org.tillerino.jagger.processor.features.IgnoreProperty.IGNORE_PROPERTY;
 import static org.tillerino.jagger.processor.features.PropertyName.resolvePropertyName;
 import static org.tillerino.jagger.processor.util.Exceptions.runWithContext;
 
@@ -603,12 +602,9 @@ public abstract class AbstractReaderGenerator<SELF extends AbstractReaderGenerat
                     new Variable(varName),
                     true,
                     propertyConfig.propagateTo(PropagationKind.PROPERTY));
-            Snippet defaultValue = utils.defaultValues
-                    .findInputDefaultValue(prototype.blueprint(), nest.type, propertyConfig)
-                    .map(m -> of("$C()", m.callSymbol(utils)))
-                    .orElse(of("$C", utils.commonTypes.getNullValueRaw(nest.type)));
+            Snippet defaultValue = utils.defaultValues.getDefaultValue(prototype, nest.type, propertyConfig);
             addStatement(of("$T $L = $C", nest.type, varName, defaultValue));
-            if (propertyConfig.resolveProperty(IGNORE_PROPERTY).value()) {
+            if (IgnoreProperty.isIgnoredForJson(propertyConfig)) {
                 // we do need the default value to call the creator, so we only skip reading the value
                 continue;
             }
@@ -636,7 +632,7 @@ public abstract class AbstractReaderGenerator<SELF extends AbstractReaderGenerat
             AnyConfig propertyConfig = fromAccessorConsideringField(
                             accessor, accessor.name(), type, canonicalPropertyName, utils)
                     .merge(config);
-            if (propertyConfig.resolveProperty(IGNORE_PROPERTY).value()) {
+            if (IgnoreProperty.isIgnoredForJson(propertyConfig)) {
                 return;
             }
 

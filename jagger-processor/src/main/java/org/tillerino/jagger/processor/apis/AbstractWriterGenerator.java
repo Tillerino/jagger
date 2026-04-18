@@ -341,9 +341,7 @@ public abstract class AbstractWriterGenerator<SELF extends AbstractWriterGenerat
                 config.resolveProperty(IgnoreProperties.IGNORED_PROPERTIES).value();
 
         utils.properties.outputProperties(type, this.config).forEach(property -> {
-            if (property.config()
-                            .resolveProperty(IgnoreProperty.IGNORE_PROPERTY)
-                            .value()
+            if (IgnoreProperty.isIgnoredForJson(property.config())
                     || ignoredProperties.contains(property.externalName())) {
                 return;
             }
