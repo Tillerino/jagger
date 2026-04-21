@@ -5,6 +5,7 @@ import java.util.Map;
 import java.util.Optional;
 import javax.lang.model.element.*;
 import javax.lang.model.type.TypeMirror;
+import org.apache.commons.lang3.exception.ContextedRuntimeException;
 import org.tillerino.jagger.processor.AnnotationProcessorUtils;
 import org.tillerino.jagger.processor.AnnotationProcessorUtils.GetAnnotationValues;
 
@@ -105,7 +106,13 @@ public record Annotations(AnnotationProcessorUtils utils) {
                             new GetAnnotationValues<T, Void>() {
                                 @Override
                                 public T visitEnumConstant(VariableElement c, Void o) {
-                                    return Enum.valueOf(cls, c.getSimpleName().toString());
+                                    try {
+                                        return Enum.valueOf(
+                                                cls, c.getSimpleName().toString());
+                                    } catch (IllegalArgumentException e) {
+                                        throw new ContextedRuntimeException("Unknown value %s for type %s"
+                                                .formatted(c.getSimpleName().toString(), cls.getSimpleName()));
+                                    }
                                 }
                             },
                             null),
@@ -124,6 +131,20 @@ public record Annotations(AnnotationProcessorUtils utils) {
                             },
                             null),
                     "not a boolean: %s",
+                    value);
+        }
+
+        public int asInt() {
+            return Exceptions.notNull(
+                    value.accept(
+                            new GetAnnotationValues<Integer, Void>() {
+                                @Override
+                                public Integer visitInt(int i, Void o) {
+                                    return i;
+                                }
+                            },
+                            null),
+                    "not an int: %s",
                     value);
         }
     }

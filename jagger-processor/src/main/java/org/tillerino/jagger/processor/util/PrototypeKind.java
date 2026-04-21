@@ -8,7 +8,9 @@ import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ContextedRuntimeException;
+import org.tillerino.jagger.annotations.*;
 import org.tillerino.jagger.processor.AnnotationProcessorUtils;
+import org.tillerino.jagger.processor.util.InstantiatedMethod.InstantiatedVariable;
 
 public sealed interface PrototypeKind {
     String JACKSON_JSON_GENERATOR = "com.fasterxml.jackson.core.JsonGenerator";
@@ -27,6 +29,8 @@ public sealed interface PrototypeKind {
 
     String JAGGER_READER = "org.tillerino.jagger.api.JaggerReader";
     String JAGGER_WRITER = "org.tillerino.jagger.api.JaggerWriter";
+    String JAVA_SQL_CONNECTION = "java.sql.Connection";
+    String JAVA_SQL_RESULT_SET = "java.sql.ResultSet";
 
     Direction direction();
 
@@ -50,7 +54,11 @@ public sealed interface PrototypeKind {
     }
 
     static Optional<PrototypeKind> of(InstantiatedMethod m, AnnotationProcessorUtils utils) {
-        return detectJsonInput(m, utils).or(() -> detectJsonOutput(m, utils));
+        return detectJsonInput(m, utils)
+                .or(() -> detectJsonOutput(m, utils))
+                .or(() -> detectJdbcSelect(m, utils))
+                .or(() -> detectJdbcInsert(m, utils))
+                .or(() -> detectJdbcUpdate(m, utils));
     }
 
     private static Optional<PrototypeKind> detectJsonInput(InstantiatedMethod m, AnnotationProcessorUtils utils) {
@@ -104,6 +112,69 @@ public sealed interface PrototypeKind {
         return Optional.empty();
     }
 
+    private static Optional<PrototypeKind> detectJdbcSelect(InstantiatedMethod m, AnnotationProcessorUtils utils) {
+        JdbcSelect annotation = m.element().getAnnotation(JdbcSelect.class);
+        if (annotation != null
+                && m.returnType().getKind() != TypeKind.VOID
+                && !m.parameters().isEmpty()) {
+            if (List.of(JAVA_SQL_CONNECTION, JAVA_SQL_RESULT_SET)
+                    .contains(m.parameters().get(0).type().toString())) {
+                return Optional.of(new JdbcPrototypeKind(
+                        m.parameters().get(0).type(),
+                        m.returnType(),
+                        m.parameters().get(0),
+                        variablesExcept(m.parameters(), JAVA_SQL_CONNECTION),
+                        Direction.JDBC_SELECT,
+                        annotation.value()));
+            }
+        }
+        return Optional.empty();
+    }
+
+    private static Optional<PrototypeKind> detectJdbcInsert(InstantiatedMethod m, AnnotationProcessorUtils utils) {
+        JdbcInsert annotation = m.element().getAnnotation(JdbcInsert.class);
+        if (annotation != null
+                && m.returnType().getKind() == TypeKind.VOID
+                && m.parameters().size() >= 2) {
+            if (variablesContain(m.parameters(), JAVA_SQL_CONNECTION)) {
+                List<InstantiatedVariable> otherParameters = variablesExcept(m.parameters(), JAVA_SQL_CONNECTION);
+                return Optional.of(new JdbcPrototypeKind(
+                        utils.commonTypes.connection,
+                        otherParameters.stream()
+                                .map(InstantiatedVariable::type)
+                                .findFirst()
+                                .orElse(null),
+                        variableOfType(m.parameters(), JAVA_SQL_CONNECTION),
+                        otherParameters,
+                        Direction.JDBC_INSERT,
+                        annotation.value()));
+            }
+        }
+        return Optional.empty();
+    }
+
+    private static Optional<PrototypeKind> detectJdbcUpdate(InstantiatedMethod m, AnnotationProcessorUtils utils) {
+        JdbcUpdate annotation = m.element().getAnnotation(JdbcUpdate.class);
+        if (annotation != null
+                && m.returnType().getKind() == TypeKind.VOID
+                && !m.parameters().isEmpty()) {
+            if (variablesContain(m.parameters(), JAVA_SQL_CONNECTION)) {
+                List<InstantiatedVariable> otherParameters = variablesExcept(m.parameters(), JAVA_SQL_CONNECTION);
+                return Optional.of(new JdbcPrototypeKind(
+                        utils.commonTypes.connection,
+                        otherParameters.stream()
+                                .map(InstantiatedVariable::type)
+                                .findFirst()
+                                .orElse(null),
+                        variableOfType(m.parameters(), JAVA_SQL_CONNECTION),
+                        otherParameters,
+                        Direction.JDBC_UPDATE,
+                        annotation.value()));
+            }
+        }
+        return Optional.empty();
+    }
+
     static String simpleTypeName(TypeMirror t) {
         if (t.getKind().isPrimitive()) {
             return "Primitive" + StringUtils.capitalize(t.toString());
@@ -118,6 +189,31 @@ public sealed interface PrototypeKind {
         }
 
         return d.asElement().getSimpleName().toString();
+    }
+
+    static boolean variablesContain(List<InstantiatedVariable> variables, String fullyQualified) {
+        for (InstantiatedVariable variable : variables) {
+            if (variable.type().toString().equals(fullyQualified)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    static InstantiatedVariable variableOfType(List<InstantiatedVariable> variables, String fullyQualified) {
+        for (InstantiatedVariable variable : variables) {
+            if (variable.type().toString().equals(fullyQualified)) {
+                return variable;
+            }
+        }
+        throw new IllegalStateException();
+    }
+
+    static List<InstantiatedVariable> variablesExcept(
+            List<InstantiatedVariable> variables, String excludeFullyQualified) {
+        return variables.stream()
+                .filter(v -> !v.type().toString().equals(excludeFullyQualified))
+                .toList();
     }
 
     record JsonInput(
@@ -148,8 +244,30 @@ public sealed interface PrototypeKind {
         }
     }
 
+    record JdbcPrototypeKind(
+            TypeMirror jsonType,
+            TypeMirror javaType,
+            InstantiatedVariable jdbcVariable,
+            List<InstantiatedMethod.InstantiatedVariable> otherParameters,
+            Direction direction,
+            String sqlTemplate)
+            implements PrototypeKind {
+        @Override
+        public PrototypeKind withJavaType(TypeMirror newType) {
+            return new JdbcPrototypeKind(jsonType, newType, jdbcVariable, otherParameters, direction, sqlTemplate);
+        }
+
+        @Override
+        public Direction direction() {
+            return direction;
+        }
+    }
+
     enum Direction {
         INPUT,
-        OUTPUT;
+        OUTPUT,
+        JDBC_SELECT,
+        JDBC_UPDATE,
+        JDBC_INSERT;
     }
 }

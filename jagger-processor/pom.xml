@@ -43,6 +43,18 @@
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-lang3</artifactId>
         </dependency>
+        <dependency>
+            <groupId>com.github.jsqlparser</groupId>
+            <artifactId>jsqlparser</artifactId>
+            <scope>compile</scope>
+            <exclusions>
+                <exclusion>
+                    <!-- won't be required from 5.4 -->
+                    <groupId>org.openjdk.jmh</groupId>
+                    <artifactId>jmh-core</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
     </dependencies>
     <build>
         <plugins>
@@ -76,6 +88,8 @@
                                     <!-- Apache License 2.0, obviously :) -->
                                     <include>com.squareup:javapoet</include>
                                     <!-- Apache License 2.0 -->
+                                    <include>com.github.jsqlparser:jsqlparser</include>
+                                    <!-- Dual-licensed, we choose Apache License 2.0 -->
                                 </includes>
                             </artifactSet>
                             <relocations>
@@ -87,7 +101,27 @@
                                     <pattern>com.squareup</pattern>
                                     <shadedPattern>org.tillerino.jagger.shaded.com.squareup</shadedPattern>
                                 </relocation>
+                                <relocation>
+                                    <pattern>net.sf.jsqlparser</pattern>
+                                    <shadedPattern>org.tillerino.jagger.shaded.net.sf.jsqlparser</shadedPattern>
+                                </relocation>
                             </relocations>
+                            <filters>
+                                <filter>
+                                    <artifact>com.github.jsqlparser:jsqlparser</artifact>
+                                    <excludes>
+                                        <exclude>META-INF/**</exclude>
+                                        <exclude>THIRD-PARTY</exclude>
+                                        <!-- JOpt dependency, which we do not include -->
+                                        <exclude>LICENSE</exclude>
+                                        <!-- This is the GPL, which we do not choose -->
+                                        <exclude>rr/**</exclude>
+                                        <!-- won't be required from 5.4 -->
+                                        <exclude>**/*.xml</exclude>
+                                        <exclude>jmh*</exclude>
+                                    </excludes>
+                                </filter>
+                            </filters>
                         </configuration>
                     </execution>
                 </executions>

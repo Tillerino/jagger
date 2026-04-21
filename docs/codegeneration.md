@@ -24,7 +24,7 @@ abstract class DefaultBehaviourOnClass {
 // ../jagger-tests/jackson/target/generated-sources/annotations/org/tillerino/jagger/tests/base/features/CodeGenerationSerde$DefaultBehaviourOnClassImpl.java#L11-L14
 
 public class CodeGenerationSerde$DefaultBehaviourOnClassImpl extends CodeGenerationSerde.DefaultBehaviourOnClass {
-  CodeGenerationSerde$DefaultBehaviourOnClassImpl(ClassLoader cl) {
+  public CodeGenerationSerde$DefaultBehaviourOnClassImpl(ClassLoader cl) {
     super(cl);
   }
 ```
@@ -85,7 +85,7 @@ abstract class WithAnnotationsOnClass {
 @AnAnnotation
 public class CodeGenerationSerde$WithAnnotationsOnClassImpl extends CodeGenerationSerde.WithAnnotationsOnClass {
   @AnotherAnnotation
-  CodeGenerationSerde$WithAnnotationsOnClassImpl(ClassLoader cl) {
+  public CodeGenerationSerde$WithAnnotationsOnClassImpl(ClassLoader cl) {
     super(cl);
   }
 ```
@@ -106,7 +106,7 @@ interface WithAnnotationsOnInterface {
 @AnAnnotation
 public class CodeGenerationSerde$WithAnnotationsOnInterfaceImpl implements CodeGenerationSerde.WithAnnotationsOnInterface {
   @AnotherAnnotation
-  CodeGenerationSerde$WithAnnotationsOnInterfaceImpl() {
+  public CodeGenerationSerde$WithAnnotationsOnInterfaceImpl() {
   }
 ```
 

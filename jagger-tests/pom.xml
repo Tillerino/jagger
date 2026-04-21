@@ -19,6 +19,7 @@
         <module>nanojson</module>
         <module>adapter-jackson</module>
         <module>adapter-jackson-node</module>
+        <module>jdbc</module>
     </modules>
 
     <properties>
@@ -75,6 +76,11 @@
             <!-- used by json-unit -->
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-simple</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.mockito</groupId>
+            <artifactId>mockito-core</artifactId>
             <scope>test</scope>
         </dependency>
     </dependencies>

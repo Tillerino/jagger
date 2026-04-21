@@ -917,7 +917,7 @@ public abstract class AbstractReaderGenerator<SELF extends AbstractReaderGenerat
         ELSE_IF,
         ;
 
-        <T extends AbstractCodeGenerator<T>> AbstractCodeGenerator<T> controlFlow(
+        <T extends AbstractCodeGenerator<T>> NullaryControlFlowScope controlFlow(
                 AbstractCodeGenerator<T> code, String s, Object... args) {
             return switch (this) {
                 case IF -> code.beginControlFlow("if (" + s + ")", args);
@@ -925,7 +925,7 @@ public abstract class AbstractReaderGenerator<SELF extends AbstractReaderGenerat
             };
         }
 
-        <T extends AbstractCodeGenerator<T>> AbstractCodeGenerator<T> controlFlow(
+        <T extends AbstractCodeGenerator<T>> NullaryControlFlowScope controlFlow(
                 AbstractCodeGenerator<T> code, Snippet snippet) {
             return switch (this) {
                 case IF -> code.beginControlFlow("if ($C)", snippet);

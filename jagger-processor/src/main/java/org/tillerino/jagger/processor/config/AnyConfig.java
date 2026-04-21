@@ -36,6 +36,15 @@ public final class AnyConfig {
         CodeGeneration.ON_GENERATED_CONSTRUCTOR,
         CodeGeneration.ADD_GENERATED_ANNOTATION_TO_CLASS,
         CodeGeneration.ADD_GENERATED_ANNOTATION_TO_METHODS,
+        IgnoreProperty.TRANSIENT_FIELD,
+        Jdbc.ID_PROPERTY,
+        Jdbc.FETCH_SIZE,
+        Jdbc.TABLE_NAME_ON_DTO,
+        Jdbc.TABLE_NAME_ON_PROTOTYPE,
+        Jdbc.WHERE_CLAUSE,
+        Jdbc.QUOTE_CHAR,
+        Jdbc.SQL_QUERY,
+        Jdbc.GENERATION_TYPE,
         // leave a trailing comma for cleaner diffs :)
     };
 

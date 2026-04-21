@@ -38,6 +38,7 @@ See [Backends](docs/backends.md).
   * [Polymorphism](#polymorphism)
   * [Default Values](#default-values)
   * [Verification](#verification)
+  * [JDBC](#jdbc)
 - [Configuration](#configuration)
   * [@JsonConfig Annotation](#jsonconfig-annotation)
   * [Jackson Annotation Compatibility](#jackson-annotation-compatibility)
@@ -297,6 +298,46 @@ In addition to this symmetry of individual properties, it will verify:
 - That properties are not duplicated (with `@JsonProperty("name")`, one could define the same property twice).
 
 It is recommended to generate all code with this configuration.
+
+### JDBC
+
+Jagger supports code generation for JDBC.
+The idea is that you write the SQL and Jagger takes care of mapping between your classes and `ResultSet`/`PreparedStatement`.
+Jagger will also generate the boilerplate-ish parts of SQL queries.
+
+```java
+// jagger-tests/jdbc/src/main/java/org/tillerino/jagger/tests/jdbc/AutoQuerySerde.java#L42-L43
+
+@JdbcSelect(where = "\"id\" = :someId")
+JakartaTable selectJakartaById(Connection c, int someId) throws SQLException;
+```
+
+```java
+// jagger-tests/jdbc/target/generated-sources/annotations/org/tillerino/jagger/tests/jdbc/AutoQuerySerdeImpl.java#L62-L81
+
+@Override
+public AutoQuerySerde.JakartaTable selectJakartaById(Connection c, int someId) throws
+    SQLException {
+  // Generated: SELECT * FROM "jakarta_auto"
+  try (PreparedStatement ps = c.prepareStatement("SELECT * FROM \"jakarta_auto\" WHERE \"id\" = ?")) {
+    ps.setInt(1, someId);
+    ResultSet rs = ps.executeQuery();
+    if (!rs.next()) {
+      throw new NoResultException("The query did not return any results.");
+    }
+    int id = rs.getInt("id"); JdbcHelper.throwOnNull(rs, "id");
+    String payload = rs.getString("payload");
+    String payload2 = rs.getString("payload2");
+    AutoQuerySerde.JakartaTable result = new AutoQuerySerde.JakartaTable(id, payload, payload2);
+    if (rs.next()) {
+      throw new NonUniqueResultException("The query returned more than one result.");
+    }
+    return result;
+  }
+}
+```
+
+For details, see [JDBC](docs/jdbc.md).
 
 ## Configuration
 

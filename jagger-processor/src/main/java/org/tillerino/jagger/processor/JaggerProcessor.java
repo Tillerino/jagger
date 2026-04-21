@@ -26,10 +26,7 @@ import javax.lang.model.element.TypeElement;
 import javax.lang.model.util.ElementFilter;
 import javax.tools.JavaFileObject;
 import org.apache.commons.lang3.exception.ContextedRuntimeException;
-import org.tillerino.jagger.annotations.JsonConfig;
-import org.tillerino.jagger.annotations.JsonInput;
-import org.tillerino.jagger.annotations.JsonOutput;
-import org.tillerino.jagger.annotations.JsonTemplate;
+import org.tillerino.jagger.annotations.*;
 import org.tillerino.jagger.annotations.JsonTemplate.JsonTemplates;
 import org.tillerino.jagger.processor.FullyQualifiedName.FullyQualifiedClassName;
 import org.tillerino.jagger.processor.apis.*;
@@ -43,6 +40,9 @@ import org.tillerino.jagger.processor.util.PrototypeKind;
     "org.tillerino.jagger.annotations.JsonOutput",
     "org.tillerino.jagger.annotations.JsonInput",
     "org.tillerino.jagger.annotations.JsonConfig",
+    "org.tillerino.jagger.annotations.JdbcSelect",
+    "org.tillerino.jagger.annotations.JdbcInsert",
+    "org.tillerino.jagger.annotations.JdbcUpdate",
 })
 @SupportedSourceVersion(SourceVersion.RELEASE_17)
 @AutoService(Processor.class)
@@ -71,7 +71,10 @@ public class JaggerProcessor extends AbstractProcessor {
         collect(
                 roundEnv,
                 new AnnotationAndConsumer(JsonOutput.class, element -> addPrototype(element, "@JsonOutput")),
-                new AnnotationAndConsumer(JsonInput.class, element -> addPrototype(element, "@JsonInput")));
+                new AnnotationAndConsumer(JsonInput.class, element -> addPrototype(element, "@JsonInput")),
+                new AnnotationAndConsumer(JdbcSelect.class, element -> addPrototype(element, "@JdbcSelect")),
+                new AnnotationAndConsumer(JdbcInsert.class, element -> addPrototype(element, "@JdbcInsert")),
+                new AnnotationAndConsumer(JdbcUpdate.class, element -> addPrototype(element, "@JdbcUpdate")));
         collectJsonTemplates(roundEnv); // collect last so that custom methods are appear first in implementations
     }
 
@@ -231,6 +234,9 @@ public class JaggerProcessor extends AbstractProcessor {
                 switch (method.kind().direction()) {
                     case INPUT -> determineInputCodeGenerator(method, generatedClass);
                     case OUTPUT -> determineOutputCodeGenerator(method, generatedClass);
+                    case JDBC_SELECT -> () -> new JdbcSelectGenerator(method, utils).build();
+                    case JDBC_INSERT -> () -> new JdbcInsertGenerator(method, utils).build();
+                    case JDBC_UPDATE -> () -> new JdbcUpdateGenerator(method, utils).build();
                 };
         methodBuilder.addCode(codeGenerator.get().build());
         return methodBuilder.build();

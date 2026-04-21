@@ -129,12 +129,14 @@ public record JaggerPrototype(
 
     public Optional<InstantiatedVariable> contextParameter() {
         for (InstantiatedVariable parameter : instantiatedParameters()) {
-            if (utils.commonTypes.isAssignable(
-                    parameter.type(),
+            Optional<TypeMirror> targetContextType =
                     switch (kind.direction()) {
-                        case INPUT -> utils.commonTypes.deserializationContext;
-                        case OUTPUT -> utils.commonTypes.serializationContext;
-                    })) {
+                        case INPUT -> Optional.of(utils.commonTypes.deserializationContext);
+                        case OUTPUT -> Optional.of(utils.commonTypes.serializationContext);
+                        case JDBC_INSERT, JDBC_SELECT, JDBC_UPDATE -> Optional.empty();
+                    };
+            if (targetContextType.isPresent()
+                    && utils.commonTypes.isAssignable(parameter.type(), targetContextType.get())) {
                 return Optional.of(parameter);
             }
         }

@@ -1,5 +1,8 @@
 package org.tillerino.jagger.processor;
 
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.util.*;
 import javax.annotation.processing.Messager;
 import javax.annotation.processing.ProcessingEnvironment;
@@ -41,6 +44,7 @@ public class AnnotationProcessorUtils {
     public final References references;
     public final Properties properties;
     public final CodeGeneration codeGeneration;
+    public final Jdbc jdbc;
 
     public final Messager messager;
 
@@ -59,6 +63,7 @@ public class AnnotationProcessorUtils {
         references = new References(this);
         properties = new Properties(this);
         codeGeneration = new CodeGeneration(this);
+        jdbc = new Jdbc(this);
         messager = processingEnv.getMessager();
     }
 
@@ -122,6 +127,15 @@ public class AnnotationProcessorUtils {
                 boxedFloat.toString(),
                 boxedDouble.toString(),
                 boxedChar.toString());
+
+        public TypeMirror connection =
+                elements.getTypeElement(Connection.class.getName()).asType();
+
+        public TypeMirror preparedStatement =
+                elements.getTypeElement(PreparedStatement.class.getName()).asType();
+
+        public TypeMirror resultSet =
+                elements.getTypeElement(ResultSet.class.getName()).asType();
 
         public boolean isString(TypeMirror type) {
             return types.isSameType(type, string);

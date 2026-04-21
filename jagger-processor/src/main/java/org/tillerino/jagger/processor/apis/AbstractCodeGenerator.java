@@ -4,6 +4,7 @@ import com.squareup.javapoet.CodeBlock;
 import java.util.LinkedHashSet;
 import java.util.Set;
 import java.util.Stack;
+import java.util.function.Consumer;
 import javax.lang.model.type.TypeMirror;
 import org.tillerino.jagger.processor.Snippet;
 import org.tillerino.jagger.processor.Snippet.Flattened;
@@ -40,25 +41,25 @@ public class AbstractCodeGenerator<SELF extends AbstractCodeGenerator<SELF>> {
         return addStatement(Snippet.of(format, args));
     }
 
-    protected AbstractCodeGenerator<SELF> beginControlFlow(Snippet s) {
+    protected NullaryControlFlowScope beginControlFlow(Snippet s) {
         Flattened f = s.flatten();
         code.beginControlFlow(f.format(), f.args());
         variables.push(new LinkedHashSet<>(variables.peek()));
-        return this;
+        return new NullaryControlFlowScope(this);
     }
 
-    protected AbstractCodeGenerator<SELF> beginControlFlow(String controlFlow, Object... args) {
+    protected NullaryControlFlowScope beginControlFlow(String controlFlow, Object... args) {
         return beginControlFlow(Snippet.of(controlFlow, args));
     }
 
-    protected AbstractCodeGenerator<SELF> nextControlFlow(Snippet s) {
+    protected NullaryControlFlowScope nextControlFlow(Snippet s) {
         Flattened f = s.flatten();
         popVariablesStack();
         pushVariablesStack(f);
-        return this;
+        return new NullaryControlFlowScope(this);
     }
 
-    protected AbstractCodeGenerator<SELF> nextControlFlow(String controlFlow, Object... args) {
+    protected NullaryControlFlowScope nextControlFlow(String controlFlow, Object... args) {
         return nextControlFlow(Snippet.of(controlFlow, args));
     }
 
@@ -97,6 +98,38 @@ public class AbstractCodeGenerator<SELF extends AbstractCodeGenerator<SELF>> {
 
         public TypedVariable withType(TypeMirror type) {
             return new TypedVariable(type, name);
+        }
+    }
+
+    public static class NullaryControlFlowScope {
+        final AbstractCodeGenerator<?> generator;
+
+        public NullaryControlFlowScope(AbstractCodeGenerator<?> generator) {
+            this.generator = generator;
+        }
+
+        public void withBody(Runnable r) {
+            r.run();
+            generator.endControlFlow();
+        }
+
+        public <T> UnaryControlFlowScope<T> withPayload(T payload) {
+            return new UnaryControlFlowScope<>(generator, payload);
+        }
+    }
+
+    public static class UnaryControlFlowScope<T> {
+        final AbstractCodeGenerator<?> generator;
+        final T argument;
+
+        public UnaryControlFlowScope(AbstractCodeGenerator<?> generator, T argument) {
+            this.generator = generator;
+            this.argument = argument;
+        }
+
+        public void withBody(Consumer<T> c) {
+            c.accept(argument);
+            generator.endControlFlow();
         }
     }
 }
