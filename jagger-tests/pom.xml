@@ -19,6 +19,7 @@
         <module>nanojson</module>
         <module>adapter-jackson</module>
         <module>adapter-jackson-node</module>
+        <module>adapter-jdbc</module>
         <module>jdbc</module>
     </modules>
 
