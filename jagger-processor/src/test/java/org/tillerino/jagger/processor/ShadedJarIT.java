@@ -3,6 +3,7 @@ package org.tillerino.jagger.processor;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -14,7 +15,7 @@ import org.junit.jupiter.api.Test;
 class ShadedJarIT {
     @Test
     void shadedJarContainsLicenseFile() throws IOException {
-        Path shadedJar = Paths.get("target/jagger-processor-0.6.5-SNAPSHOT.jar");
+        Path shadedJar = findJarPath();
 
         String version;
         try (ZipFile zip = new ZipFile(shadedJar.toFile())) {
@@ -55,5 +56,14 @@ class ShadedJarIT {
         String licenseFromFile = Files.readString(licenseFile);
 
         assertThat(licenseFromJar.trim()).isEqualTo(licenseFromFile.trim());
+    }
+
+    private static Path findJarPath() throws IOException {
+        InputStream resources = ShadedJarIT.class
+                .getClassLoader()
+                .getResourceAsStream("META-INF/maven/org.tillerino.jagger/jagger-processor/pom.properties");
+        Properties pomProperties = new Properties();
+        pomProperties.load(resources);
+        return Paths.get("target/jagger-processor-" + pomProperties.getProperty("version") + ".jar");
     }
 }
