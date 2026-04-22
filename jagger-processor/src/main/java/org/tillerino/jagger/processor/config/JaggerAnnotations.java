@@ -14,7 +14,9 @@ import org.tillerino.jagger.processor.util.Annotations.AnnotationValueWrapper;
 public class JaggerAnnotations {
     public static void configureJaggerAnnotations(JaggerContext ctx) {
         ctx.configProperties.addAnnotationPropertyConfigRetriever(
-                AnyConfig.USES, "org.tillerino.jagger.annotations.JsonConfig", ann -> ann.method("uses", true)
+                AnyConfig.USES,
+                "org.tillerino.jagger.annotations.JsonConfig",
+                ann -> ann.method("uses", true)
                         .map(AnnotationValueWrapper::asArray)
                         .map(classNames -> classNames.stream()
                                 .map(className -> ctx.blueprint(ctx.elements.getTypeElement(
@@ -31,8 +33,9 @@ public class JaggerAnnotations {
                 jsonConfigPropertyRetriever("implement", JsonConfig.ImplementationMode.class));
 
         ctx.configProperties.addAnnotationPropertyConfigRetriever(
-                CodeGeneration.ON_GENERATED_CLASS, "org.tillerino.jagger.annotations.JsonConfig", ann -> ann.method(
-                                "onGeneratedClass", false)
+                CodeGeneration.ON_GENERATED_CLASS,
+                "org.tillerino.jagger.annotations.JsonConfig",
+                ann -> ann.method("onGeneratedClass", false)
                         .map(AnnotationValueWrapper::asArray)
                         .map(arr -> arr.stream()
                                 .map(classValue -> ctx.elements.getTypeElement(
@@ -70,7 +73,8 @@ public class JaggerAnnotations {
     public static <T extends Enum<T>> AnnotationConfigPropertyRetriever<T> jsonConfigPropertyRetriever(
             String method, Class<T> enumClass) {
         return new AnnotationConfigPropertyRetriever<>(
-                "org.tillerino.jagger.annotations.JsonConfig", ann -> ann.method(method, false)
+                "org.tillerino.jagger.annotations.JsonConfig",
+                ann -> ann.method(method, false)
                         .map(annotationValueWrapper -> annotationValueWrapper.asEnum(enumClass)));
     }
 }

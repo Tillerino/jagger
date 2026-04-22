@@ -54,13 +54,11 @@ public interface Serde {
         INSERT into "simple" ("entities.#columns") values (:entities.#values)""")
     void insertMultiple(Connection c, List<SimpleEntityRecord> entities) throws SQLException;
 
-    @JdbcUpdate(
-            """
+    @JdbcUpdate("""
             UPDATE "simple" set ("entity.#updateColumns") = (:entity.#updateValues) where ("entity.#keyColumns") = (:entity.#keyValues)""")
     void updateSimpleSingle(Connection c, SimpleEntityRecord entity) throws SQLException;
 
-    @JdbcUpdate(
-            """
+    @JdbcUpdate("""
             UPDATE "simple" set ("entities.#updateColumns") = (:entities.#updateValues) where ("entities.#keyColumns") = (:entities.#keyValues)""")
     void updateSimpleMultiple(Connection c, List<SimpleEntityRecord> entities) throws SQLException;
 
@@ -68,13 +66,11 @@ public interface Serde {
         SELECT * from "multi" where "id1" = :param1 and "id2" = :param2""")
     MultiIdEntityRecord selectByIds(Connection c, int param1, int param2) throws SQLException;
 
-    @JdbcUpdate(
-            """
+    @JdbcUpdate("""
             UPDATE "multi" set ("entity.#updateColumns") = (:entity.#updateValues) where ("entity.#keyColumns") = (:entity.#keyValues)""")
     void updateMulti(Connection c, MultiIdEntityRecord entity) throws SQLException;
 
-    @JdbcUpdate(
-            """
+    @JdbcUpdate("""
             UPDATE "multi" set ("entity.#updateColumns") = (:entity.#updateValues) where ("entity.#keyColumns") = (:entity.#keyValues) and 1""")
     void updateMultiConj(Connection c, MultiIdEntityRecord entity) throws SQLException;
 
@@ -85,8 +81,7 @@ public interface Serde {
     void deleteAll(Connection c) throws SQLException;
 
     record SimpleEntityRecord(@Id int someId, String payload) {
-        public static final String SCHEMA =
-                """
+        public static final String SCHEMA = """
             CREATE TABLE "simple" ("someId" INT PRIMARY KEY, "payload" VARCHAR(100))""";
     }
 
@@ -101,8 +96,7 @@ public interface Serde {
     }
 
     record MultiIdEntityRecord(@Id int id1, @Id int id2, String payload) {
-        public static final String SCHEMA =
-                """
+        public static final String SCHEMA = """
                 CREATE TABLE "multi" ("id1" INT, "id2" INT, "payload" VARCHAR(100), PRIMARY KEY ("id1", "id2"))""";
     }
 }

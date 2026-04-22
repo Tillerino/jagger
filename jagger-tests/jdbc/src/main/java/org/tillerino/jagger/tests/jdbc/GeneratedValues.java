@@ -14,8 +14,7 @@ import org.tillerino.jagger.annotations.JdbcSelect;
 
 public interface GeneratedValues {
     interface Serde {
-        String SCHEMA =
-                """
+        String SCHEMA = """
       CREATE TABLE "identity_id" ("id" INT AUTO_INCREMENT PRIMARY KEY, "payload" VARCHAR(100))""";
 
         @JdbcInsert

@@ -94,11 +94,11 @@ public class JakartaJsonParserGenerator extends AbstractReaderGenerator<JakartaJ
                     case SHORT -> Snippet.of("(short) $L.getInt()", parserVariable);
                     case INT -> Snippet.of("$L.getInt()", parserVariable);
                     case LONG -> Snippet.of("$L.getLong()", parserVariable);
-                    case FLOAT -> Snippet.of(
-                            "(float) (($T) $L.getValue()).doubleValue()", jsonNumber(), parserVariable);
+                    case FLOAT ->
+                        Snippet.of("(float) (($T) $L.getValue()).doubleValue()", jsonNumber(), parserVariable);
                     case DOUBLE -> Snippet.of("(($T) $L.getValue()).doubleValue()", jsonNumber(), parserVariable);
-                    default -> throw new ContextedRuntimeException(
-                            type.getKind().toString());
+                    default ->
+                        throw new ContextedRuntimeException(type.getKind().toString());
                 };
         if (lhs instanceof LHS.Return) {
             String tmp = createVariable("tmp").name();

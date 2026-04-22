@@ -17,18 +17,21 @@ public class JavaxPersistenceAnnotationsPlugin implements JaggerPlugin {
                 IgnoreProperty.IGNORE_PROPERTY, "javax.persistence.Transient", ann -> Optional.of(true));
 
         ctx.configProperties.addAnnotationPropertyConfigRetriever(
-                PropertyName.PROPERTY_NAME, "javax.persistence.Column", ann -> ann.method("name", false)
-                        .map(AnnotationValueWrapper::asString));
+                PropertyName.PROPERTY_NAME,
+                "javax.persistence.Column",
+                ann -> ann.method("name", false).map(AnnotationValueWrapper::asString));
 
         ctx.configProperties.addAnnotationPropertyConfigRetriever(
                 Jdbc.ID_PROPERTY, "javax.persistence.Id", ann -> Optional.of(true));
 
         ctx.configProperties.addAnnotationPropertyConfigRetriever(
-                Jdbc.TABLE_NAME_ON_DTO, "javax.persistence.Table", ann -> ann.method("name", false)
-                        .map(AnnotationValueWrapper::asString));
+                Jdbc.TABLE_NAME_ON_DTO,
+                "javax.persistence.Table",
+                ann -> ann.method("name", false).map(AnnotationValueWrapper::asString));
 
         ctx.configProperties.addAnnotationPropertyConfigRetriever(
-                Jdbc.GENERATION_TYPE, "javax.persistence.GeneratedValue", ann -> ann.method("strategy", false)
-                        .map(w -> w.asEnum(Jdbc.GenerationType.class)));
+                Jdbc.GENERATION_TYPE,
+                "javax.persistence.GeneratedValue",
+                ann -> ann.method("strategy", false).map(w -> w.asEnum(Jdbc.GenerationType.class)));
     }
 }

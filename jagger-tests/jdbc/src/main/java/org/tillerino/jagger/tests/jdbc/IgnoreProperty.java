@@ -147,7 +147,13 @@ public interface IgnoreProperty {
         String foo;
     }
 
-    record JavaxTransientComponentRecord(@Id int id, String payload, @javax.persistence.Transient String foo) {}
+    record JavaxTransientComponentRecord(
+            @Id int id,
+            String payload,
+            @javax.persistence.Transient String foo) {}
 
-    record JakartaTransientComponentRecord(@Id int id, String payload, @jakarta.persistence.Transient String foo) {}
+    record JakartaTransientComponentRecord(
+            @Id int id,
+            String payload,
+            @jakarta.persistence.Transient String foo) {}
 }

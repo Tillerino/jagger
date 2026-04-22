@@ -31,7 +31,8 @@ public interface PropertyNameModel {
 
     @jakarta.persistence.Table(name = "custom_columns")
     record JdbcCustomColumnRecord(
-            @Id @Column(name = "custom_id") int id, @Column(name = "custom_payload") String payload) {}
+            @Id @Column(name = "custom_id") int id,
+            @Column(name = "custom_payload") String payload) {}
 
     @jakarta.persistence.Table(name = "custom_columns_pojo")
     @EqualsAndHashCode

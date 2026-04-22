@@ -26,8 +26,7 @@ import org.tillerino.jagger.tests.variants.*;
     })
 })
 public interface AutoQuerySerde {
-    String EXPLICIT_SCHEMA =
-            """
+    String EXPLICIT_SCHEMA = """
         CREATE TABLE "explicit_auto" ("id" INT PRIMARY KEY, "payload" VARCHAR(100), "payload2" VARCHAR(100))""";
 
     @JdbcSelect
@@ -84,22 +83,19 @@ public interface AutoQuerySerde {
     @ApplyVariantsToChildren
     @jakarta.persistence.Table(name = "jakarta_auto")
     record JakartaTable(@jakarta.persistence.Id int id, String payload, String payload2) {
-        public static final String SCHEMA =
-                """
+        public static final String SCHEMA = """
             CREATE TABLE "jakarta_auto" ("id" INT PRIMARY KEY, "payload" VARCHAR(100), "payload2" VARCHAR(100))""";
     }
 
     @javax.persistence.Table(name = "javax_auto")
     record JavaxTable(@javax.persistence.Id int id, String payload, String payload2) {
-        public static final String SCHEMA =
-                """
+        public static final String SCHEMA = """
             CREATE TABLE "javax_auto" ("id" INT PRIMARY KEY, "payload" VARCHAR(100), "payload2" VARCHAR(100))""";
     }
 
     @JdbcConfig(table = "jagger_on_dto")
     record JaggerOnDtoTable(@Id int id, String payload, String payload2) {
-        public static final String SCHEMA =
-                """
+        public static final String SCHEMA = """
             CREATE TABLE "jagger_on_dto" ("id" INT PRIMARY KEY, "payload" VARCHAR(100), "payload2" VARCHAR(100))""";
     }
 

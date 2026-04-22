@@ -77,12 +77,7 @@ class NestingTest extends ReferenceTest {
         ListSerde listImpl = SerdeUtil.impl(ListSerde.class);
 
         String[] jsons = {
-            "null",
-            "[]",
-            "[null]",
-            "[[]]",
-            "[[1.0]]",
-            """
+            "null", "[]", "[null]", "[[]]", "[[1.0]]", """
 				[
 					null,
 					[1.0,null,"NaN","Infinity","-Infinity",2.0]
@@ -115,12 +110,7 @@ class NestingTest extends ReferenceTest {
         ListSerde listImpl = SerdeUtil.impl(ListSerde.class);
 
         String[] jsons = {
-            "null",
-            "[]",
-            "[null]",
-            "[{}]",
-            "[{\"a\":1.0}]",
-            """
+            "null", "[]", "[null]", "[{}]", "[{\"a\":1.0}]", """
 				[
 					null,
 					{"a":1.0,"b":null,"c":"NaN","d":"Infinity","e":"-Infinity","f":2.0}
@@ -144,12 +134,7 @@ class NestingTest extends ReferenceTest {
         MapSerde mapImpl = SerdeUtil.impl(MapSerde.class);
 
         String[] jsons = {
-            "null",
-            "{}",
-            "{\"a\":null}",
-            "{\"a\":{}}",
-            "{\"a\":{\"d\":1.0}}",
-            """
+            "null", "{}", "{\"a\":null}", "{\"a\":{}}", "{\"a\":{\"d\":1.0}}", """
 				{
 					"a":null,
 					"b":{"d":"NaN"},
@@ -183,12 +168,7 @@ class NestingTest extends ReferenceTest {
         ListSerde listImpl = SerdeUtil.impl(ListSerde.class);
 
         String[] jsons = {
-            "null",
-            "[]",
-            "[null]",
-            "[{}]",
-            "[{\"d\":1.0}]",
-            """
+            "null", "[]", "[null]", "[{}]", "[{\"d\":1.0}]", """
 				[
 					null,
 					{"d":"NaN"},
@@ -231,12 +211,7 @@ class NestingTest extends ReferenceTest {
         MapSerde mapImpl = SerdeUtil.impl(MapSerde.class);
 
         String[] jsons = {
-            "null",
-            "{}",
-            "{\"a\":null}",
-            "{\"a\":{}}",
-            "{\"a\":{\"b\":1.0}}",
-            """
+            "null", "{}", "{\"a\":null}", "{\"a\":{}}", "{\"a\":{\"b\":1.0}}", """
 				{
 					"a":null,
 					"b":{"a": 1.0, "b":"NaN", "c":"Infinity", "d":"-Infinity", "e": null, "f": 2.0}
@@ -257,12 +232,7 @@ class NestingTest extends ReferenceTest {
         MapSerde mapImpl = SerdeUtil.impl(MapSerde.class);
 
         String[] jsons = {
-            "null",
-            "{}",
-            "{\"a\":null}",
-            "{\"a\":[]}",
-            "{\"a\":[1.0]}",
-            """
+            "null", "{}", "{\"a\":null}", "{\"a\":[]}", "{\"a\":[1.0]}", """
 				{
 					"a":null,
 					"b":[1.0,null,"NaN","Infinity","-Infinity",2.0]

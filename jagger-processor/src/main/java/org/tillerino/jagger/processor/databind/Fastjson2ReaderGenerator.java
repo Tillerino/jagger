@@ -111,8 +111,8 @@ public class Fastjson2ReaderGenerator extends AbstractReaderGenerator<Fastjson2R
                     case LONG -> "readInt64Value";
                     case FLOAT -> "readFloatValue";
                     case DOUBLE -> "readDoubleValue";
-                    default -> throw new ContextedRuntimeException(
-                            type.getKind().toString());
+                    default ->
+                        throw new ContextedRuntimeException(type.getKind().toString());
                 };
         addStatement(lhs.assign("$L.$L()", parserVariable.getSimpleName(), readMethod));
     }

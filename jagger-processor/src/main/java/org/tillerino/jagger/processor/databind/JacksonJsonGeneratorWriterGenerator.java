@@ -52,8 +52,8 @@ public class JacksonJsonGeneratorWriterGenerator extends AbstractWriterGenerator
         }
         switch (stringKind) {
             case STRING -> addStatement("$L.writeString($C)", generatorVariable.getSimpleName(), rhs);
-            case CHAR_ARRAY -> addStatement(
-                    "$L.writeString($C, 0, $C.length)", generatorVariable.getSimpleName(), rhs, rhs);
+            case CHAR_ARRAY ->
+                addStatement("$L.writeString($C, 0, $C.length)", generatorVariable.getSimpleName(), rhs, rhs);
         }
     }
 

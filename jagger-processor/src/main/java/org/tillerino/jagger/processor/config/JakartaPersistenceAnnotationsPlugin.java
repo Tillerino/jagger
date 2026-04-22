@@ -17,18 +17,21 @@ public class JakartaPersistenceAnnotationsPlugin implements JaggerPlugin {
                 IgnoreProperty.IGNORE_PROPERTY, "jakarta.persistence.Transient", ann -> Optional.of(true));
 
         ctx.configProperties.addAnnotationPropertyConfigRetriever(
-                PropertyName.PROPERTY_NAME, "jakarta.persistence.Column", ann -> ann.method("name", false)
-                        .map(AnnotationValueWrapper::asString));
+                PropertyName.PROPERTY_NAME,
+                "jakarta.persistence.Column",
+                ann -> ann.method("name", false).map(AnnotationValueWrapper::asString));
 
         ctx.configProperties.addAnnotationPropertyConfigRetriever(
                 Jdbc.ID_PROPERTY, "jakarta.persistence.Id", ann -> Optional.of(true));
 
         ctx.configProperties.addAnnotationPropertyConfigRetriever(
-                Jdbc.TABLE_NAME_ON_DTO, "jakarta.persistence.Table", ann -> ann.method("name", false)
-                        .map(AnnotationValueWrapper::asString));
+                Jdbc.TABLE_NAME_ON_DTO,
+                "jakarta.persistence.Table",
+                ann -> ann.method("name", false).map(AnnotationValueWrapper::asString));
 
         ctx.configProperties.addAnnotationPropertyConfigRetriever(
-                Jdbc.GENERATION_TYPE, "jakarta.persistence.GeneratedValue", ann -> ann.method("strategy", false)
-                        .map(w -> w.asEnum(Jdbc.GenerationType.class)));
+                Jdbc.GENERATION_TYPE,
+                "jakarta.persistence.GeneratedValue",
+                ann -> ann.method("strategy", false).map(w -> w.asEnum(Jdbc.GenerationType.class)));
     }
 }

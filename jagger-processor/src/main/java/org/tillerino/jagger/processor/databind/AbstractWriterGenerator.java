@@ -320,14 +320,15 @@ public abstract class AbstractWriterGenerator<SELF extends AbstractWriterGenerat
         }
 
         Optional<Setup> referencesSetup = ctx.references.resolveSetup(config, prototype, type);
-        referencesSetup.ifPresent(setup -> setup.generateId(rhs).ifPresent(id -> nest(
-                        setup.idType(),
-                        new LHS.Field("$S", new Object[] {setup.property()}),
-                        new Property("id", "id", null),
-                        new AnySnippet(id, false),
-                        true,
-                        config.propagateTo(PropagationKind.PROPERTY))
-                .build()));
+        referencesSetup.ifPresent(setup -> setup.generateId(rhs)
+                .ifPresent(id -> nest(
+                                setup.idType(),
+                                new LHS.Field("$S", new Object[] {setup.property()}),
+                                new Property("id", "id", null),
+                                new AnySnippet(id, false),
+                                true,
+                                config.propagateTo(PropagationKind.PROPERTY))
+                        .build()));
 
         ProtoAndProps verificationForDto = generatedClass.verificationForBlueprint.addWriter(prototype, type);
         Set<String> ignoredProperties =

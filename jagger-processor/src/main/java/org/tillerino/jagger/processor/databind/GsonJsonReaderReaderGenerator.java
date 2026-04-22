@@ -91,8 +91,8 @@ public class GsonJsonReaderReaderGenerator extends AbstractReaderGenerator<GsonJ
                     case LONG -> new R("", "nextLong");
                     case FLOAT -> new R("(float) ", "nextDouble");
                     case DOUBLE -> new R("", "nextDouble");
-                    default -> throw new ContextedRuntimeException(
-                            type.getKind().toString());
+                    default ->
+                        throw new ContextedRuntimeException(type.getKind().toString());
                 };
         addStatement(lhs.assign("$L$L.$L()", readMethod.cast, parserVariable.getSimpleName(), readMethod.method));
     }

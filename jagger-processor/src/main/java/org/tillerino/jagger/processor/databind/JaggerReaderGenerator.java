@@ -87,8 +87,8 @@ public class JaggerReaderGenerator extends AbstractReaderGenerator<JaggerReaderG
                     case LONG -> "getLong";
                     case FLOAT -> "getFloat";
                     case DOUBLE -> "getDouble";
-                    default -> throw new ContextedRuntimeException(
-                            type.getKind().toString());
+                    default ->
+                        throw new ContextedRuntimeException(type.getKind().toString());
                 };
         Snippet snippet = of("$L.$L($L)", parserVariable.getSimpleName(), method, importAdvance(CONSUME));
         addStatement(lhs.assign(snippet));

@@ -12,12 +12,14 @@ public class JdbcPlugin implements JaggerPlugin {
         ctx.detectors.add(new JdbcDetector(ctx));
 
         ctx.configProperties.addAnnotationPropertyConfigRetriever(
-                Jdbc.FETCH_SIZE, "org.tillerino.jagger.annotations.JdbcSelect", ann -> ann.method("fetchSize", false)
-                        .map(AnnotationValueWrapper::asInt));
+                Jdbc.FETCH_SIZE,
+                "org.tillerino.jagger.annotations.JdbcSelect",
+                ann -> ann.method("fetchSize", false).map(AnnotationValueWrapper::asInt));
 
         ctx.configProperties.addAnnotationPropertyConfigRetriever(
-                Jdbc.TABLE_NAME_ON_DTO, "org.tillerino.jagger.annotations.JdbcConfig", ann -> ann.method("table", false)
-                        .map(AnnotationValueWrapper::asString));
+                Jdbc.TABLE_NAME_ON_DTO,
+                "org.tillerino.jagger.annotations.JdbcConfig",
+                ann -> ann.method("table", false).map(AnnotationValueWrapper::asString));
 
         ctx.configProperties.addAnnotationPropertyConfigRetriever(
                 Jdbc.TABLE_NAME_ON_PROTOTYPE,
@@ -25,23 +27,28 @@ public class JdbcPlugin implements JaggerPlugin {
                 ann -> ann.method("table", false).map(AnnotationValueWrapper::asString));
 
         ctx.configProperties.addAnnotationPropertyConfigRetriever(
-                Jdbc.SQL_QUERY, "org.tillerino.jagger.annotations.JdbcSelect", ann -> ann.method("value", false)
-                        .map(AnnotationValueWrapper::asString));
+                Jdbc.SQL_QUERY,
+                "org.tillerino.jagger.annotations.JdbcSelect",
+                ann -> ann.method("value", false).map(AnnotationValueWrapper::asString));
 
         ctx.configProperties.addAnnotationPropertyConfigRetriever(
-                Jdbc.SQL_QUERY, "org.tillerino.jagger.annotations.JdbcInsert", ann -> ann.method("value", false)
-                        .map(AnnotationValueWrapper::asString));
+                Jdbc.SQL_QUERY,
+                "org.tillerino.jagger.annotations.JdbcInsert",
+                ann -> ann.method("value", false).map(AnnotationValueWrapper::asString));
 
         ctx.configProperties.addAnnotationPropertyConfigRetriever(
-                Jdbc.SQL_QUERY, "org.tillerino.jagger.annotations.JdbcUpdate", ann -> ann.method("value", false)
-                        .map(AnnotationValueWrapper::asString));
+                Jdbc.SQL_QUERY,
+                "org.tillerino.jagger.annotations.JdbcUpdate",
+                ann -> ann.method("value", false).map(AnnotationValueWrapper::asString));
 
         ctx.configProperties.addAnnotationPropertyConfigRetriever(
-                Jdbc.WHERE_CLAUSE, "org.tillerino.jagger.annotations.JdbcSelect", ann -> ann.method("where", false)
-                        .map(AnnotationValueWrapper::asString));
+                Jdbc.WHERE_CLAUSE,
+                "org.tillerino.jagger.annotations.JdbcSelect",
+                ann -> ann.method("where", false).map(AnnotationValueWrapper::asString));
 
         ctx.configProperties.addAnnotationPropertyConfigRetriever(
-                Jdbc.QUOTE_CHAR, "org.tillerino.jagger.annotations.JdbcConfig", ann -> ann.method("quoteChar", false)
-                        .map(AnnotationValueWrapper::asString));
+                Jdbc.QUOTE_CHAR,
+                "org.tillerino.jagger.annotations.JdbcConfig",
+                ann -> ann.method("quoteChar", false).map(AnnotationValueWrapper::asString));
     }
 }

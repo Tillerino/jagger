@@ -14,13 +14,10 @@ class IgnorePropertiesTest extends ReferenceTest {
 
     @Test
     void ignoreSpecificPropertiesInInput() throws Exception {
-        inputUtils.assertIsEqualToDatabind(
-                """
+        inputUtils.assertIsEqualToDatabind("""
                         { "name": "Moopsy", "value": 123, "ignoredValue": "ignored", "renamed": "not ignored",
                           "ignoredArray": [ "a", "b" ], "ignoredObject": { "a": "b" } }
-                    """,
-                serde::readJsonIgnorePropertiesValue,
-                new TypeReference<>() {});
+                    """, serde::readJsonIgnorePropertiesValue, new TypeReference<>() {});
     }
 
     @Test

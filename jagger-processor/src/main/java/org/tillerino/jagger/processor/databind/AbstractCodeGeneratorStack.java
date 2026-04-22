@@ -109,7 +109,10 @@ public abstract class AbstractCodeGeneratorStack<SELF extends AbstractCodeGenera
         BYTE_ARRAY
     }
 
-    protected record Property(String canonicalName, String serializedName, @Nullable AnyConfig config) {
+    protected record Property(
+            String canonicalName,
+            String serializedName,
+            @Nullable AnyConfig config) {
         static Property ITEM = new Property("item", "item", null);
         static Property VALUE = new Property("value", "value", null);
         static Property DISCRIMINATOR = new Property("discriminator", "discriminator", null);

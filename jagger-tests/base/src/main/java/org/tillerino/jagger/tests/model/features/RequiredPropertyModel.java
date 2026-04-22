@@ -6,7 +6,9 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 public interface RequiredPropertyModel {
-    record RequiredFields(@JsonProperty(required = true) String name, @JsonProperty(required = true) Integer age) {}
+    record RequiredFields(
+            @JsonProperty(required = true) String name,
+            @JsonProperty(required = true) Integer age) {}
 
     record MixedFields(
             @JsonProperty(required = true) String name,

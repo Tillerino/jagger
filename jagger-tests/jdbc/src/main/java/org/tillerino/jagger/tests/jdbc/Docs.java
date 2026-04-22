@@ -46,8 +46,7 @@ public interface Docs {
         @JdbcUpdate("INSERT INTO tablename (entity.#insertColumns) VALUES (:entity.#insertValues)")
         void insert(Connection c, MultiPropertyPojo entity) throws SQLException;
 
-        @JdbcUpdate(
-                """
+        @JdbcUpdate("""
                 UPDATE tablename SET (entity.#updateColumns) = (:entity.#updateValues)
                   WHERE (entity.#keyColumns) = (:entity.#keyValues)""")
         void update(Connection c, MultiPropertyPojo entity) throws SQLException;

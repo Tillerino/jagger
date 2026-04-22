@@ -94,8 +94,8 @@ public class JacksonJsonParserReaderGenerator extends AbstractReaderGenerator<Ja
                     case LONG -> "getLongValue";
                     case FLOAT -> "getFloatValue";
                     case DOUBLE -> "getDoubleValue";
-                    default -> throw new ContextedRuntimeException(
-                            type.getKind().toString());
+                    default ->
+                        throw new ContextedRuntimeException(type.getKind().toString());
                 };
         if (lhs instanceof LHS.Return) {
             String tmp = createVariable("tmp").name();

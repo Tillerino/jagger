@@ -161,7 +161,7 @@ public class Fastjson2WriterGenerator extends AbstractWriterGenerator<Fastjson2W
                     case SHORT -> "Int16";
                     case INT -> "Int32";
                     case LONG -> "Int64";
-                        // for floating point, writes null for non-finite, so we cannot use those
+                    // for floating point, writes null for non-finite, so we cannot use those
                     default -> null;
                 };
         if (t != null) {

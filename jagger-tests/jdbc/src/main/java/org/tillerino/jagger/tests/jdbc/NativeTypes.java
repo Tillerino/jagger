@@ -30,8 +30,7 @@ public interface NativeTypes {
         INSERT into "allTypes" ("entities.#columns") values (:entities.#values)""")
         void insertAllTypesRecord(Connection c, List<AllTypesRecord> entities) throws SQLException;
 
-        @JdbcUpdate(
-                """
+        @JdbcUpdate("""
         UPDATE "allTypes" set ("entity.#updateColumns") = (:entity.#updateValues) where ("entity.#keyColumns") = (:entity.#keyValues)""")
         void updateAllTypesRecord(Connection c, AllTypesRecord entity) throws SQLException;
 
@@ -48,8 +47,7 @@ public interface NativeTypes {
         void insertAllTypesPojo(Connection c, List<AllTypesPojo> entities) throws SQLException;
 
         /* Record -> Pojo */
-        @JdbcUpdate(
-                """
+        @JdbcUpdate("""
         UPDATE "allTypes" set ("entity.#updateColumns") = (:entity.#updateValues) where ("entity.#keyColumns") = (:entity.#keyValues)""")
         @GeneratedVariant("Variant of updateAllTypesRecord")
         void updateAllTypesPojo(Connection c, AllTypesPojo entity) throws SQLException;
@@ -75,8 +73,7 @@ public interface NativeTypes {
             BigDecimal bigDecimalVal,
             Date dateVal,
             byte[] bytesVal) {
-        public static final String SCHEMA =
-                """
+        public static final String SCHEMA = """
               CREATE TABLE "allTypes" (
                   "id" INT PRIMARY KEY,
                   "boolPrim" BOOLEAN,
@@ -99,41 +96,20 @@ public interface NativeTypes {
                   "bytesVal" BLOB
               )""";
         public static String[][] ILLEGAL_NULLS = {
-            {
-                "boolPrim",
-                """
-                  INSERT INTO "allTypes" VALUES (1, NULL, 1, 1, 1, 1, 1.0, 2.0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'test', NULL, NULL, NULL)"""
-            },
-            {
-                "bytePrim",
-                """
-                  INSERT INTO "allTypes" VALUES (1, true, NULL, 1, 1, 1, 1.0, 2.0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'test', NULL, NULL, NULL)"""
-            },
-            {
-                "shortPrim",
-                """
-                  INSERT INTO "allTypes" VALUES (1, true, 1, NULL, 1, 1, 1.0, 2.0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'test', NULL, NULL, NULL)"""
-            },
-            {
-                "intPrim",
-                """
-                  INSERT INTO "allTypes" VALUES (1, true, 1, 1, NULL, 1, 1.0, 2.0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'test', NULL, NULL, NULL)"""
-            },
-            {
-                "longPrim",
-                """
-                  INSERT INTO "allTypes" VALUES (1, true, 1, 1, 1, NULL, 1.0, 2.0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'test', NULL, NULL, NULL)"""
-            },
-            {
-                "floatPrim",
-                """
-                  INSERT INTO "allTypes" VALUES (1, true, 1, 1, 1, 1, NULL, 2.0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'test', NULL, NULL, NULL)"""
-            },
-            {
-                "doublePrim",
-                """
-                  INSERT INTO "allTypes" VALUES (1, true, 1, 1, 1, 1, 1.0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'test', NULL, NULL, NULL)"""
-            }
+            {"boolPrim", """
+                  INSERT INTO "allTypes" VALUES (1, NULL, 1, 1, 1, 1, 1.0, 2.0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'test', NULL, NULL, NULL)"""},
+            {"bytePrim", """
+                  INSERT INTO "allTypes" VALUES (1, true, NULL, 1, 1, 1, 1.0, 2.0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'test', NULL, NULL, NULL)"""},
+            {"shortPrim", """
+                  INSERT INTO "allTypes" VALUES (1, true, 1, NULL, 1, 1, 1.0, 2.0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'test', NULL, NULL, NULL)"""},
+            {"intPrim", """
+                  INSERT INTO "allTypes" VALUES (1, true, 1, 1, NULL, 1, 1.0, 2.0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'test', NULL, NULL, NULL)"""},
+            {"longPrim", """
+                  INSERT INTO "allTypes" VALUES (1, true, 1, 1, 1, NULL, 1.0, 2.0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'test', NULL, NULL, NULL)"""},
+            {"floatPrim", """
+                  INSERT INTO "allTypes" VALUES (1, true, 1, 1, 1, 1, NULL, 2.0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'test', NULL, NULL, NULL)"""},
+            {"doublePrim", """
+                  INSERT INTO "allTypes" VALUES (1, true, 1, 1, 1, 1, 1.0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'test', NULL, NULL, NULL)"""}
         };
     }
 
