@@ -18,17 +18,19 @@ import javax.lang.model.util.Elements;
 import javax.lang.model.util.SimpleAnnotationValueVisitor14;
 import javax.lang.model.util.Types;
 import org.apache.commons.lang3.exception.ContextedRuntimeException;
-import org.tillerino.jagger.api.DeserializationContext;
-import org.tillerino.jagger.api.SerializationContext;
 import org.tillerino.jagger.processor.Snippet.PerfectSnippet;
 import org.tillerino.jagger.processor.Snippet.PerfectSnippet.Literal;
+import org.tillerino.jagger.processor.config.ConfigProperties;
+import org.tillerino.jagger.processor.config.JaggerAnnotations;
 import org.tillerino.jagger.processor.features.*;
 import org.tillerino.jagger.processor.features.Generics.TypeVar;
 import org.tillerino.jagger.processor.features.Properties;
 import org.tillerino.jagger.processor.util.Annotations;
 import org.tillerino.jagger.processor.util.Exceptions;
+import org.tillerino.jagger.processor.util.InstantiatedMethod;
+import org.tillerino.jagger.processor.util.PrototypeKind;
 
-public class AnnotationProcessorUtils {
+public class JaggerContext {
     public final Elements elements;
     public final Types types;
     public final CommonTypes commonTypes;
@@ -44,11 +46,12 @@ public class AnnotationProcessorUtils {
     public final References references;
     public final Properties properties;
     public final CodeGeneration codeGeneration;
-    public final Jdbc jdbc;
+    public final ConfigProperties configProperties;
+    public final List<Detector> detectors = new ArrayList<>();
 
     public final Messager messager;
 
-    public AnnotationProcessorUtils(ProcessingEnvironment processingEnv) {
+    public JaggerContext(ProcessingEnvironment processingEnv) {
         elements = processingEnv.getElementUtils();
         types = processingEnv.getTypeUtils();
         commonTypes = new CommonTypes();
@@ -63,8 +66,11 @@ public class AnnotationProcessorUtils {
         references = new References(this);
         properties = new Properties(this);
         codeGeneration = new CodeGeneration(this);
-        jdbc = new Jdbc(this);
+        configProperties = new ConfigProperties(this);
+        JaggerAnnotations.configureJaggerAnnotations(this);
         messager = processingEnv.getMessager();
+        ServiceLoader.load(JaggerPlugin.class, JaggerProcessor.class.getClassLoader()).stream()
+                .forEach(factory -> factory.get().configure(this));
     }
 
     public static class GetAnnotationValues<R, P> extends SimpleAnnotationValueVisitor14<R, P> {
@@ -86,6 +92,16 @@ public class AnnotationProcessorUtils {
             blueprints.put(element.getQualifiedName().toString(), blueprint = JaggerBlueprint.of(element, this));
         }
         return blueprint;
+    }
+
+    public Optional<PrototypeKind> detectPrototype(InstantiatedMethod m) {
+        for (Detector detector : detectors) {
+            Optional<PrototypeKind> detect = detector.detect(m);
+            if (detect.isPresent()) {
+                return detect;
+            }
+        }
+        return Optional.empty();
     }
 
     public class CommonTypes {
@@ -113,11 +129,6 @@ public class AnnotationProcessorUtils {
 
         public final TypeElement classElement = elements.getTypeElement(Class.class.getName());
 
-        public final TypeMirror serializationContext =
-                elements.getTypeElement(SerializationContext.class.getName()).asType();
-        public final TypeMirror deserializationContext =
-                elements.getTypeElement(DeserializationContext.class.getName()).asType();
-
         public final Set<String> boxedTypes = Set.of(
                 boxedBoolean.toString(),
                 boxedByte.toString(),
@@ -136,6 +147,14 @@ public class AnnotationProcessorUtils {
 
         public TypeMirror resultSet =
                 elements.getTypeElement(ResultSet.class.getName()).asType();
+
+        public TypeMirror nullableTypeMirror(String name) {
+            TypeElement typeElement = elements.getTypeElement(name);
+            if (typeElement == null) {
+                return null;
+            }
+            return typeElement.asType();
+        }
 
         public boolean isString(TypeMirror type) {
             return types.isSameType(type, string);

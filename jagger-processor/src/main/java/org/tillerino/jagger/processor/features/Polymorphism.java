@@ -12,14 +12,14 @@ import javax.lang.model.type.DeclaredType;
 import javax.lang.model.type.TypeMirror;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ContextedRuntimeException;
-import org.tillerino.jagger.processor.AnnotationProcessorUtils;
+import org.tillerino.jagger.processor.JaggerContext;
 import org.tillerino.jagger.processor.util.Annotations.AnnotationMirrorWrapper;
 import org.tillerino.jagger.processor.util.Annotations.AnnotationValueWrapper;
 
 public record Polymorphism(String discriminator, JsonTypeInfoId id, List<Child> children) {
-    public static Optional<Polymorphism> of(TypeElement type, AnnotationProcessorUtils utils) {
+    public static Optional<Polymorphism> of(TypeElement type, JaggerContext ctx) {
         Optional<AnnotationMirrorWrapper> annotationMaybe =
-                utils.annotations.findAnnotation(type, "com.fasterxml.jackson.annotation.JsonTypeInfo");
+                ctx.annotations.findAnnotation(type, "com.fasterxml.jackson.annotation.JsonTypeInfo");
         if (annotationMaybe.isEmpty()) {
             return Optional.empty();
         }
@@ -33,7 +33,7 @@ public record Polymorphism(String discriminator, JsonTypeInfoId id, List<Child> 
                 .map(wrapper -> wrapper.asString())
                 .filter(StringUtils::isNotEmpty)
                 .orElse(use.getDefaultPropertyName());
-        List<Child> children = utils.annotations
+        List<Child> children = ctx.annotations
                 .findAnnotation(type, "com.fasterxml.jackson.annotation.JsonSubTypes")
                 .flatMap(subTypes -> subTypes.method("value", false))
                 .map(AnnotationValueWrapper::asArray)
@@ -47,10 +47,7 @@ public record Polymorphism(String discriminator, JsonTypeInfoId id, List<Child> 
                             Optional<String> nameFromTypeAnnotation =
                                     subTypeAnnotation.method("name", false).map(AnnotationValueWrapper::asString);
                             String name = name(
-                                    use,
-                                    utils.elements.getTypeElement(subType.toString()),
-                                    type,
-                                    nameFromTypeAnnotation);
+                                    use, ctx.elements.getTypeElement(subType.toString()), type, nameFromTypeAnnotation);
                             return new Child(subType, name);
                         })
                         .toList())
@@ -61,7 +58,7 @@ public record Polymorphism(String discriminator, JsonTypeInfoId id, List<Child> 
                     }
                     return type.getPermittedSubclasses().stream()
                             .map(e -> new Child(
-                                    e, name(use, utils.elements.getTypeElement(e.toString()), type, Optional.empty())))
+                                    e, name(use, ctx.elements.getTypeElement(e.toString()), type, Optional.empty())))
                             .toList();
                 });
 
@@ -119,15 +116,15 @@ public record Polymorphism(String discriminator, JsonTypeInfoId id, List<Child> 
         }
     }
 
-    public static boolean isSomeChild(TypeMirror type, AnnotationProcessorUtils utils) {
+    public static boolean isSomeChild(TypeMirror type, JaggerContext ctx) {
         // this test is pretty half-assed, but false-positives only produce a bit of extra code
-        for (TypeMirror directSupertype : utils.types.directSupertypes(type)) {
+        for (TypeMirror directSupertype : ctx.types.directSupertypes(type)) {
             // care: annotations not on type, only on element
             if (directSupertype instanceof DeclaredType d
-                            && utils.annotations
+                            && ctx.annotations
                                     .findAnnotation(d.asElement(), "com.fasterxml.jackson.annotation.JsonTypeInfo")
                                     .isPresent()
-                    || isSomeChild(directSupertype, utils)) {
+                    || isSomeChild(directSupertype, ctx)) {
                 return true;
             }
         }
@@ -136,8 +133,8 @@ public record Polymorphism(String discriminator, JsonTypeInfoId id, List<Child> 
 
     public record Child(TypeMirror type, String name) {}
 
-    public static List<DeclaredType> directSupertypes(TypeMirror type, AnnotationProcessorUtils utils) {
-        return utils.types.directSupertypes(type).stream()
+    public static List<DeclaredType> directSupertypes(TypeMirror type, JaggerContext ctx) {
+        return ctx.types.directSupertypes(type).stream()
                 .flatMap(t -> t instanceof DeclaredType dt && !t.toString().equals("java.lang.Object")
                         ? Stream.of(dt)
                         : Stream.empty())

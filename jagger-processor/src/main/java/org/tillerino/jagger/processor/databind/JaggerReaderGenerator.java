@@ -1,4 +1,4 @@
-package org.tillerino.jagger.processor.apis;
+package org.tillerino.jagger.processor.databind;
 
 import static org.tillerino.jagger.api.JaggerReader.Advance.CONSUME;
 import static org.tillerino.jagger.processor.Snippet.join;
@@ -10,8 +10,8 @@ import javax.lang.model.element.VariableElement;
 import javax.lang.model.type.TypeMirror;
 import org.apache.commons.lang3.exception.ContextedRuntimeException;
 import org.tillerino.jagger.api.JaggerReader;
-import org.tillerino.jagger.processor.AnnotationProcessorUtils;
 import org.tillerino.jagger.processor.GeneratedClass;
+import org.tillerino.jagger.processor.JaggerContext;
 import org.tillerino.jagger.processor.JaggerPrototype;
 import org.tillerino.jagger.processor.Snippet;
 import org.tillerino.jagger.processor.config.AnyConfig;
@@ -20,9 +20,8 @@ import org.tillerino.jagger.processor.util.InstantiatedMethod;
 public class JaggerReaderGenerator extends AbstractReaderGenerator<JaggerReaderGenerator> {
     private final VariableElement parserVariable;
 
-    public JaggerReaderGenerator(
-            AnnotationProcessorUtils utils, JaggerPrototype prototype, GeneratedClass generatedClass) {
-        super(utils, prototype, generatedClass);
+    public JaggerReaderGenerator(JaggerContext ctx, JaggerPrototype prototype, GeneratedClass generatedClass) {
+        super(ctx, prototype, generatedClass);
         parserVariable = prototype.methodElement().getParameters().get(0);
     }
 
@@ -158,7 +157,7 @@ public class JaggerReaderGenerator extends AbstractReaderGenerator<JaggerReaderG
                 "$L.$L($C)",
                 instance,
                 callee,
-                join(utils.delegation.findArguments(prototype, callee, 0, generatedClass), ", "))));
+                join(ctx.delegation.findArguments(prototype, callee, 0, generatedClass), ", "))));
     }
 
     @Override

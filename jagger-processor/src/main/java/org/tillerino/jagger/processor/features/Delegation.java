@@ -11,7 +11,6 @@ import org.tillerino.jagger.annotations.JsonConfig;
 import org.tillerino.jagger.processor.*;
 import org.tillerino.jagger.processor.config.AnyConfig;
 import org.tillerino.jagger.processor.config.ConfigProperty;
-import org.tillerino.jagger.processor.config.ConfigProperty.AnnotationConfigPropertyRetriever;
 import org.tillerino.jagger.processor.config.ConfigProperty.LocationKind;
 import org.tillerino.jagger.processor.config.ConfigProperty.MergeFunction;
 import org.tillerino.jagger.processor.config.ConfigProperty.PropagationKind;
@@ -20,21 +19,16 @@ import org.tillerino.jagger.processor.util.InstantiatedMethod.InstantiatedVariab
 import org.tillerino.jagger.processor.util.PrototypeKind;
 import org.tillerino.jagger.processor.util.ShortName;
 
-public record Delegation(AnnotationProcessorUtils utils) {
+public record Delegation(JaggerContext ctx) {
     public static ConfigProperty<JsonConfig.DelegateeMode> DELEGATE_TO = ConfigProperty.createConfigProperty(
+            "DELEGATE_TO",
             List.of(LocationKind.BLUEPRINT, LocationKind.PROTOTYPE),
-            List.of(AnnotationConfigPropertyRetriever.jsonConfigPropertyRetriever(
-                    "delegateTo", JsonConfig.DelegateeMode.class)),
             JsonConfig.DelegateeMode.DEFAULT,
-            MergeFunction.notDefault(JsonConfig.DelegateeMode.DEFAULT),
+            MergeFunction.notDefault(),
             List.of());
 
     public static ConfigProperty<Boolean> DELEGATE_FROM = ConfigProperty.createConfigProperty(
-            List.of(LocationKind.PROPERTY),
-            List.of(/* can only be set from within annotation processor */ ),
-            true,
-            (x, y) -> x,
-            List.of(PropagationKind.SUBSTITUTE));
+            "DELEGATE_FROM", List.of(LocationKind.PROPERTY), true, (x, y) -> x, List.of(PropagationKind.SUBSTITUTE));
 
     public Optional<Delegatee> findDelegatee(
             TypeMirror type,
@@ -50,7 +44,7 @@ public record Delegation(AnnotationProcessorUtils utils) {
                                 d.blueprint(),
                                 !d.prototype().overrides()),
                         d.method()))
-                .or(() -> utils.delegation.findDelegateeInMethodParameters(caller, type));
+                .or(() -> ctx.delegation.findDelegateeInMethodParameters(caller, type));
     }
 
     private Optional<InstantiatedPrototype> findPrototype(
@@ -87,9 +81,9 @@ public record Delegation(AnnotationProcessorUtils utils) {
     private Optional<Delegatee> findDelegateeInMethodParameters(JaggerPrototype prototype, TypeMirror type) {
         for (InstantiatedVariable parameter : prototype.kind().otherParameters()) {
             for (InstantiatedMethod method :
-                    utils.generics.instantiateMethods(parameter.type(), LocationKind.PROTOTYPE)) {
-                Optional<PrototypeKind> prototypeKind = PrototypeKind.of(method, utils)
-                        .filter(kind -> kind.matchesWithJavaType(prototype.kind(), type, utils));
+                    ctx.generics.instantiateMethods(parameter.type(), LocationKind.PROTOTYPE)) {
+                Optional<PrototypeKind> prototypeKind = ctx.detectPrototype(method)
+                        .filter(kind -> kind.matches(prototype.kind().withInternalType(type), ctx));
                 if (prototypeKind.isPresent()) {
                     return Optional.of(new Delegatee(parameter.name(), method));
                 }
@@ -118,7 +112,7 @@ public record Delegation(AnnotationProcessorUtils utils) {
             JaggerPrototype caller, GeneratedClass generatedClass, InstantiatedVariable targetArgument) {
         // search in caller's own parameters
         for (InstantiatedVariable instantiatedParameter : caller.instantiatedParameters()) {
-            if (utils.commonTypes.isAssignable(instantiatedParameter.type(), targetArgument.type())) {
+            if (ctx.commonTypes.isAssignable(instantiatedParameter.type(), targetArgument.type())) {
                 return Optional.of(Snippet.of("$L", instantiatedParameter.name()));
             }
         }
@@ -129,7 +123,7 @@ public record Delegation(AnnotationProcessorUtils utils) {
             return Optional.of(Snippet.of("$L", delegateeInField));
         }
         if (targetArgument.type() instanceof DeclaredType t
-                && t.asElement().equals(utils.commonTypes.classElement)
+                && t.asElement().equals(ctx.commonTypes.classElement)
                 && !t.getTypeArguments().isEmpty()) {
             TypeMirror typeOfClass = t.getTypeArguments().get(0);
             if (Generics.canBeClass(typeOfClass)) {
@@ -137,7 +131,7 @@ public record Delegation(AnnotationProcessorUtils utils) {
             }
         }
         // see if we can instantiate a lambda from our list of used blueprints
-        return utils.generics.getOrCreateLambda(
+        return ctx.generics.getOrCreateLambda(
                 generatedClass, targetArgument.type(), caller.instantiatedParameters(), 0);
     }
 

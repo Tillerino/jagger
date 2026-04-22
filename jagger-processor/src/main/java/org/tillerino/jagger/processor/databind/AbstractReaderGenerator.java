@@ -1,18 +1,18 @@
-package org.tillerino.jagger.processor.apis;
+package org.tillerino.jagger.processor.databind;
 
 import static java.util.stream.Collectors.joining;
 import static java.util.stream.Collectors.toMap;
 import static org.apache.commons.lang3.StringUtils.capitalize;
 import static org.tillerino.jagger.processor.Snippet.joinPrependingCommaToEach;
 import static org.tillerino.jagger.processor.Snippet.of;
-import static org.tillerino.jagger.processor.apis.AbstractCodeGeneratorStack.Property.ITEM;
-import static org.tillerino.jagger.processor.apis.AbstractCodeGeneratorStack.StringKind.STRING;
-import static org.tillerino.jagger.processor.apis.AbstractReaderGenerator.Branch.ELSE_IF;
-import static org.tillerino.jagger.processor.apis.AbstractReaderGenerator.Branch.IF;
-import static org.tillerino.jagger.processor.apis.AbstractReaderGenerator.LHS.Collection;
-import static org.tillerino.jagger.processor.apis.AbstractReaderGenerator.LHS.Variable;
-import static org.tillerino.jagger.processor.apis.AbstractReaderGenerator.LHS.from;
 import static org.tillerino.jagger.processor.config.AnyConfig.fromAccessorConsideringField;
+import static org.tillerino.jagger.processor.databind.AbstractCodeGeneratorStack.Property.ITEM;
+import static org.tillerino.jagger.processor.databind.AbstractCodeGeneratorStack.StringKind.STRING;
+import static org.tillerino.jagger.processor.databind.AbstractReaderGenerator.Branch.ELSE_IF;
+import static org.tillerino.jagger.processor.databind.AbstractReaderGenerator.Branch.IF;
+import static org.tillerino.jagger.processor.databind.AbstractReaderGenerator.LHS.Collection;
+import static org.tillerino.jagger.processor.databind.AbstractReaderGenerator.LHS.Variable;
+import static org.tillerino.jagger.processor.databind.AbstractReaderGenerator.LHS.from;
 import static org.tillerino.jagger.processor.features.PropertyName.resolvePropertyName;
 import static org.tillerino.jagger.processor.util.Exceptions.runWithContext;
 
@@ -31,10 +31,7 @@ import javax.lang.model.type.TypeMirror;
 import javax.lang.model.util.ElementFilter;
 import org.apache.commons.lang3.exception.ContextedRuntimeException;
 import org.tillerino.jagger.input.EmptyArrays;
-import org.tillerino.jagger.processor.AnnotationProcessorUtils;
-import org.tillerino.jagger.processor.GeneratedClass;
-import org.tillerino.jagger.processor.JaggerPrototype;
-import org.tillerino.jagger.processor.Snippet;
+import org.tillerino.jagger.processor.*;
 import org.tillerino.jagger.processor.config.AnyConfig;
 import org.tillerino.jagger.processor.config.ConfigProperty.InstantiatedProperty;
 import org.tillerino.jagger.processor.config.ConfigProperty.LocationKind;
@@ -54,8 +51,8 @@ public abstract class AbstractReaderGenerator<SELF extends AbstractReaderGenerat
         extends AbstractCodeGeneratorStack<SELF> {
     protected final LHS lhs;
 
-    AbstractReaderGenerator(AnnotationProcessorUtils utils, JaggerPrototype prototype, GeneratedClass generatedClass) {
-        super(utils, generatedClass, prototype, prototype.instantiatedReturnType());
+    AbstractReaderGenerator(JaggerContext ctx, JaggerPrototype prototype, GeneratedClass generatedClass) {
+        super(ctx, generatedClass, prototype, prototype.instantiatedReturnType());
         lhs = new LHS.Return();
     }
 
@@ -76,12 +73,12 @@ public abstract class AbstractReaderGenerator<SELF extends AbstractReaderGenerat
     }
 
     CodeBlock.Builder build(Branch branch, boolean nullable, boolean lastCase) {
-        Optional<Setup> resolveSetup = utils.references.resolveSetup(config, prototype, type);
+        Optional<Setup> resolveSetup = ctx.references.resolveSetup(config, prototype, type);
         if (resolveSetup.isPresent()) {
             resolveId(branch, resolveSetup.get());
             branch = ELSE_IF;
         }
-        Optional<Delegatee> delegate = utils.delegation.findDelegatee(
+        Optional<Delegatee> delegate = ctx.delegation.findDelegatee(
                 type, prototype, !(lhs instanceof LHS.Return), stackDepth() > 1, config, generatedClass);
         if (delegate.isPresent()) {
             if (branch != Branch.IF) {
@@ -93,8 +90,7 @@ public abstract class AbstractReaderGenerator<SELF extends AbstractReaderGenerat
             }
             return code;
         }
-        Optional<InstantiatedMethod> converter =
-                utils.converters.findInputConverter(prototype.blueprint(), type, config);
+        Optional<InstantiatedMethod> converter = ctx.converters.findInputConverter(prototype.blueprint(), type, config);
         if (converter.isPresent()) {
             if (branch != IF) {
                 nextControlFlow("else");
@@ -113,7 +109,7 @@ public abstract class AbstractReaderGenerator<SELF extends AbstractReaderGenerat
                             .build(IF, nullable, lastCase),
                     "converter",
                     converter.get());
-            addStatement(lhs.assign(of("$C($C)", method.callSymbol(utils), converterArg)));
+            addStatement(lhs.assign(of("$C($C)", method.callSymbol(ctx), converterArg)));
 
             if (branch != IF) {
                 endControlFlow();
@@ -131,7 +127,7 @@ public abstract class AbstractReaderGenerator<SELF extends AbstractReaderGenerat
 
     private void resolveId(Branch branch, Setup setup) {
         ScopedVar idVar = createVariable("id");
-        TypeMirror idType = setup.finalIdType(type, utils);
+        TypeMirror idType = setup.finalIdType(type, ctx);
         addStatement("$T $C", idType, idVar);
         // We cannot call a delegator from this nested serializer or an else-branch is forced!
         AnyConfig nestedConfig = new AnyConfig(List.of(
@@ -232,7 +228,7 @@ public abstract class AbstractReaderGenerator<SELF extends AbstractReaderGenerat
     private ScopedVar readStringInstead() {
         ScopedVar stringVar = createVariable("string");
         SELF nested = nest(
-                utils.commonTypes.string,
+                ctx.commonTypes.string,
                 null,
                 LHS.Variable.from(stringVar),
                 false,
@@ -243,7 +239,7 @@ public abstract class AbstractReaderGenerator<SELF extends AbstractReaderGenerat
     }
 
     void readNullCheckedObject(Branch branch, boolean lastCase) {
-        Optional<Creator> jsonCreatorMethod = utils.creators.findJsonCreatorMethod(type);
+        Optional<Creator> jsonCreatorMethod = ctx.creators.findJsonCreatorMethod(type);
         if (jsonCreatorMethod.isPresent()) {
             if (jsonCreatorMethod.get() instanceof Creator.Converter c) {
                 readFactory(branch, c.method(), lastCase);
@@ -252,18 +248,18 @@ public abstract class AbstractReaderGenerator<SELF extends AbstractReaderGenerat
             } else {
                 throw Exceptions.unexpected();
             }
-        } else if (utils.isBoxed(type)) {
-            nest(utils.types.unboxedType(type), null, lhs, false, config.propagateTo(PropagationKind.SUBSTITUTE))
+        } else if (ctx.isBoxed(type)) {
+            nest(ctx.types.unboxedType(type), null, lhs, false, config.propagateTo(PropagationKind.SUBSTITUTE))
                     .build(branch, true, lastCase);
-        } else if (utils.commonTypes.isString(type) || utils.commonTypes.isArrayOf(type, TypeKind.CHAR)) {
-            readString(branch, utils.commonTypes.isString(type) ? StringKind.STRING : StringKind.CHAR_ARRAY, lastCase);
-        } else if (utils.commonTypes.isEnum(type)) {
+        } else if (ctx.commonTypes.isString(type) || ctx.commonTypes.isArrayOf(type, TypeKind.CHAR)) {
+            readString(branch, ctx.commonTypes.isString(type) ? StringKind.STRING : StringKind.CHAR_ARRAY, lastCase);
+        } else if (ctx.commonTypes.isEnum(type)) {
             readEnum(branch, lastCase);
         } else if (type.getKind() == TypeKind.ARRAY) {
             readArray(branch, lastCase);
-        } else if (utils.commonTypes.isIterableOrArray(type)) {
+        } else if (ctx.commonTypes.isIterableOrArray(type)) {
             readCollection(branch, lastCase);
-        } else if (utils.commonTypes.isErasureAssignableTo(type, Map.class)) {
+        } else if (ctx.commonTypes.isErasureAssignableTo(type, Map.class)) {
             readMap(branch, lastCase);
         } else if (type.getKind() == TypeKind.TYPEVAR) {
             throw new ContextedRuntimeException("Missing deserializer for type variable " + type);
@@ -293,9 +289,9 @@ public abstract class AbstractReaderGenerator<SELF extends AbstractReaderGenerat
                 method);
         addStatement(lhs.assign(of(
                 "$C($L$C)",
-                method.callSymbol(utils),
+                method.callSymbol(ctx),
                 creatorArg.name,
-                joinPrependingCommaToEach(utils.delegation.findArguments(prototype, method, 1, generatedClass)))));
+                joinPrependingCommaToEach(ctx.delegation.findArguments(prototype, method, 1, generatedClass)))));
         if (branch == ELSE_IF) {
             endControlFlow();
         }
@@ -312,8 +308,8 @@ public abstract class AbstractReaderGenerator<SELF extends AbstractReaderGenerat
         {
             String enumValuesField = generatedClass.getOrCreateEnumField(type);
             Variable enumVar = Variable.from(createVariable("string"));
-            addStatement("$T $L", utils.commonTypes.string, enumVar.name);
-            nest(utils.commonTypes.string, null, enumVar, false, config.propagateTo(PropagationKind.SUBSTITUTE))
+            addStatement("$T $L", ctx.commonTypes.string, enumVar.name);
+            nest(ctx.commonTypes.string, null, enumVar, false, config.propagateTo(PropagationKind.SUBSTITUTE))
                     .readString(STRING);
             beginControlFlow("if ($L.containsKey($L))", enumValuesField, enumVar.name);
             addStatement(lhs.assign("$L.get($L)", enumValuesField, enumVar.name));
@@ -323,12 +319,12 @@ public abstract class AbstractReaderGenerator<SELF extends AbstractReaderGenerat
     }
 
     private void readArray(Branch branch, boolean lastCase) {
-        TypeMirror componentType = utils.commonTypes.getArrayComponentType(type);
+        TypeMirror componentType = ctx.commonTypes.getArrayComponentType(type);
         branch.controlFlow(this, arrayCaseCondition());
         {
-            TypeMirror rawComponentType = utils.types.erasure(componentType);
+            TypeMirror rawComponentType = ctx.types.erasure(componentType);
             TypeMirror rawRawComponentType =
-                    rawComponentType.getKind().isPrimitive() ? rawComponentType : utils.commonTypes.object;
+                    rawComponentType.getKind().isPrimitive() ? rawComponentType : ctx.commonTypes.object;
             code.add("// Like ArrayList\n");
             ScopedVar varName = createVariable("array");
             addStatement(
@@ -370,14 +366,14 @@ public abstract class AbstractReaderGenerator<SELF extends AbstractReaderGenerat
             afterArray();
             if (componentType.getKind() == TypeKind.TYPEVAR) {
                 Optional<Snippet> classParameter =
-                        utils.generics.findClassParameter(prototype.asInstantiatedMethod(), type);
+                        ctx.generics.findClassParameter(prototype.asInstantiatedMethod(), type);
                 if (classParameter.isEmpty()) {
                     throw new ContextedRuntimeException(
                             "You are trying to read a generic array. For this, you need the array class at runtime.\n"
                                     + " Add a parameter Class<%s> to %s.".formatted(type, prototype));
                 }
                 addStatement(lhs.assign("$T.copyOf($C, $L, $C)", Arrays.class, varName, len, classParameter.get()));
-            } else if (utils.types.isSameType(rawRawComponentType, rawComponentType)) {
+            } else if (ctx.types.isSameType(rawRawComponentType, rawComponentType)) {
                 addStatement(lhs.assign("$T.copyOf($C, $L)", Arrays.class, varName, len));
             } else {
                 addStatement(lhs.assign("$T.copyOf($C, $L, $T[].class)", Arrays.class, varName, len, rawComponentType));
@@ -394,7 +390,7 @@ public abstract class AbstractReaderGenerator<SELF extends AbstractReaderGenerat
     private void readCollection(Branch branch, boolean lastCase) {
         branch.controlFlow(this, arrayCaseCondition());
         {
-            TypeMirror componentType = utils.commonTypes.getComponentType(type, Iterable.class);
+            TypeMirror componentType = ctx.commonTypes.getComponentType(type, Iterable.class);
             TypeMirror collectionType = determineCollectionType();
             String varName = instantiateContainer(collectionType);
 
@@ -419,15 +415,15 @@ public abstract class AbstractReaderGenerator<SELF extends AbstractReaderGenerat
     }
 
     private TypeMirror determineCollectionType() {
-        TypeMirror rawType = utils.types.erasure(type);
+        TypeMirror rawType = ctx.types.erasure(type);
         if (!((DeclaredType) rawType).asElement().getModifiers().contains(Modifier.ABSTRACT)) {
             return rawType;
-        } else if (utils.commonTypes.isAssignable(rawType, Set.class)) {
-            return utils.types.erasure(utils.commonTypes.type(LinkedHashSet.class));
-        } else if (utils.commonTypes.isAssignable(rawType, List.class)) {
-            return utils.types.erasure(utils.commonTypes.type(ArrayList.class));
-        } else if (utils.commonTypes.isErasureAssignableTo(rawType, Map.class)) {
-            return utils.types.erasure(utils.commonTypes.type(LinkedHashMap.class));
+        } else if (ctx.commonTypes.isAssignable(rawType, Set.class)) {
+            return ctx.types.erasure(ctx.commonTypes.type(LinkedHashSet.class));
+        } else if (ctx.commonTypes.isAssignable(rawType, List.class)) {
+            return ctx.types.erasure(ctx.commonTypes.type(ArrayList.class));
+        } else if (ctx.commonTypes.isErasureAssignableTo(rawType, Map.class)) {
+            return ctx.types.erasure(ctx.commonTypes.type(LinkedHashMap.class));
         } else {
             throw new ContextedRuntimeException(type.toString());
         }
@@ -447,12 +443,12 @@ public abstract class AbstractReaderGenerator<SELF extends AbstractReaderGenerat
     private void readMap(Branch branch, boolean lastCase) {
         branch.controlFlow(this, objectCaseCondition());
         {
-            TypeMirror[] typeBindings = utils.generics
-                    .recordTypeBindingsFor((DeclaredType) type, utils.commonTypes.elem(Map.class))
+            TypeMirror[] typeBindings = ctx.generics
+                    .recordTypeBindingsFor((DeclaredType) type, ctx.commonTypes.elem(Map.class))
                     .values()
                     .toArray(TypeMirror[]::new);
             TypeMirror keyType = typeBindings[0];
-            if (!utils.types.isSameType(keyType, utils.commonTypes.string)) {
+            if (!ctx.types.isSameType(keyType, ctx.commonTypes.string)) {
                 throw new ContextedRuntimeException("Only String keys supported for now.");
             }
             TypeMirror valueType = typeBindings[1];
@@ -497,7 +493,7 @@ public abstract class AbstractReaderGenerator<SELF extends AbstractReaderGenerat
         if (properties != null) {
             readCreator(properties.method(), lastCase);
         } else {
-            Polymorphism.of(element, utils)
+            Polymorphism.of(element, ctx)
                     .ifPresentOrElse(
                             polymorphism -> readPolymorphicObject(polymorphism, element, lastCase),
                             () -> readObjectFields(element, lastCase));
@@ -508,9 +504,9 @@ public abstract class AbstractReaderGenerator<SELF extends AbstractReaderGenerat
 
     private void readPolymorphicObject(Polymorphism polymorphism, TypeElement element, boolean lastCase) {
         LHS.Variable discriminator = LHS.Variable.from(createVariable("discriminator"));
-        addStatement("$T $L = null", utils.commonTypes.string, discriminator.name());
+        addStatement("$T $L = null", ctx.commonTypes.string, discriminator.name());
         nest(
-                        utils.commonTypes.string,
+                        ctx.commonTypes.string,
                         new Property("discriminator", polymorphism.discriminator(), null),
                         discriminator,
                         false,
@@ -527,7 +523,7 @@ public abstract class AbstractReaderGenerator<SELF extends AbstractReaderGenerat
                     config.propagateTo(
                             PropagationKind.SUBSTITUTE /* this is fine with the configuration options that we
                  currently have */));
-            utils.delegation
+            ctx.delegation
                     .findDelegatee(child.type(), prototype, false, true, config, generatedClass)
                     .ifPresentOrElse(
                             delegatee -> {
@@ -535,7 +531,7 @@ public abstract class AbstractReaderGenerator<SELF extends AbstractReaderGenerat
                                         .contextParameter()
                                         .orElseThrow(() -> new ContextedRuntimeException(
                                                 "Prototype method must have a context parameter"));
-                                if (!delegatee.method().hasParameterAssignableFrom(callerContext.type(), utils)) {
+                                if (!delegatee.method().hasParameterAssignableFrom(callerContext.type(), ctx)) {
                                     throw new ContextedRuntimeException(
                                             "Delegate method must have a context parameter");
                                 }
@@ -549,7 +545,7 @@ public abstract class AbstractReaderGenerator<SELF extends AbstractReaderGenerat
                             },
                             () -> {
                                 Exceptions.runWithContext(
-                                        () -> utils.creators
+                                        () -> ctx.creators
                                                 .findJsonCreatorMethod(child.type())
                                                 .map(c -> c instanceof Creator.Properties p ? p : null)
                                                 .ifPresentOrElse(
@@ -572,8 +568,8 @@ public abstract class AbstractReaderGenerator<SELF extends AbstractReaderGenerat
 
     void readObjectFields(TypeElement element, boolean lastCase) {
         if (element.getKind() == ElementKind.RECORD) {
-            Map<TypeVar, TypeMirror> typeBindings = utils.generics.recordTypeBindings((DeclaredType) type);
-            InstantiatedMethod instantiatedConstructor = utils.generics.instantiateMethod(
+            Map<TypeVar, TypeMirror> typeBindings = ctx.generics.recordTypeBindings((DeclaredType) type);
+            InstantiatedMethod instantiatedConstructor = ctx.generics.instantiateMethod(
                     ElementFilter.constructorsIn(element.getEnclosedElements()).get(0),
                     typeBindings,
                     LocationKind.CREATOR);
@@ -602,7 +598,7 @@ public abstract class AbstractReaderGenerator<SELF extends AbstractReaderGenerat
                     new Variable(varName),
                     true,
                     propertyConfig.propagateTo(PropagationKind.PROPERTY));
-            Snippet defaultValue = utils.defaultValues.getDefaultValue(prototype, nest.type, propertyConfig);
+            Snippet defaultValue = ctx.defaultValues.getDefaultValue(prototype, nest.type, propertyConfig);
             addStatement(of("$T $L = $C", nest.type, varName, defaultValue));
             if (IgnoreProperty.isIgnoredForJson(propertyConfig)) {
                 // we do need the default value to call the creator, so we only skip reading the value
@@ -613,8 +609,8 @@ public abstract class AbstractReaderGenerator<SELF extends AbstractReaderGenerat
         }
         ScopedVar idVar = readProperties(nested, lastCase);
         String args = nested.stream().map(p -> ((Variable) p.lhs).name()).collect(joining(", "));
-        Snippet creatorCall = of("$C($L)", method.callSymbol(utils), args);
-        utils.references
+        Snippet creatorCall = of("$C($L)", method.callSymbol(ctx), args);
+        ctx.references
                 .resolveSetup(config, prototype, type)
                 .ifPresentOrElse(
                         setup -> lhs.assignAnd(
@@ -628,9 +624,9 @@ public abstract class AbstractReaderGenerator<SELF extends AbstractReaderGenerat
         List<SELF> nested = new ArrayList<>();
         ScopedVar objectVar = createVariable("object");
         addStatement("$T $C = new $T()", type, objectVar, type);
-        utils.properties.listWriteAccessors(type).forEach((canonicalPropertyName, accessor) -> {
+        ctx.properties.listWriteAccessors(type).forEach((canonicalPropertyName, accessor) -> {
             AnyConfig propertyConfig = fromAccessorConsideringField(
-                            accessor, accessor.name(), type, canonicalPropertyName, utils)
+                            accessor, accessor.name(), type, canonicalPropertyName, ctx)
                     .merge(config);
             if (IgnoreProperty.isIgnoredForJson(propertyConfig)) {
                 return;
@@ -648,18 +644,18 @@ public abstract class AbstractReaderGenerator<SELF extends AbstractReaderGenerat
             nested.add(nest);
         });
         ScopedVar idVar = readProperties(nested, lastCase);
-        utils.references.resolveSetup(config, prototype, type).ifPresent(setup -> {
+        ctx.references.resolveSetup(config, prototype, type).ifPresent(setup -> {
             addStatement(setup.bindItem(idVar, objectVar));
         });
         addStatement(lhs.assign("$C", objectVar));
     }
 
     private ScopedVar readProperties(List<SELF> properties, boolean lastCase) {
-        Optional<Setup> referencesSetup = utils.references.resolveSetup(config, prototype, type);
+        Optional<Setup> referencesSetup = ctx.references.resolveSetup(config, prototype, type);
         ScopedVar idVar = referencesSetup
                 .map(setup -> {
                     ScopedVar variable = createVariable("id");
-                    TypeMirror idType = setup.finalIdType(type, utils);
+                    TypeMirror idType = setup.finalIdType(type, ctx);
                     addStatement("$T $C = null", idType, variable);
                     return variable;
                 })

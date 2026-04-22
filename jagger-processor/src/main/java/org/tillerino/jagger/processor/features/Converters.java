@@ -17,7 +17,7 @@ import org.tillerino.jagger.processor.config.ConfigProperty.LocationKind;
 import org.tillerino.jagger.processor.features.Generics.TypeVar;
 import org.tillerino.jagger.processor.util.InstantiatedMethod;
 
-public record Converters(AnnotationProcessorUtils utils) {
+public record Converters(JaggerContext ctx) {
     public Optional<InstantiatedMethod> findInputConverter(
             JaggerBlueprint blueprint, TypeMirror targetType, AnyConfig config) {
         Map<TypeVar, TypeMirror> typeBindings = new LinkedHashMap<>();
@@ -25,9 +25,9 @@ public record Converters(AnnotationProcessorUtils utils) {
                 .flatMap(method -> {
                     typeBindings.clear();
                     if (isInputConverter(method.element())
-                            && utils.generics.tybeBindingsSatisfyingEquality(
+                            && ctx.generics.tybeBindingsSatisfyingEquality(
                                     targetType, method.returnType(), typeBindings)) {
-                        return Stream.of(utils.generics.applyTypeBindings(method, typeBindings));
+                        return Stream.of(ctx.generics.applyTypeBindings(method, typeBindings));
                     }
                     return Stream.empty();
                 })
@@ -41,16 +41,16 @@ public record Converters(AnnotationProcessorUtils utils) {
                 .flatMap(method -> {
                     typeBindings.clear();
                     if (isOutputConverter(method.element())
-                            && utils.generics.tybeBindingsSatisfyingEquality(
+                            && ctx.generics.tybeBindingsSatisfyingEquality(
                                     toConvert.type(), method.parameters().get(0).type(), typeBindings)) {
-                        InstantiatedMethod instantiatedMethod = utils.generics.applyTypeBindings(method, typeBindings);
+                        InstantiatedMethod instantiatedMethod = ctx.generics.applyTypeBindings(method, typeBindings);
                         return Stream.of(TypedSnippet.of(
                                 instantiatedMethod.returnType(),
                                 "$C($C$C)",
-                                method.callSymbol(utils),
+                                method.callSymbol(ctx),
                                 toConvert,
                                 Snippet.joinPrependingCommaToEach(
-                                        utils.delegation.findArguments(prototype, method, 1, generatedClass))));
+                                        ctx.delegation.findArguments(prototype, method, 1, generatedClass))));
                     }
                     return Stream.empty();
                 })
@@ -59,7 +59,7 @@ public record Converters(AnnotationProcessorUtils utils) {
 
     public boolean isInputConverter(ExecutableElement methodElement) {
         return methodElement.getModifiers().contains(Modifier.STATIC)
-                && utils.annotations
+                && ctx.annotations
                         .findAnnotation(methodElement, "org.tillerino.jagger.annotations.JsonInputConverter")
                         .isPresent()
                 && !methodElement.getParameters().isEmpty();
@@ -67,7 +67,7 @@ public record Converters(AnnotationProcessorUtils utils) {
 
     public boolean isOutputConverter(ExecutableElement methodElement) {
         return methodElement.getModifiers().contains(Modifier.STATIC)
-                && utils.annotations
+                && ctx.annotations
                         .findAnnotation(methodElement, "org.tillerino.jagger.annotations.JsonOutputConverter")
                         .isPresent()
                 && !methodElement.getParameters().isEmpty();
@@ -83,9 +83,9 @@ public record Converters(AnnotationProcessorUtils utils) {
         if (!(toConvert.type() instanceof DeclaredType dt)) {
             return Optional.empty();
         }
-        Map<TypeVar, TypeMirror> typeBindings = utils.generics.recordTypeBindings(dt);
+        Map<TypeVar, TypeMirror> typeBindings = ctx.generics.recordTypeBindings(dt);
         for (ExecutableElement method : ElementFilter.methodsIn(dt.asElement().getEnclosedElements())) {
-            if (utils.annotations
+            if (ctx.annotations
                             .findAnnotation(method, "com.fasterxml.jackson.annotation.JsonValue")
                             .isEmpty()
                     || !method.getParameters().isEmpty()
@@ -93,7 +93,7 @@ public record Converters(AnnotationProcessorUtils utils) {
                 continue;
             }
             InstantiatedMethod instantiatedMethod =
-                    utils.generics.instantiateMethod(method, typeBindings, LocationKind.BLUEPRINT);
+                    ctx.generics.instantiateMethod(method, typeBindings, LocationKind.BLUEPRINT);
             return Optional.of(TypedSnippet.of(
                     instantiatedMethod.returnType(), Snippet.of("$C.$L()", toConvert, instantiatedMethod.name())));
         }

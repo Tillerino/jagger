@@ -7,35 +7,24 @@ import java.util.stream.Stream;
 import javax.lang.model.type.DeclaredType;
 import javax.lang.model.type.TypeMirror;
 import org.apache.commons.lang3.exception.ContextedRuntimeException;
-import org.tillerino.jagger.processor.AnnotationProcessorUtils;
+import org.tillerino.jagger.processor.JaggerContext;
 import org.tillerino.jagger.processor.JaggerPrototype;
 import org.tillerino.jagger.processor.Snippet;
 import org.tillerino.jagger.processor.config.AnyConfig;
 import org.tillerino.jagger.processor.config.AnyConfig.ResolvedProperty;
 import org.tillerino.jagger.processor.config.ConfigProperty;
-import org.tillerino.jagger.processor.config.ConfigProperty.AnnotationConfigPropertyRetriever;
 import org.tillerino.jagger.processor.config.ConfigProperty.InstantiatedProperty;
 import org.tillerino.jagger.processor.config.ConfigProperty.LocationKind;
 import org.tillerino.jagger.processor.config.ConfigProperty.PropagationKind;
 import org.tillerino.jagger.processor.features.Generics.TypeVar;
 import org.tillerino.jagger.processor.util.Accessor.ReadAccessor;
-import org.tillerino.jagger.processor.util.Annotations.AnnotationValueWrapper;
 import org.tillerino.jagger.processor.util.Exceptions;
 import org.tillerino.jagger.processor.util.InstantiatedMethod.InstantiatedVariable;
 
-public record References(AnnotationProcessorUtils utils) {
+public record References(JaggerContext ctx) {
     public static ConfigProperty<Config> REFERENCES = ConfigProperty.createConfigProperty(
+            "REFERENCES",
             List.of(LocationKind.DTO),
-            List.of(new AnnotationConfigPropertyRetriever<>(
-                    "com.fasterxml.jackson.annotation.JsonIdentityInfo",
-                    ((annotation, utils) -> Optional.of(new Config(
-                            annotation.method("property", false).map(AnnotationValueWrapper::asString),
-                            annotation
-                                    .method("generator", false)
-                                    .map(AnnotationValueWrapper::asTypeMirror)
-                                    .orElseThrow(Exceptions::unexpected),
-                            annotation.method("resolver", false).map(AnnotationValueWrapper::asTypeMirror),
-                            annotation.method("scope", false).map(AnnotationValueWrapper::asTypeMirror)))))),
             null,
             (strong, weak) -> new InstantiatedProperty<>(
                     strong.property(),
@@ -57,8 +46,8 @@ public record References(AnnotationProcessorUtils utils) {
         if (!(config.generator instanceof DeclaredType dt)) {
             throw Exceptions.unexpected();
         }
-        Map<TypeVar, TypeMirror> generatorTypeBindings = utils.generics.recordTypeBindingsFor(
-                dt, utils.elements.getTypeElement("com.fasterxml.jackson.annotation.ObjectIdGenerator"));
+        Map<TypeVar, TypeMirror> generatorTypeBindings = ctx.generics.recordTypeBindingsFor(
+                dt, ctx.elements.getTypeElement("com.fasterxml.jackson.annotation.ObjectIdGenerator"));
         if (generatorTypeBindings == null || generatorTypeBindings.isEmpty()) {
             throw Exceptions.unexpected();
         }
@@ -73,15 +62,15 @@ public record References(AnnotationProcessorUtils utils) {
                 config.property.orElse("@id"),
                 config.generator,
                 idType,
-                config.resolver.orElseGet(() -> utils.elements
+                config.resolver.orElseGet(() -> ctx.elements
                         .getTypeElement("com.fasterxml.jackson.annotation.SimpleObjectIdResolver")
                         .asType()),
                 config.resolver.orElseGet(
-                        () -> utils.elements.getTypeElement("java.lang.Object").asType()),
+                        () -> ctx.elements.getTypeElement("java.lang.Object").asType()),
                 context));
     }
 
-    record Config(
+    public record Config(
             Optional<String> property,
             TypeMirror generator,
             Optional<TypeMirror> resolver,
@@ -137,16 +126,16 @@ public record References(AnnotationProcessorUtils utils) {
             return generator.toString().equals("com.fasterxml.jackson.annotation.ObjectIdGenerators.PropertyGenerator");
         }
 
-        public TypeMirror finalIdType(TypeMirror type, AnnotationProcessorUtils utils) {
+        public TypeMirror finalIdType(TypeMirror type, JaggerContext ctx) {
             if (!isPropertyBased()) {
                 return idType;
             }
-            return utils.properties.listReadAccessors(type).entrySet().stream()
+            return ctx.properties.listReadAccessors(type).entrySet().stream()
                     .flatMap(entry -> {
                         String canonicalName = entry.getKey();
                         ReadAccessor accessor = entry.getValue();
                         AnyConfig propertyConfig = AnyConfig.fromAccessorConsideringField(
-                                accessor, accessor.name(), type, canonicalName, utils);
+                                accessor, accessor.name(), type, canonicalName, ctx);
                         String externalName = PropertyName.resolvePropertyName(propertyConfig, canonicalName);
                         if (!externalName.equals(property())) {
                             return Stream.empty();

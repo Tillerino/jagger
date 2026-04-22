@@ -1,20 +1,20 @@
-package org.tillerino.jagger.processor.apis;
+package org.tillerino.jagger.processor.databind;
 
 import com.squareup.javapoet.CodeBlock;
 import java.util.*;
 import javax.lang.model.element.TypeElement;
 import javax.lang.model.type.*;
 import org.apache.commons.lang3.exception.ContextedRuntimeException;
-import org.tillerino.jagger.processor.AnnotationProcessorUtils;
 import org.tillerino.jagger.processor.GeneratedClass;
+import org.tillerino.jagger.processor.JaggerContext;
 import org.tillerino.jagger.processor.JaggerPrototype;
 import org.tillerino.jagger.processor.Snippet;
 import org.tillerino.jagger.processor.Snippet.TypedSnippet;
-import org.tillerino.jagger.processor.apis.AbstractReaderGenerator.Branch;
-import org.tillerino.jagger.processor.apis.AbstractWriterGenerator.RHS.AnySnippet;
-import org.tillerino.jagger.processor.apis.AbstractWriterGenerator.RHS.Variable;
 import org.tillerino.jagger.processor.config.AnyConfig;
 import org.tillerino.jagger.processor.config.ConfigProperty.PropagationKind;
+import org.tillerino.jagger.processor.databind.AbstractReaderGenerator.Branch;
+import org.tillerino.jagger.processor.databind.AbstractWriterGenerator.RHS.AnySnippet;
+import org.tillerino.jagger.processor.databind.AbstractWriterGenerator.RHS.Variable;
 import org.tillerino.jagger.processor.features.Delegation.Delegatee;
 import org.tillerino.jagger.processor.features.IgnoreProperties;
 import org.tillerino.jagger.processor.features.IgnoreProperty;
@@ -44,10 +44,9 @@ public abstract class AbstractWriterGenerator<SELF extends AbstractWriterGenerat
         this.rhs = rhs;
     }
 
-    protected AbstractWriterGenerator(
-            AnnotationProcessorUtils utils, JaggerPrototype prototype, GeneratedClass generatedClass) {
+    protected AbstractWriterGenerator(JaggerContext ctx, JaggerPrototype prototype, GeneratedClass generatedClass) {
         super(
-                utils,
+                ctx,
                 generatedClass,
                 prototype,
                 prototype.instantiatedParameters().get(0).type());
@@ -57,7 +56,7 @@ public abstract class AbstractWriterGenerator<SELF extends AbstractWriterGenerat
     }
 
     public CodeBlock.Builder build() {
-        Optional<Delegatee> delegate = utils.delegation
+        Optional<Delegatee> delegate = ctx.delegation
                 // delegate to any of the used blueprints
                 .findDelegatee(type, prototype, !(lhs instanceof LHS.Return), stackDepth() > 1, config, generatedClass);
         if (delegate.isPresent()) {
@@ -70,18 +69,12 @@ public abstract class AbstractWriterGenerator<SELF extends AbstractWriterGenerat
             PrimitiveType pt = (PrimitiveType) type;
             if (List.of(TypeKind.FLOAT, TypeKind.DOUBLE).contains(pt.getKind())
                     && features().onlySupportsFiniteNumbers()) {
-                TypeMirror boxedType = utils.types.boxedClass(pt).asType();
+                TypeMirror boxedType = ctx.types.boxedClass(pt).asType();
                 beginControlFlow("if ($T.isFinite($C))", boxedType, rhs);
                 writePrimitive(type);
                 nextControlFlow("else");
                 RHS asString = new RHS.AnySnippet(Snippet.of("$T.toString($C)", boxedType, rhs), false);
-                nest(
-                                utils.commonTypes.string,
-                                lhs,
-                                null,
-                                asString,
-                                false,
-                                config.propagateTo(PropagationKind.SUBSTITUTE))
+                nest(ctx.commonTypes.string, lhs, null, asString, false, config.propagateTo(PropagationKind.SUBSTITUTE))
                         .build();
                 endControlFlow();
             } else {
@@ -124,11 +117,11 @@ public abstract class AbstractWriterGenerator<SELF extends AbstractWriterGenerat
      * specializations for some types that require a dedicated null check.
      */
     protected void writeNullCheckedObject() {
-        Optional<Setup> referenceSetup = utils.references.resolveSetup(config, prototype, type);
+        Optional<Setup> referenceSetup = ctx.references.resolveSetup(config, prototype, type);
         if (referenceSetup.isPresent()) {
             Setup setup = referenceSetup.get();
             Variable idVar = new Variable(createVariable("id").name(), false);
-            TypeMirror idType = setup.finalIdType(type, utils);
+            TypeMirror idType = setup.finalIdType(type, ctx);
             addStatement("$T $C = $C", idType, idVar, setup.previouslyWritten(rhs));
             beginControlFlow("if ($C != null)", idVar);
             nest(idType, lhs, new Property("id", "id", null), idVar, true, config.propagateTo(PropagationKind.PROPERTY))
@@ -136,9 +129,9 @@ public abstract class AbstractWriterGenerator<SELF extends AbstractWriterGenerat
             nextControlFlow("else");
         }
 
-        Optional<TypedSnippet> converter = utils.converters
+        Optional<TypedSnippet> converter = ctx.converters
                 .findOutputConverter(TypedSnippet.of(type, rhs), prototype, config, generatedClass)
-                .or(() -> utils.converters.findJsonValueMethod(TypedSnippet.of(type, rhs)));
+                .or(() -> ctx.converters.findJsonValueMethod(TypedSnippet.of(type, rhs)));
         if (converter.isPresent()) {
             TypedSnippet converted = converter.get();
             RHS.Variable newValue = new RHS.Variable(createVariable("converted").name(), true);
@@ -148,18 +141,18 @@ public abstract class AbstractWriterGenerator<SELF extends AbstractWriterGenerat
             return;
         }
 
-        if (utils.isBoxed(type)) {
-            nest(utils.types.unboxedType(type), lhs, null, rhs, false, config.propagateTo(PropagationKind.SUBSTITUTE))
+        if (ctx.isBoxed(type)) {
+            nest(ctx.types.unboxedType(type), lhs, null, rhs, false, config.propagateTo(PropagationKind.SUBSTITUTE))
                     .build();
-        } else if (utils.commonTypes.isString(type) || utils.commonTypes.isArrayOf(type, TypeKind.CHAR)) {
-            writeString(utils.commonTypes.isString(type) ? StringKind.STRING : StringKind.CHAR_ARRAY);
-        } else if (utils.commonTypes.isEnum(type)) {
+        } else if (ctx.commonTypes.isString(type) || ctx.commonTypes.isArrayOf(type, TypeKind.CHAR)) {
+            writeString(ctx.commonTypes.isString(type) ? StringKind.STRING : StringKind.CHAR_ARRAY);
+        } else if (ctx.commonTypes.isEnum(type)) {
             writeEnum();
-        } else if (utils.commonTypes.isArrayOf(type, TypeKind.BYTE)) {
+        } else if (ctx.commonTypes.isArrayOf(type, TypeKind.BYTE)) {
             writeBinary(BinaryKind.BYTE_ARRAY);
-        } else if (utils.commonTypes.isIterableOrArray(type)) {
+        } else if (ctx.commonTypes.isIterableOrArray(type)) {
             writeIterable();
-        } else if (utils.commonTypes.isErasureAssignableTo(type, Map.class)) {
+        } else if (ctx.commonTypes.isErasureAssignableTo(type, Map.class)) {
             writeMap();
         } else if (type.getKind() == TypeKind.TYPEVAR) {
             throw new ContextedRuntimeException("Missing serializer for type variable " + type);
@@ -172,8 +165,8 @@ public abstract class AbstractWriterGenerator<SELF extends AbstractWriterGenerat
     protected void writeIterable() {
         TypeMirror componentType = type.getKind() == TypeKind.ARRAY
                 ? ((ArrayType) type).getComponentType()
-                : utils.generics
-                        .recordTypeBindingsFor((DeclaredType) type, utils.commonTypes.elem(Iterable.class))
+                : ctx.generics
+                        .recordTypeBindingsFor((DeclaredType) type, ctx.commonTypes.elem(Iterable.class))
                         .values()
                         .iterator()
                         .next();
@@ -214,8 +207,8 @@ public abstract class AbstractWriterGenerator<SELF extends AbstractWriterGenerat
     }
 
     private void writeMap() {
-        TypeMirror[] typeBindings = utils.generics
-                .recordTypeBindingsFor((DeclaredType) type, utils.commonTypes.elem(Map.class))
+        TypeMirror[] typeBindings = ctx.generics
+                .recordTypeBindingsFor((DeclaredType) type, ctx.commonTypes.elem(Map.class))
                 .values()
                 .toArray(TypeMirror[]::new);
         TypeMirror keyType = typeBindings[0];
@@ -240,7 +233,7 @@ public abstract class AbstractWriterGenerator<SELF extends AbstractWriterGenerat
             throw new ContextedRuntimeException("I don't know what to do with this type: " + type);
         }
         TypeElement typeElement = (TypeElement) dt.asElement();
-        Polymorphism.of(typeElement, utils).ifPresentOrElse(this::writePolymorphicObject, () -> {
+        Polymorphism.of(typeElement, ctx).ifPresentOrElse(this::writePolymorphicObject, () -> {
             startObject();
             code.add("\n");
             writeObjectPropertiesAsFields();
@@ -260,7 +253,7 @@ public abstract class AbstractWriterGenerator<SELF extends AbstractWriterGenerat
             AnyConfig childConfig = config.propagateTo(
                     PropagationKind.SUBSTITUTE /* this is fine with the configuration options that we
                  currently have */);
-            utils.delegation
+            ctx.delegation
                     .findDelegatee(child.type(), prototype, false, true, config, generatedClass)
                     .ifPresentOrElse(
                             delegatee -> {
@@ -268,7 +261,7 @@ public abstract class AbstractWriterGenerator<SELF extends AbstractWriterGenerat
                                         .contextParameter()
                                         .orElseThrow(() -> new ContextedRuntimeException(
                                                 "Prototype method must have a context parameter"));
-                                if (!delegatee.method().hasParameterAssignableFrom(callerContext.type(), utils)) {
+                                if (!delegatee.method().hasParameterAssignableFrom(callerContext.type(), ctx)) {
                                     throw new ContextedRuntimeException(
                                             "Delegate method must have a context parameter");
                                 }
@@ -287,7 +280,7 @@ public abstract class AbstractWriterGenerator<SELF extends AbstractWriterGenerat
                                 startObject();
                                 code.add("\n");
                                 nest(
-                                                utils.commonTypes.string,
+                                                ctx.commonTypes.string,
                                                 new LHS.Field("$S", new Object[] {polymorphism.discriminator()}),
                                                 new Property("discriminator", polymorphism.discriminator(), null),
                                                 new RHS.StringLiteral(child.name()),
@@ -315,7 +308,7 @@ public abstract class AbstractWriterGenerator<SELF extends AbstractWriterGenerat
             InstantiatedVariable context = prototype.contextParameter().orElseThrow();
             beginControlFlow("if ($C.isDiscriminatorPending())", context);
             nest(
-                            utils.commonTypes.string,
+                            ctx.commonTypes.string,
                             new LHS.Field("$L.pendingDiscriminatorProperty", new Object[] {context.name()}),
                             Property.DISCRIMINATOR,
                             new RHS.Accessor(Snippet.of("$L.pendingDiscriminatorValue", context.name()), false),
@@ -326,7 +319,7 @@ public abstract class AbstractWriterGenerator<SELF extends AbstractWriterGenerat
             endControlFlow();
         }
 
-        Optional<Setup> referencesSetup = utils.references.resolveSetup(config, prototype, type);
+        Optional<Setup> referencesSetup = ctx.references.resolveSetup(config, prototype, type);
         referencesSetup.ifPresent(setup -> setup.generateId(rhs).ifPresent(id -> nest(
                         setup.idType(),
                         new LHS.Field("$S", new Object[] {setup.property()}),
@@ -340,7 +333,7 @@ public abstract class AbstractWriterGenerator<SELF extends AbstractWriterGenerat
         Set<String> ignoredProperties =
                 config.resolveProperty(IgnoreProperties.IGNORED_PROPERTIES).value();
 
-        utils.properties.outputProperties(type, this.config).forEach(property -> {
+        ctx.properties.outputProperties(type, this.config).forEach(property -> {
             if (IgnoreProperty.isIgnoredForJson(property.config())
                     || ignoredProperties.contains(property.externalName())) {
                 return;
@@ -366,8 +359,8 @@ public abstract class AbstractWriterGenerator<SELF extends AbstractWriterGenerat
     private void writeEnum() {
         RHS.Variable enumValue =
                 new RHS.Variable(createVariable(propertyName() + "String").name(), false);
-        addStatement("$T $L = $C.name()", utils.commonTypes.string, enumValue.name(), rhs);
-        nest(utils.commonTypes.string, lhs, null, enumValue, false, config.propagateTo(PropagationKind.SUBSTITUTE))
+        addStatement("$T $L = $C.name()", ctx.commonTypes.string, enumValue.name(), rhs);
+        nest(ctx.commonTypes.string, lhs, null, enumValue, false, config.propagateTo(PropagationKind.SUBSTITUTE))
                 .build();
     }
 

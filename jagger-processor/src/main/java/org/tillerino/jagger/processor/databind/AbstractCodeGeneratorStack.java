@@ -1,4 +1,4 @@
-package org.tillerino.jagger.processor.apis;
+package org.tillerino.jagger.processor.databind;
 
 import jakarta.annotation.Nonnull;
 import jakarta.annotation.Nullable;
@@ -6,8 +6,9 @@ import java.util.Objects;
 import javax.lang.model.type.DeclaredType;
 import javax.lang.model.type.TypeMirror;
 import org.apache.commons.lang3.exception.ContextedRuntimeException;
-import org.tillerino.jagger.processor.AnnotationProcessorUtils;
+import org.tillerino.jagger.processor.AbstractCodeGenerator;
 import org.tillerino.jagger.processor.GeneratedClass;
+import org.tillerino.jagger.processor.JaggerContext;
 import org.tillerino.jagger.processor.JaggerPrototype;
 import org.tillerino.jagger.processor.config.AnyConfig;
 import org.tillerino.jagger.processor.config.ConfigProperty;
@@ -15,7 +16,7 @@ import org.tillerino.jagger.processor.features.Polymorphism;
 
 public abstract class AbstractCodeGeneratorStack<SELF extends AbstractCodeGeneratorStack<SELF>>
         extends AbstractCodeGenerator<SELF> {
-    protected final AnnotationProcessorUtils utils;
+    protected final JaggerContext ctx;
     protected final GeneratedClass generatedClass;
     protected final JaggerPrototype prototype;
     protected final TypeMirror type;
@@ -34,9 +35,9 @@ public abstract class AbstractCodeGeneratorStack<SELF extends AbstractCodeGenera
 
     // for creating the root generator
     protected AbstractCodeGeneratorStack(
-            AnnotationProcessorUtils utils, GeneratedClass generatedClass, JaggerPrototype prototype, TypeMirror type) {
+            JaggerContext ctx, GeneratedClass generatedClass, JaggerPrototype prototype, TypeMirror type) {
         super(prototype.asInstantiatedMethod()); // add method parameters to variables scope
-        this.utils = utils;
+        this.ctx = ctx;
         this.generatedClass = Objects.requireNonNull(generatedClass);
         this.prototype = prototype;
         this.type = type;
@@ -45,9 +46,9 @@ public abstract class AbstractCodeGeneratorStack<SELF extends AbstractCodeGenera
         this.stackRelevantType = true;
         this.property = null;
         this.canBePolyChild =
-                prototype.contextParameter().isPresent() && stackDepth() == 1 && Polymorphism.isSomeChild(type, utils);
+                prototype.contextParameter().isPresent() && stackDepth() == 1 && Polymorphism.isSomeChild(type, ctx);
         this.config = type instanceof DeclaredType dt && dt.asElement() != null
-                ? AnyConfig.create(dt.asElement(), ConfigProperty.LocationKind.DTO, utils)
+                ? AnyConfig.create(dt.asElement(), ConfigProperty.LocationKind.DTO, ctx)
                         .merge(prototype.config())
                 : prototype.config();
     }
@@ -60,7 +61,7 @@ public abstract class AbstractCodeGeneratorStack<SELF extends AbstractCodeGenera
             @Nullable Property property,
             AnyConfig config) {
         super(parent);
-        this.utils = parent.utils;
+        this.ctx = parent.ctx;
         this.generatedClass = Objects.requireNonNull(parent.generatedClass);
         this.prototype = parent.prototype;
         this.type = type;
@@ -69,7 +70,7 @@ public abstract class AbstractCodeGeneratorStack<SELF extends AbstractCodeGenera
         this.stackRelevantType = stackRelevantType;
         this.property = property;
         this.canBePolyChild =
-                prototype.contextParameter().isPresent() && stackDepth() == 1 && Polymorphism.isSomeChild(type, utils);
+                prototype.contextParameter().isPresent() && stackDepth() == 1 && Polymorphism.isSomeChild(type, ctx);
         this.config = config;
     }
 
@@ -82,7 +83,7 @@ public abstract class AbstractCodeGeneratorStack<SELF extends AbstractCodeGenera
     }
 
     boolean stackContainsType(TypeMirror type) {
-        if ((stackRelevantType || parent == null) && utils.types.isSameType(this.type, type)) {
+        if ((stackRelevantType || parent == null) && ctx.types.isSameType(this.type, type)) {
             return true;
         }
         if (parent != null) {

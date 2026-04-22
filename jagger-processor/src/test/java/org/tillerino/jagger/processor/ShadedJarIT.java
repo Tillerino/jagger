@@ -48,6 +48,7 @@ class ShadedJarIT {
                             || e.startsWith("META-INF/maven/")
                             || e.equals("META-INF/services/")
                             || e.equals("META-INF/services/javax.annotation.processing.Processor")
+                            || e.equals("META-INF/services/org.tillerino.jagger.processor.JaggerPlugin")
                             || e.startsWith("META-INF/versions/"));
         }
 

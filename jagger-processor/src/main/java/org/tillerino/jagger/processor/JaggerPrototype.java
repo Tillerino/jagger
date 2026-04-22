@@ -26,7 +26,7 @@ public record JaggerPrototype(
         String name,
         ExecutableElement methodElement,
         PrototypeKind kind,
-        AnnotationProcessorUtils utils,
+        JaggerContext ctx,
         TypeMirror instantiatedReturnType,
         List<InstantiatedVariable> instantiatedParameters,
         AnyConfig config,
@@ -37,10 +37,10 @@ public record JaggerPrototype(
             JaggerBlueprint blueprint,
             InstantiatedMethod instantiated,
             PrototypeKind kind,
-            AnnotationProcessorUtils utils,
+            JaggerContext ctx,
             boolean overrides,
             Trigger trigger) {
-        AnyConfig config = AnyConfig.create(instantiated.element(), ConfigProperty.LocationKind.PROTOTYPE, utils)
+        AnyConfig config = AnyConfig.create(instantiated.element(), ConfigProperty.LocationKind.PROTOTYPE, ctx)
                 .merge(blueprint.config);
 
         return new JaggerPrototype(
@@ -48,7 +48,7 @@ public record JaggerPrototype(
                 instantiated.name(),
                 instantiated.element(),
                 kind,
-                utils,
+                ctx,
                 instantiated.returnType(),
                 instantiated.parameters(),
                 config,
@@ -59,7 +59,7 @@ public record JaggerPrototype(
     /** Checks if reads/writes the given type and matches the signature of a reference method. */
     public InstantiatedMethod matches(JaggerPrototype caller, TypeMirror callerType, boolean allowExact) {
         if (kind.direction() != caller.kind().direction()
-                || !utils.types.isSameType(kind().jsonType(), caller.kind().jsonType())) {
+                || !ctx.types.isSameType(kind().externalType(), caller.kind().externalType())) {
             return null;
         }
 
@@ -70,11 +70,11 @@ public record JaggerPrototype(
                 .collect(Collectors.toCollection(LinkedHashSet::new));
         LinkedHashMap<TypeVar, TypeMirror> typeBindings = new LinkedHashMap<>();
 
-        if (isSameTypeWithBindings(kind().javaType(), callerType, localTypeVars, typeBindings)) {
+        if (isSameTypeWithBindings(kind().internalType(), callerType, localTypeVars, typeBindings)) {
             if (!allowExact && typeBindings.isEmpty()) {
                 return null;
             }
-            return utils.generics.applyTypeBindings(this.asInstantiatedMethod(), typeBindings);
+            return ctx.generics.applyTypeBindings(this.asInstantiatedMethod(), typeBindings);
         }
         return null;
     }
@@ -129,14 +129,9 @@ public record JaggerPrototype(
 
     public Optional<InstantiatedVariable> contextParameter() {
         for (InstantiatedVariable parameter : instantiatedParameters()) {
-            Optional<TypeMirror> targetContextType =
-                    switch (kind.direction()) {
-                        case INPUT -> Optional.of(utils.commonTypes.deserializationContext);
-                        case OUTPUT -> Optional.of(utils.commonTypes.serializationContext);
-                        case JDBC_INSERT, JDBC_SELECT, JDBC_UPDATE -> Optional.empty();
-                    };
+            Optional<TypeMirror> targetContextType = kind.contextType();
             if (targetContextType.isPresent()
-                    && utils.commonTypes.isAssignable(parameter.type(), targetContextType.get())) {
+                    && ctx.commonTypes.isAssignable(parameter.type(), targetContextType.get())) {
                 return Optional.of(parameter);
             }
         }

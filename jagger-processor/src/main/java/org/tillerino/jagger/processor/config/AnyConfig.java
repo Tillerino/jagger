@@ -2,7 +2,6 @@ package org.tillerino.jagger.processor.config;
 
 import jakarta.annotation.Nullable;
 import java.util.*;
-import java.util.stream.Stream;
 import javax.lang.model.element.Element;
 import javax.lang.model.element.ExecutableElement;
 import javax.lang.model.element.TypeElement;
@@ -10,33 +9,25 @@ import javax.lang.model.type.DeclaredType;
 import javax.lang.model.type.TypeMirror;
 import javax.lang.model.util.ElementFilter;
 import org.apache.commons.lang3.exception.ContextedRuntimeException;
-import org.tillerino.jagger.processor.AnnotationProcessorUtils;
 import org.tillerino.jagger.processor.JaggerBlueprint;
+import org.tillerino.jagger.processor.JaggerContext;
 import org.tillerino.jagger.processor.config.ConfigProperty.InstantiatedProperty;
 import org.tillerino.jagger.processor.config.ConfigProperty.LocationKind;
+import org.tillerino.jagger.processor.config.ConfigProperty.MergeFunction;
 import org.tillerino.jagger.processor.config.ConfigProperty.PropagationKind;
 import org.tillerino.jagger.processor.features.*;
+import org.tillerino.jagger.processor.jdbc.Jdbc;
 import org.tillerino.jagger.processor.util.Accessor;
 import org.tillerino.jagger.processor.util.Accessor.AccessorKind;
 import org.tillerino.jagger.processor.util.Accessor.ElementAccessor;
 
 public final class AnyConfig {
-    static final ConfigProperty[] available = {
-        UnknownProperties.UNKNOWN_PROPERTIES,
-        ConfigProperty.USES,
-        Delegation.DELEGATE_TO,
-        CodeGeneration.IMPLEMENT,
+    public static ConfigProperty<Set<JaggerBlueprint>> USES = ConfigProperty.createConfigProperty(
+            "USES", List.of(LocationKind.values()), Set.of(), MergeFunction.mergeSets(), PropagationKind.all());
+
+    public static final ConfigProperty[] available = {
         PropertyName.PROPERTY_NAME,
         IgnoreProperty.IGNORE_PROPERTY,
-        IgnoreProperties.IGNORED_PROPERTIES,
-        Verification.VERIFY_SYMMETRY,
-        References.REFERENCES,
-        RequiredProperty.REQUIRED_PROPERTY,
-        CodeGeneration.ON_GENERATED_CLASS,
-        CodeGeneration.ON_GENERATED_CONSTRUCTOR,
-        CodeGeneration.ADD_GENERATED_ANNOTATION_TO_CLASS,
-        CodeGeneration.ADD_GENERATED_ANNOTATION_TO_METHODS,
-        IgnoreProperty.TRANSIENT_FIELD,
         Jdbc.ID_PROPERTY,
         Jdbc.FETCH_SIZE,
         Jdbc.TABLE_NAME_ON_DTO,
@@ -47,10 +38,6 @@ public final class AnyConfig {
         Jdbc.GENERATION_TYPE,
         // leave a trailing comma for cleaner diffs :)
     };
-
-    static {
-        Arrays.sort(available, Comparator.comparingInt(p -> p.index));
-    }
 
     static final Comparator<InstantiatedProperty> COMPARATOR = Comparator.<InstantiatedProperty>comparingInt(
                     prop -> prop.property().index)
@@ -69,16 +56,14 @@ public final class AnyConfig {
         this.properties = List.copyOf(properties); // copy so order cannot be changed externally
     }
 
-    public static AnyConfig create(Element element, LocationKind elementType, AnnotationProcessorUtils utils) {
+    public static AnyConfig create(Element element, LocationKind elementType, JaggerContext ctx) {
         // TODO resolve config
-        List<InstantiatedProperty> list = Stream.of(available)
-                .flatMap(prop -> prop.instantiate(element, elementType, utils).stream())
-                .toList();
+        List<InstantiatedProperty> list = ctx.configProperties.instantiate(element, elementType);
 
         if (element instanceof TypeElement) {
             AnyConfig superConfig = null;
-            for (DeclaredType directSupertype : Polymorphism.directSupertypes(element.asType(), utils)) {
-                AnyConfig thisSuperConfig = create(directSupertype.asElement(), elementType, utils);
+            for (DeclaredType directSupertype : Polymorphism.directSupertypes(element.asType(), ctx)) {
+                AnyConfig thisSuperConfig = create(directSupertype.asElement(), elementType, ctx);
                 superConfig = superConfig != null ? thisSuperConfig.merge(superConfig) : thisSuperConfig;
             }
             if (superConfig != null) {
@@ -115,24 +100,24 @@ public final class AnyConfig {
             String accessorName,
             TypeMirror dtoType,
             String canonicalPropertyName,
-            AnnotationProcessorUtils utils) {
+            JaggerContext ctx) {
 
         // nullable during recursion. if element is null, this means the accessor does not exist in this type, but maybe
         // parent types.
-        AnyConfig accessorConfig = fromAccessorAndField(property, dtoType, canonicalPropertyName, utils);
+        AnyConfig accessorConfig = fromAccessorAndField(property, dtoType, canonicalPropertyName, ctx);
 
         if (property.kind() != AccessorKind.GETTER && property.kind() != AccessorKind.SETTER) {
             return accessorConfig;
         }
 
-        for (DeclaredType d : Polymorphism.directSupertypes(dtoType, utils)) {
+        for (DeclaredType d : Polymorphism.directSupertypes(dtoType, ctx)) {
             TypeElement superTypeElement = (TypeElement) d.asElement();
             Optional<ExecutableElement> superMethod =
                     getFirstWithName(ElementFilter.methodsIn(superTypeElement.getEnclosedElements()), accessorName);
             ElementAccessor parentAccessor =
                     new ElementAccessor(property.type(), superMethod.orElse(null), property.kind());
             AnyConfig superConfig =
-                    fromAccessorConsideringField(parentAccessor, accessorName, d, canonicalPropertyName, utils);
+                    fromAccessorConsideringField(parentAccessor, accessorName, d, canonicalPropertyName, ctx);
             if (superConfig != null) {
                 accessorConfig = accessorConfig != null ? accessorConfig.merge(superConfig) : superConfig;
             }
@@ -142,8 +127,8 @@ public final class AnyConfig {
     }
 
     private static AnyConfig fromAccessorAndField(
-            Accessor property, TypeMirror dtoType, String canonicalPropertyName, AnnotationProcessorUtils utils) {
-        AnyConfig config = property.element() != null ? create(property.element(), LocationKind.PROPERTY, utils) : null;
+            Accessor property, TypeMirror dtoType, String canonicalPropertyName, JaggerContext ctx) {
+        AnyConfig config = property.element() != null ? create(property.element(), LocationKind.PROPERTY, ctx) : null;
         if (property.kind() == AccessorKind.FIELD) {
             return config;
         }
@@ -153,7 +138,7 @@ public final class AnyConfig {
 
         AnyConfig fieldConfig = getFirstWithName(
                         ElementFilter.fieldsIn(d.asElement().getEnclosedElements()), canonicalPropertyName)
-                .map(f -> create(f, LocationKind.PROPERTY, utils))
+                .map(f -> create(f, LocationKind.PROPERTY, ctx))
                 .orElse(null);
         if (fieldConfig != null) {
             config = config != null ? fieldConfig.merge(config) : fieldConfig;
@@ -161,7 +146,7 @@ public final class AnyConfig {
 
         AnyConfig recordComponentConfig = getFirstWithName(
                         ElementFilter.recordComponentsIn(d.asElement().getEnclosedElements()), canonicalPropertyName)
-                .map(f -> create(f, LocationKind.PROPERTY, utils))
+                .map(f -> create(f, LocationKind.PROPERTY, ctx))
                 .orElse(null);
         if (recordComponentConfig != null) {
             config = config != null ? recordComponentConfig.merge(config) : recordComponentConfig;
@@ -181,7 +166,7 @@ public final class AnyConfig {
      * the latest gets prio.
      */
     public List<JaggerBlueprint> reversedUses() {
-        Set<JaggerBlueprint> uses = resolveProperty(ConfigProperty.USES).value();
+        Set<JaggerBlueprint> uses = resolveProperty(USES).value();
         List<JaggerBlueprint> reversedUses = new ArrayList<>(uses);
         Collections.reverse(reversedUses);
         return reversedUses;

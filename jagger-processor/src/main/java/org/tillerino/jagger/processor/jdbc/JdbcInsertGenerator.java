@@ -1,34 +1,33 @@
-package org.tillerino.jagger.processor.apis;
+package org.tillerino.jagger.processor.jdbc;
 
 import com.squareup.javapoet.CodeBlock;
 import javax.lang.model.type.TypeMirror;
-import org.tillerino.jagger.processor.AnnotationProcessorUtils;
+import org.tillerino.jagger.processor.JaggerContext;
 import org.tillerino.jagger.processor.JaggerPrototype;
 import org.tillerino.jagger.processor.Snippet;
 import org.tillerino.jagger.processor.Snippet.PerfectSnippet;
 import org.tillerino.jagger.processor.config.AnyConfig;
 import org.tillerino.jagger.processor.config.ConfigProperty.LocationKind;
-import org.tillerino.jagger.processor.features.Jdbc;
 import org.tillerino.jagger.processor.util.InstantiatedMethod.InstantiatedVariable;
 
 public class JdbcInsertGenerator extends AbstractJdbcGenerator<JdbcInsertGenerator> {
 
-    public JdbcInsertGenerator(JaggerPrototype prototype, AnnotationProcessorUtils utils) {
-        super(utils, prototype);
+    public JdbcInsertGenerator(JaggerPrototype prototype, JaggerContext ctx) {
+        super(ctx, prototype);
     }
 
     public CodeBlock.Builder build() {
         String sqlTemplate = config.resolveProperty(Jdbc.SQL_QUERY).value();
 
         InstantiatedVariable toInsert = kind.otherParameters().get(0);
-        TypeMirror entityType = kind.javaType();
+        TypeMirror entityType = kind.internalType();
 
-        if (utils.commonTypes.isIterableOrArray(entityType)) {
-            entityType = utils.commonTypes.unwrapContainer(entityType);
+        if (ctx.commonTypes.isIterableOrArray(entityType)) {
+            entityType = ctx.commonTypes.unwrapContainer(entityType);
         }
 
         if (sqlTemplate.isEmpty()) {
-            AnyConfig dtoConfig = AnyConfig.create(utils.commonTypes.asElement(entityType), LocationKind.DTO, utils);
+            AnyConfig dtoConfig = AnyConfig.create(ctx.commonTypes.asElement(entityType), LocationKind.DTO, ctx);
 
             String quoteChar =
                     dtoConfig.merge(config).resolveProperty(Jdbc.QUOTE_CHAR).value();
@@ -39,13 +38,12 @@ public class JdbcInsertGenerator extends AbstractJdbcGenerator<JdbcInsertGenerat
             code.add("// Generated: $L\n", sqlTemplate);
         }
 
-        Jdbc.ParsedSql parsed = utils.jdbc
-                .parseTemplate(sqlTemplate, prototype.asInstantiatedMethod())
+        Jdbc.ParsedSql parsed = jdbc.parseTemplate(sqlTemplate, prototype.asInstantiatedMethod())
                 .addCommentIfPreprocessed(code);
 
         tryPrepareStatement(parsed).withBody(psVar -> {
-            if (utils.commonTypes.isIterableOrArray(toInsert.type())) {
-                TypeMirror elementType = utils.commonTypes.unwrapContainer(toInsert.type());
+            if (ctx.commonTypes.isIterableOrArray(toInsert.type())) {
+                TypeMirror elementType = ctx.commonTypes.unwrapContainer(toInsert.type());
 
                 ScopedVar loopVar = createVariable("item");
                 Snippet loopItems = Snippet.of("for ($T $C : $L)", elementType, loopVar, toInsert.name());

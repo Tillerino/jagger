@@ -36,21 +36,21 @@ public final class JaggerBlueprint {
         this.typeBindings = typeBindings;
     }
 
-    static JaggerBlueprint of(TypeElement element, AnnotationProcessorUtils utils) {
+    static JaggerBlueprint of(TypeElement element, JaggerContext ctx) {
         Map<TypeVar, TypeMirror> typeBindings = new LinkedHashMap<>();
-        for (DeclaredType dt : Polymorphism.directSupertypes(element.asType(), utils)) {
-            typeBindings.putAll(utils.generics.recordTypeBindings(dt));
+        for (DeclaredType dt : Polymorphism.directSupertypes(element.asType(), ctx)) {
+            typeBindings.putAll(ctx.generics.recordTypeBindings(dt));
         }
 
         List<InstantiatedMethod> declaredMethods = ElementFilter.methodsIn(element.getEnclosedElements()).stream()
-                .map(method -> utils.generics.instantiateMethod(method, typeBindings, LocationKind.PROTOTYPE))
+                .map(method -> ctx.generics.instantiateMethod(method, typeBindings, LocationKind.PROTOTYPE))
                 .toList();
 
         return new JaggerBlueprint(
                 FullyQualifiedClassName.of(element),
                 element,
                 declaredMethods,
-                AnyConfig.create(element, ConfigProperty.LocationKind.BLUEPRINT, utils),
+                AnyConfig.create(element, ConfigProperty.LocationKind.BLUEPRINT, ctx),
                 typeBindings);
     }
 
@@ -59,7 +59,7 @@ public final class JaggerBlueprint {
     }
 
     public Stream<JaggerBlueprint> includeUses() {
-        return Stream.concat(config.resolveProperty(ConfigProperty.USES).value().stream(), Stream.of(this));
+        return Stream.concat(config.resolveProperty(AnyConfig.USES).value().stream(), Stream.of(this));
     }
 
     @Override

@@ -21,15 +21,15 @@ public class GeneratedClass {
     Map<String, EnumValuesField> enumFields = new LinkedHashMap<>();
     public final TypeSpec.Builder typeBuilder;
     public final List<Consumer<JavaFile.Builder>> fileBuilderMods = new ArrayList<>();
-    private final AnnotationProcessorUtils utils;
+    private final JaggerContext ctx;
     public final JaggerBlueprint blueprint;
     public final ForBlueprint verificationForBlueprint;
 
-    public GeneratedClass(TypeSpec.Builder typeBuilder, AnnotationProcessorUtils utils, JaggerBlueprint blueprint) {
+    public GeneratedClass(TypeSpec.Builder typeBuilder, JaggerContext ctx, JaggerBlueprint blueprint) {
         this.typeBuilder = typeBuilder;
-        this.utils = utils;
+        this.ctx = ctx;
         this.blueprint = blueprint;
-        this.verificationForBlueprint = utils.verification.startBlueprint(blueprint);
+        this.verificationForBlueprint = ctx.verification.startBlueprint(blueprint);
     }
 
     /**
@@ -61,7 +61,7 @@ public class GeneratedClass {
 
     private String getOrCreateUsedBlueprintWithTypeField(
             TypeMirror targetType, JaggerBlueprint calleeBlueprint, @Nullable AnyConfig config) {
-        if (utils.commonTypes.isAssignable(calleeBlueprint.typeElement.asType(), targetType)) {
+        if (ctx.commonTypes.isAssignable(calleeBlueprint.typeElement.asType(), targetType)) {
             return getOrCreateDelegateeField(this.blueprint, calleeBlueprint, false); // TODO probably wrong
         }
         if (config == null) {

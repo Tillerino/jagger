@@ -9,19 +9,19 @@ import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
 import javax.lang.model.util.ElementFilter;
 import org.apache.commons.lang3.exception.ContextedRuntimeException;
-import org.tillerino.jagger.processor.AnnotationProcessorUtils;
+import org.tillerino.jagger.processor.JaggerContext;
 import org.tillerino.jagger.processor.config.ConfigProperty.LocationKind;
 import org.tillerino.jagger.processor.features.Generics.TypeVar;
 import org.tillerino.jagger.processor.util.Exceptions;
 import org.tillerino.jagger.processor.util.InstantiatedMethod;
 
-public record Creators(AnnotationProcessorUtils utils) {
+public record Creators(JaggerContext ctx) {
 
     public Optional<Creator> findJsonCreatorMethod(TypeMirror tm) {
         if (!(tm instanceof DeclaredType dt)) {
             return Optional.empty();
         }
-        Map<TypeVar, TypeMirror> typeBindings = utils.generics.recordTypeBindings(dt);
+        Map<TypeVar, TypeMirror> typeBindings = ctx.generics.recordTypeBindings(dt);
         for (ExecutableElement constructor :
                 ElementFilter.constructorsIn(dt.asElement().getEnclosedElements())) {
             Optional<JsonCreatorMode> annotation = jsonCreatorType(constructor);
@@ -29,8 +29,7 @@ public record Creators(AnnotationProcessorUtils utils) {
                 continue;
             }
             return Optional.of(Creator.of(
-                    annotation.get(),
-                    utils.generics.instantiateMethod(constructor, typeBindings, LocationKind.CREATOR)));
+                    annotation.get(), ctx.generics.instantiateMethod(constructor, typeBindings, LocationKind.CREATOR)));
         }
         for (ExecutableElement method : ElementFilter.methodsIn(dt.asElement().getEnclosedElements())) {
             Optional<JsonCreatorMode> annotation = jsonCreatorType(method);
@@ -42,20 +41,19 @@ public record Creators(AnnotationProcessorUtils utils) {
             // Cannot instantiate with type bindings from class.
             // Need to infer from return type.
             InstantiatedMethod methodWithTypeTypeVars =
-                    utils.generics.instantiateMethod(method, typeBindings, LocationKind.CREATOR);
+                    ctx.generics.instantiateMethod(method, typeBindings, LocationKind.CREATOR);
             Map<TypeVar, TypeMirror> methodTypeVars = new LinkedHashMap<>();
-            if (!utils.generics.tybeBindingsSatisfyingEquality(
-                    tm, methodWithTypeTypeVars.returnType(), methodTypeVars)) {
+            if (!ctx.generics.tybeBindingsSatisfyingEquality(tm, methodWithTypeTypeVars.returnType(), methodTypeVars)) {
                 continue;
             }
             return Optional.of(Creator.of(
-                    annotation.get(), utils.generics.applyTypeBindings(methodWithTypeTypeVars, methodTypeVars)));
+                    annotation.get(), ctx.generics.applyTypeBindings(methodWithTypeTypeVars, methodTypeVars)));
         }
         return Optional.empty();
     }
 
     private Optional<JsonCreatorMode> jsonCreatorType(ExecutableElement element) {
-        return utils.annotations
+        return ctx.annotations
                 .findAnnotation(element, "com.fasterxml.jackson.annotation.JsonCreator")
                 .map(wrapper -> wrapper.method("mode", true)
                         .orElseThrow(Exceptions::unexpected)

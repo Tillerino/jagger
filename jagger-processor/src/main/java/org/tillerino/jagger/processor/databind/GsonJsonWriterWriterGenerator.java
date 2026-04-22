@@ -1,11 +1,11 @@
-package org.tillerino.jagger.processor.apis;
+package org.tillerino.jagger.processor.databind;
 
 import jakarta.annotation.Nonnull;
 import javax.lang.model.element.VariableElement;
 import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
-import org.tillerino.jagger.processor.AnnotationProcessorUtils;
 import org.tillerino.jagger.processor.GeneratedClass;
+import org.tillerino.jagger.processor.JaggerContext;
 import org.tillerino.jagger.processor.JaggerPrototype;
 import org.tillerino.jagger.processor.Snippet;
 import org.tillerino.jagger.processor.config.AnyConfig;
@@ -14,9 +14,8 @@ import org.tillerino.jagger.processor.util.InstantiatedMethod;
 public class GsonJsonWriterWriterGenerator extends AbstractWriterGenerator<GsonJsonWriterWriterGenerator> {
     private final VariableElement writerVariable;
 
-    public GsonJsonWriterWriterGenerator(
-            AnnotationProcessorUtils utils, JaggerPrototype prototype, GeneratedClass generatedClass) {
-        super(utils, prototype, generatedClass);
+    public GsonJsonWriterWriterGenerator(JaggerContext ctx, JaggerPrototype prototype, GeneratedClass generatedClass) {
+        super(ctx, prototype, generatedClass);
         this.writerVariable = prototype.methodElement().getParameters().get(1);
     }
 
@@ -102,8 +101,7 @@ public class GsonJsonWriterWriterGenerator extends AbstractWriterGenerator<GsonJ
                 instance,
                 callee,
                 rhs,
-                Snippet.joinPrependingCommaToEach(
-                        utils.delegation.findArguments(prototype, callee, 1, generatedClass))));
+                Snippet.joinPrependingCommaToEach(ctx.delegation.findArguments(prototype, callee, 1, generatedClass))));
     }
 
     @Override

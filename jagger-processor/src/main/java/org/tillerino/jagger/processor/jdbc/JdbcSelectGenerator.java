@@ -1,4 +1,4 @@
-package org.tillerino.jagger.processor.apis;
+package org.tillerino.jagger.processor.jdbc;
 
 import static org.tillerino.jagger.processor.config.AnyConfig.fromAccessorConsideringField;
 import static org.tillerino.jagger.processor.features.PropertyName.resolvePropertyName;
@@ -17,7 +17,7 @@ import javax.lang.model.util.ElementFilter;
 import org.apache.commons.lang3.StringUtils;
 import org.tillerino.jagger.helpers.jdbc.JdbcHelper;
 import org.tillerino.jagger.helpers.jdbc.ResultSetIterator;
-import org.tillerino.jagger.processor.AnnotationProcessorUtils;
+import org.tillerino.jagger.processor.JaggerContext;
 import org.tillerino.jagger.processor.JaggerPrototype;
 import org.tillerino.jagger.processor.Snippet;
 import org.tillerino.jagger.processor.Snippet.PerfectSnippet;
@@ -29,8 +29,7 @@ import org.tillerino.jagger.processor.features.Creators;
 import org.tillerino.jagger.processor.features.Creators.Creator;
 import org.tillerino.jagger.processor.features.Generics.TypeVar;
 import org.tillerino.jagger.processor.features.IgnoreProperty;
-import org.tillerino.jagger.processor.features.Jdbc;
-import org.tillerino.jagger.processor.features.Jdbc.ParsedSql;
+import org.tillerino.jagger.processor.jdbc.Jdbc.ParsedSql;
 import org.tillerino.jagger.processor.util.Accessor.AccessorKind;
 import org.tillerino.jagger.processor.util.Accessor.ElementAccessor;
 import org.tillerino.jagger.processor.util.InstantiatedMethod;
@@ -38,12 +37,12 @@ import org.tillerino.jagger.processor.util.InstantiatedMethod.InstantiatedVariab
 
 public class JdbcSelectGenerator extends AbstractJdbcGenerator<JdbcSelectGenerator> {
 
-    public JdbcSelectGenerator(JaggerPrototype prototype, AnnotationProcessorUtils utils) {
-        super(utils, prototype);
+    public JdbcSelectGenerator(JaggerPrototype prototype, JaggerContext ctx) {
+        super(ctx, prototype);
     }
 
     public CodeBlock.Builder build() {
-        if (utils.types.isSameType(kind.jsonType(), utils.commonTypes.resultSet)) {
+        if (ctx.types.isSameType(kind.externalType(), ctx.commonTypes.resultSet)) {
             return buildFromResultSet();
         }
 
@@ -51,9 +50,9 @@ public class JdbcSelectGenerator extends AbstractJdbcGenerator<JdbcSelectGenerat
 
         if (sqlTemplate.isEmpty()) {
             AnyConfig dtoConfig = AnyConfig.create(
-                    utils.commonTypes.asElement(utils.commonTypes.unwrapContainer(kind.javaType())),
+                    ctx.commonTypes.asElement(ctx.commonTypes.unwrapContainer(kind.internalType())),
                     LocationKind.DTO,
-                    utils);
+                    ctx);
 
             String quoteChar =
                     dtoConfig.merge(config).resolveProperty(Jdbc.QUOTE_CHAR).value();
@@ -68,16 +67,15 @@ public class JdbcSelectGenerator extends AbstractJdbcGenerator<JdbcSelectGenerat
             sqlTemplate += " WHERE " + whereClause;
         }
 
-        Jdbc.ParsedSql parsed = utils.jdbc
-                .parseTemplate(sqlTemplate, prototype.asInstantiatedMethod())
+        Jdbc.ParsedSql parsed = jdbc.parseTemplate(sqlTemplate, prototype.asInstantiatedMethod())
                 .addCommentIfPreprocessed(code);
 
-        if (utils.types.isSameType(
-                utils.types.erasure(kind.javaType()), utils.types.erasure(utils.commonTypes.type(Iterable.class)))) {
-            selectIterable(parsed, utils.commonTypes.getComponentType(kind.javaType(), Iterable.class));
+        if (ctx.types.isSameType(
+                ctx.types.erasure(kind.internalType()), ctx.types.erasure(ctx.commonTypes.type(Iterable.class)))) {
+            selectIterable(parsed, ctx.commonTypes.getComponentType(kind.internalType(), Iterable.class));
             return code;
-        } else if (utils.commonTypes.isErasureAssignableTo(kind.javaType(), Iterator.class)) {
-            selectIterator(parsed, utils.commonTypes.getComponentType(kind.javaType(), Iterator.class));
+        } else if (ctx.commonTypes.isErasureAssignableTo(kind.internalType(), Iterator.class)) {
+            selectIterator(parsed, ctx.commonTypes.getComponentType(kind.internalType(), Iterator.class));
             return code;
         }
 
@@ -89,11 +87,11 @@ public class JdbcSelectGenerator extends AbstractJdbcGenerator<JdbcSelectGenerat
                 addStatement("$C.setFetchSize($L)", psVar, fetchSize);
             }
 
-            TypedVariable rsVar = createVariable("rs").withType(utils.commonTypes.resultSet);
+            TypedVariable rsVar = createVariable("rs").withType(ctx.commonTypes.resultSet);
             addStatement("$T $C = $C.executeQuery()", ResultSet.class, rsVar, psVar);
-            if (utils.commonTypes.isIterableOrArray(kind.javaType())) {
+            if (ctx.commonTypes.isIterableOrArray(kind.internalType())) {
                 selectList(rsVar);
-            } else if (utils.commonTypes.isErasureAssignableTo(kind.javaType(), Optional.class)) {
+            } else if (ctx.commonTypes.isErasureAssignableTo(kind.internalType(), Optional.class)) {
                 selectOptional(rsVar);
             } else {
                 selectSingle(rsVar);
@@ -103,17 +101,17 @@ public class JdbcSelectGenerator extends AbstractJdbcGenerator<JdbcSelectGenerat
     }
 
     private CodeBlock.Builder buildFromResultSet() {
-        if (utils.commonTypes.isErasureAssignableTo(kind.javaType(), Iterator.class)) {
+        if (ctx.commonTypes.isErasureAssignableTo(kind.internalType(), Iterator.class)) {
             returnIterator(
-                    utils.commonTypes.getComponentType(kind.javaType(), Iterator.class),
+                    ctx.commonTypes.getComponentType(kind.internalType(), Iterator.class),
                     kind.jdbcVariable(),
-                    new Literal(utils.commonTypes.preparedStatement, "null"));
+                    new Literal(ctx.commonTypes.preparedStatement, "null"));
             return code;
         }
 
-        if (utils.commonTypes.isIterableOrArray(kind.javaType())) {
+        if (ctx.commonTypes.isIterableOrArray(kind.internalType())) {
             selectList(kind.jdbcVariable());
-        } else if (utils.commonTypes.isErasureAssignableTo(kind.javaType(), Optional.class)) {
+        } else if (ctx.commonTypes.isErasureAssignableTo(kind.internalType(), Optional.class)) {
             selectOptional(kind.jdbcVariable());
         } else {
             selectSingle(kind.jdbcVariable());
@@ -123,10 +121,10 @@ public class JdbcSelectGenerator extends AbstractJdbcGenerator<JdbcSelectGenerat
 
     private void selectSingle(PerfectSnippet rsVar) {
         throwIfNoResults(rsVar);
-        PerfectSnippet snippet = read(kind.javaType(), rsVar);
+        PerfectSnippet snippet = read(kind.internalType(), rsVar);
         if (!(snippet instanceof TypedVariable)) {
-            TypedVariable tv = createVariable("result").withType(kind.javaType());
-            addStatement("$T $C = $C", kind.javaType(), tv, snippet);
+            TypedVariable tv = createVariable("result").withType(kind.internalType());
+            addStatement("$T $C = $C", kind.internalType(), tv, snippet);
             snippet = tv;
         }
         throwIfMoreResults(rsVar);
@@ -137,16 +135,16 @@ public class JdbcSelectGenerator extends AbstractJdbcGenerator<JdbcSelectGenerat
         beginControlFlow("if (!$C.next())", rsVar).withBody(() -> {
             addStatement("return $T.empty()", Optional.class);
         });
-        TypeMirror type = utils.commonTypes.getComponentType(kind.javaType(), Optional.class);
+        TypeMirror type = ctx.commonTypes.getComponentType(kind.internalType(), Optional.class);
         PerfectSnippet snippet = read(type, rsVar);
         throwIfMoreResults(rsVar);
         addStatement("return $T.of($C)", Optional.class, snippet);
     }
 
     private void selectList(PerfectSnippet rsVar) {
-        TypedVariable results = createVariable("results").withType(kind.javaType());
+        TypedVariable results = createVariable("results").withType(kind.internalType());
         addStatement("$T $C = new $T<>()", results.type(), results, ArrayList.class);
-        TypeMirror type = utils.commonTypes.unwrapContainer(kind.javaType());
+        TypeMirror type = ctx.commonTypes.unwrapContainer(kind.internalType());
         beginControlFlow("while ($C.next())", rsVar).withBody(() -> {
             addStatement("$C.add($C)", results, read(type, rsVar));
         });
@@ -162,13 +160,13 @@ public class JdbcSelectGenerator extends AbstractJdbcGenerator<JdbcSelectGenerat
             addStatement("$C.setFetchSize($L)", psVar, fetchSize);
         }
 
-        TypedVariable rsVar = createVariable("rs").withType(utils.commonTypes.resultSet);
+        TypedVariable rsVar = createVariable("rs").withType(ctx.commonTypes.resultSet);
         addStatement("$T $C = $C.executeQuery()", ResultSet.class, rsVar, psVar);
         returnIterator(type, rsVar, psVar);
     }
 
     private void returnIterator(TypeMirror type, PerfectSnippet rsVar, PerfectSnippet psVar) {
-        TypedVariable innerRsVar = createVariable("rs").withType(utils.commonTypes.resultSet);
+        TypedVariable innerRsVar = createVariable("rs").withType(ctx.commonTypes.resultSet);
         beginControlFlow("return new $T<>($C, $C, $C ->", ResultSetIterator.class, rsVar, psVar, innerRsVar);
         PerfectSnippet read = read(type, innerRsVar);
         addStatement("return $C", read);
@@ -205,7 +203,7 @@ public class JdbcSelectGenerator extends AbstractJdbcGenerator<JdbcSelectGenerat
             return null;
         }
 
-        Optional<Creator> creatorOpt = utils.creators.findJsonCreatorMethod(type);
+        Optional<Creator> creatorOpt = ctx.creators.findJsonCreatorMethod(type);
         if (creatorOpt.isPresent()) {
             if (creatorOpt.get() instanceof Creators.Creator.Converter) {
                 throw new UnsupportedOperationException("not implemented");
@@ -214,8 +212,8 @@ public class JdbcSelectGenerator extends AbstractJdbcGenerator<JdbcSelectGenerat
         }
 
         if (dt.asElement().getKind() == ElementKind.RECORD) {
-            Map<TypeVar, TypeMirror> typeBindings = utils.generics.recordTypeBindings(dt);
-            return utils.generics.instantiateMethod(
+            Map<TypeVar, TypeMirror> typeBindings = ctx.generics.recordTypeBindings(dt);
+            return ctx.generics.instantiateMethod(
                     ElementFilter.constructorsIn(dt.asElement().getEnclosedElements())
                             .get(0),
                     typeBindings,
@@ -238,7 +236,7 @@ public class JdbcSelectGenerator extends AbstractJdbcGenerator<JdbcSelectGenerat
                         param.name(),
                         type,
                         param.name(),
-                        utils);
+                        ctx);
             } else {
                 propertyConfig = param.config();
             }
@@ -253,7 +251,7 @@ public class JdbcSelectGenerator extends AbstractJdbcGenerator<JdbcSelectGenerat
                         "$T $C = $C",
                         param.type(),
                         var,
-                        utils.defaultValues.getDefaultValue(prototype, param.type(), propertyConfig));
+                        ctx.defaultValues.getDefaultValue(prototype, param.type(), propertyConfig));
                 continue;
             }
 
@@ -267,16 +265,16 @@ public class JdbcSelectGenerator extends AbstractJdbcGenerator<JdbcSelectGenerat
             addStatement(write);
         }
 
-        return creator.invoke(utils, values);
+        return creator.invoke(ctx, values);
     }
 
     private PerfectSnippet fromWriteAccessors(TypeMirror type, PerfectSnippet rsVar) {
         TypedVariable resultVar = createVariable("result").withType(type);
         addStatement("$T $C = new $T()", type, resultVar, type);
 
-        utils.properties.listWriteAccessors(type).forEach((canonicalPropertyName, accessor) -> {
+        ctx.properties.listWriteAccessors(type).forEach((canonicalPropertyName, accessor) -> {
             AnyConfig propertyConfig = fromAccessorConsideringField(
-                            accessor, accessor.name(), type, canonicalPropertyName, utils)
+                            accessor, accessor.name(), type, canonicalPropertyName, ctx)
                     .merge(config);
             if (IgnoreProperty.isIgnoredForJdbc(propertyConfig)) {
                 return;
@@ -299,7 +297,7 @@ public class JdbcSelectGenerator extends AbstractJdbcGenerator<JdbcSelectGenerat
             String upper = StringUtils.capitalize(type.toString());
             return Snippet.of("$C.get$L($S)", rsVar, upper, name);
         }
-        if (utils.isBoxed(type)) {
+        if (ctx.isBoxed(type)) {
             return Snippet.of("$C.getObject($S, $T.class)", rsVar, name, ClassName.get(type));
         }
         if (type.getKind() == TypeKind.ARRAY) {

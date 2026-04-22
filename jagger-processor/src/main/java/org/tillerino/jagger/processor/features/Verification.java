@@ -7,12 +7,11 @@ import java.util.concurrent.ConcurrentHashMap;
 import javax.lang.model.type.TypeMirror;
 import javax.tools.Diagnostic.Kind;
 import org.tillerino.jagger.annotations.JsonConfig.VerificationMode;
-import org.tillerino.jagger.processor.AnnotationProcessorUtils;
 import org.tillerino.jagger.processor.JaggerBlueprint;
+import org.tillerino.jagger.processor.JaggerContext;
 import org.tillerino.jagger.processor.JaggerPrototype;
 import org.tillerino.jagger.processor.config.AnyConfig;
 import org.tillerino.jagger.processor.config.ConfigProperty;
-import org.tillerino.jagger.processor.config.ConfigProperty.AnnotationConfigPropertyRetriever;
 import org.tillerino.jagger.processor.config.ConfigProperty.LocationKind;
 import org.tillerino.jagger.processor.config.ConfigProperty.MergeFunction;
 import org.tillerino.jagger.processor.config.ConfigProperty.PropagationKind;
@@ -20,18 +19,17 @@ import org.tillerino.jagger.processor.util.Exceptions;
 
 public class Verification {
     public static ConfigProperty<VerificationMode> VERIFY_SYMMETRY = ConfigProperty.createConfigProperty(
+            "VERIFY_SYMMETRY",
             List.of(LocationKind.values()),
-            List.of(AnnotationConfigPropertyRetriever.jsonConfigPropertyRetriever(
-                    "verifySymmetry", VerificationMode.class)),
             VerificationMode.NO_VERIFICATION,
-            MergeFunction.notDefault(VerificationMode.NO_VERIFICATION),
+            MergeFunction.notDefault(),
             PropagationKind.none());
 
     final Map<JaggerBlueprint, ForBlueprint> st = new ConcurrentHashMap<>();
-    final AnnotationProcessorUtils utils;
+    final JaggerContext ctx;
 
-    public Verification(AnnotationProcessorUtils utils) {
-        this.utils = utils;
+    public Verification(JaggerContext ctx) {
+        this.ctx = ctx;
     }
 
     public ForBlueprint startBlueprint(JaggerBlueprint blueprint) {
@@ -42,8 +40,8 @@ public class Verification {
 
     private void log(AnyConfig config, String format, Object... arguments) {
         switch (config.resolveProperty(VERIFY_SYMMETRY).value()) {
-            case FAIL -> utils.messager.printMessage(Kind.ERROR, format.formatted(arguments));
-            case WARN -> utils.messager.printMessage(Kind.WARNING, format.formatted(arguments));
+            case FAIL -> ctx.messager.printMessage(Kind.ERROR, format.formatted(arguments));
+            case WARN -> ctx.messager.printMessage(Kind.WARNING, format.formatted(arguments));
             default -> {}
         }
     }

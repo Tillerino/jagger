@@ -1,10 +1,10 @@
-package org.tillerino.jagger.processor.apis;
+package org.tillerino.jagger.processor.databind;
 
 import javax.lang.model.element.VariableElement;
 import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
-import org.tillerino.jagger.processor.AnnotationProcessorUtils;
 import org.tillerino.jagger.processor.GeneratedClass;
+import org.tillerino.jagger.processor.JaggerContext;
 import org.tillerino.jagger.processor.JaggerPrototype;
 import org.tillerino.jagger.processor.Snippet;
 import org.tillerino.jagger.processor.config.AnyConfig;
@@ -14,8 +14,8 @@ public class JacksonJsonGeneratorWriterGenerator extends AbstractWriterGenerator
     private final VariableElement generatorVariable;
 
     public JacksonJsonGeneratorWriterGenerator(
-            AnnotationProcessorUtils utils, JaggerPrototype prototype, GeneratedClass generatedClass) {
-        super(utils, prototype, generatedClass);
+            JaggerContext ctx, JaggerPrototype prototype, GeneratedClass generatedClass) {
+        super(ctx, prototype, generatedClass);
         this.generatorVariable = prototype.methodElement().getParameters().get(1);
     }
 
@@ -124,8 +124,7 @@ public class JacksonJsonGeneratorWriterGenerator extends AbstractWriterGenerator
                 instance,
                 callee,
                 rhs,
-                Snippet.joinPrependingCommaToEach(
-                        utils.delegation.findArguments(prototype, callee, 1, generatedClass))));
+                Snippet.joinPrependingCommaToEach(ctx.delegation.findArguments(prototype, callee, 1, generatedClass))));
     }
 
     @Override

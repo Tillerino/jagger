@@ -15,7 +15,7 @@ import org.tillerino.jagger.processor.util.InstantiatedMethod;
 import org.tillerino.jagger.processor.util.InstantiatedMethod.InstantiatedVariable;
 import org.tillerino.jagger.processor.util.RebuildingTypeVisitor;
 
-public record Generics(AnnotationProcessorUtils utils) {
+public record Generics(JaggerContext ctx) {
     public Map<TypeVar, TypeMirror> recordTypeBindings(DeclaredType d) {
         Map<TypeVar, TypeMirror> map = new LinkedHashMap<>();
         for (int i = 0; i < d.getTypeArguments().size(); i++) {
@@ -48,7 +48,7 @@ public record Generics(AnnotationProcessorUtils utils) {
             return bindings;
         }
 
-        for (DeclaredType d2 : Polymorphism.directSupertypes(d, utils)) {
+        for (DeclaredType d2 : Polymorphism.directSupertypes(d, ctx)) {
             Map<TypeVar, TypeMirror> superTypeBindings = recordTypeBindingsFor(d2, superType);
             if (superTypeBindings != null) {
                 return superTypeBindings;
@@ -66,7 +66,7 @@ public record Generics(AnnotationProcessorUtils utils) {
                         return bindings.getOrDefault(TypeVar.of(t), t);
                     }
                 },
-                utils.types);
+                ctx.types);
     }
 
     public InstantiatedVariable applyTypeBindings(InstantiatedVariable v, Map<TypeVar, TypeMirror> bindings) {
@@ -111,14 +111,14 @@ public record Generics(AnnotationProcessorUtils utils) {
                         p,
                         applyTypeBindings(p.asType(), typeBindings),
                         p.getSimpleName().toString(),
-                        AnyConfig.create(p, LocationKind.PROPERTY, utils)))
+                        AnyConfig.create(p, LocationKind.PROPERTY, ctx)))
                 .toList();
         return new InstantiatedMethod(
                 methodElement.getSimpleName().toString(),
                 applyTypeBindings(methodElement.getReturnType(), typeBindings),
                 parameters,
                 methodElement,
-                AnyConfig.create(methodElement, locationKind, utils));
+                AnyConfig.create(methodElement, locationKind, ctx));
     }
 
     /**
@@ -128,13 +128,13 @@ public record Generics(AnnotationProcessorUtils utils) {
      */
     public boolean tybeBindingsSatisfyingEquality(
             TypeMirror actualType, TypeMirror candidateType, Map<TypeVar, TypeMirror> typeBindings) {
-        if (utils.types.isSameType(actualType, candidateType)) {
+        if (ctx.types.isSameType(actualType, candidateType)) {
             return true;
         }
         if ((actualType instanceof DeclaredType actualDeclared)
                 && (candidateType instanceof DeclaredType candidateDeclared)) {
             // compare raw type
-            if (!utils.types.isSameType(
+            if (!ctx.types.isSameType(
                     actualDeclared.asElement().asType(),
                     candidateDeclared.asElement().asType())) {
                 return false;
@@ -156,7 +156,7 @@ public record Generics(AnnotationProcessorUtils utils) {
         if (candidateType instanceof TypeVariable candidateVar) {
             TypeVar candidate = TypeVar.of(candidateVar);
             if (typeBindings.containsKey(candidate)) {
-                return utils.types.isSameType(typeBindings.get(candidate), actualType);
+                return ctx.types.isSameType(typeBindings.get(candidate), actualType);
             }
             typeBindings.put(candidate, actualType);
             return true;
@@ -183,20 +183,20 @@ public record Generics(AnnotationProcessorUtils utils) {
         if (!typeElement.getKind().isInterface()) {
             return Optional.empty();
         }
-        List<ExecutableElement> methods = ElementFilter.methodsIn(utils.elements.getAllMembers(typeElement)).stream()
+        List<ExecutableElement> methods = ElementFilter.methodsIn(ctx.elements.getAllMembers(typeElement)).stream()
                 .filter(method -> !method.getEnclosingElement().toString().equals("java.lang.Object"))
                 .toList();
         if (methods.size() != 1) {
             return Optional.empty();
         }
         return Optional.of(
-                utils.generics.instantiateMethods(d, LocationKind.PROTOTYPE).get(0));
+                ctx.generics.instantiateMethods(d, LocationKind.PROTOTYPE).get(0));
     }
 
     private Optional<Snippet> createMethodReference(GeneratedClass callingClass, InstantiatedMethod targetMethod) {
         JaggerBlueprint blueprint = callingClass.blueprint;
         for (JaggerPrototype method : blueprint.prototypes) {
-            if (method.asInstantiatedMethod().hasSameSignature(targetMethod, utils)) {
+            if (method.asInstantiatedMethod().hasSameSignature(targetMethod, ctx)) {
                 return Optional.of(Snippet.of(
                         "$L::$L",
                         callingClass.getOrCreateDelegateeField(blueprint, blueprint, !method.overrides()),
@@ -205,7 +205,7 @@ public record Generics(AnnotationProcessorUtils utils) {
         }
         for (JaggerBlueprint use : blueprint.config.reversedUses()) {
             for (JaggerPrototype method : use.prototypes) {
-                if (method.asInstantiatedMethod().hasSameSignature(targetMethod, utils)) {
+                if (method.asInstantiatedMethod().hasSameSignature(targetMethod, ctx)) {
                     return Optional.of(Snippet.of(
                             "$L::$L",
                             callingClass.getOrCreateDelegateeField(blueprint, use, !method.overrides()),
@@ -218,9 +218,9 @@ public record Generics(AnnotationProcessorUtils utils) {
 
     /** Finds a parameter of type {@code Class<T>} on the method. */
     public Optional<Snippet> findClassParameter(InstantiatedMethod method, TypeMirror t) {
-        DeclaredType classOfT = utils.types.getDeclaredType(utils.commonTypes.classElement, t);
+        DeclaredType classOfT = ctx.types.getDeclaredType(ctx.commonTypes.classElement, t);
         for (InstantiatedVariable parameter : method.parameters()) {
-            if (utils.types.isSameType(parameter.type(), classOfT)) {
+            if (ctx.types.isSameType(parameter.type(), classOfT)) {
                 return Optional.of(parameter);
             }
         }

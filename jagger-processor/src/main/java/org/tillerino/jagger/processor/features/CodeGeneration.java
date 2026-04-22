@@ -9,71 +9,49 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import javax.lang.model.element.*;
 import org.tillerino.jagger.annotations.JsonConfig;
-import org.tillerino.jagger.processor.AnnotationProcessorUtils;
 import org.tillerino.jagger.processor.FullyQualifiedName.FullyQualifiedClassName;
+import org.tillerino.jagger.processor.JaggerContext;
 import org.tillerino.jagger.processor.config.AnyConfig;
 import org.tillerino.jagger.processor.config.ConfigProperty;
-import org.tillerino.jagger.processor.config.ConfigProperty.AnnotationConfigPropertyRetriever;
 import org.tillerino.jagger.processor.config.ConfigProperty.LocationKind;
 import org.tillerino.jagger.processor.config.ConfigProperty.MergeFunction;
-import org.tillerino.jagger.processor.util.Annotations.AnnotationValueWrapper;
 import org.tillerino.jagger.processor.util.InstantiatedMethod;
 
-public record CodeGeneration(AnnotationProcessorUtils utils) {
+public record CodeGeneration(JaggerContext ctx) {
 
     public static ConfigProperty<JsonConfig.ImplementationMode> IMPLEMENT = createConfigProperty(
+            "IMPLEMENT",
             List.of(LocationKind.BLUEPRINT, LocationKind.PROTOTYPE),
-            List.of(AnnotationConfigPropertyRetriever.jsonConfigPropertyRetriever(
-                    "implement", JsonConfig.ImplementationMode.class)),
             JsonConfig.ImplementationMode.DEFAULT,
-            MergeFunction.notDefault(JsonConfig.ImplementationMode.DEFAULT),
+            MergeFunction.notDefault(),
             List.of());
 
     public static ConfigProperty<Set<TypeElement>> ON_GENERATED_CLASS = createConfigProperty(
+            "ON_GENERATED_CLASS",
             List.of(ConfigProperty.LocationKind.BLUEPRINT),
-            List.of(new AnnotationConfigPropertyRetriever<>(
-                    "org.tillerino.jagger.annotations.JsonConfig", (ann, utils) -> ann.method("onGeneratedClass", false)
-                            .map(AnnotationValueWrapper::asArray)
-                            .map(arr -> arr.stream()
-                                    .map(classValue -> utils.elements.getTypeElement(
-                                            classValue.asTypeMirror().toString()))
-                                    .collect(Collectors.toSet())))),
             Set.of(),
             MergeFunction.mergeSets(),
             ConfigProperty.PropagationKind.none());
 
     public static ConfigProperty<Set<TypeElement>> ON_GENERATED_CONSTRUCTOR = createConfigProperty(
+            "ON_GENERATED_CONSTRUCTOR",
             List.of(ConfigProperty.LocationKind.BLUEPRINT),
-            List.of(new AnnotationConfigPropertyRetriever<>(
-                    "org.tillerino.jagger.annotations.JsonConfig",
-                    (ann, utils) -> ann.method("onGeneratedConstructors", false)
-                            .map(AnnotationValueWrapper::asArray)
-                            .map(arr -> arr.stream()
-                                    .map(classValue -> utils.elements.getTypeElement(
-                                            classValue.asTypeMirror().toString()))
-                                    .collect(Collectors.toSet())))),
             Set.of(),
             MergeFunction.mergeSets(),
             ConfigProperty.PropagationKind.none());
 
     public static ConfigProperty<Boolean> ADD_GENERATED_ANNOTATION_TO_CLASS = createConfigProperty(
+            "ADD_GENERATED_ANNOTATION_TO_CLASS",
             List.of(ConfigProperty.LocationKind.BLUEPRINT),
-            List.of(new AnnotationConfigPropertyRetriever<>(
-                    "org.tillerino.jagger.annotations.JsonConfig",
-                    (ann, utils) ->
-                            ann.method("addGeneratedAnnotationToClass", false).map(AnnotationValueWrapper::asBoolean))),
             true,
-            MergeFunction.notDefault(true),
+            MergeFunction.notDefault(),
             ConfigProperty.PropagationKind.none());
 
     public static ConfigProperty<Boolean> ADD_GENERATED_ANNOTATION_TO_METHODS = createConfigProperty(
+            "ADD_GENERATED_ANNOTATION_TO_METHODS",
             List.of(ConfigProperty.LocationKind.BLUEPRINT, ConfigProperty.LocationKind.PROTOTYPE),
-            List.of(new AnnotationConfigPropertyRetriever<>(
-                    "org.tillerino.jagger.annotations.JsonConfig",
-                    (ann, utils) -> ann.method("addGeneratedAnnotationToMethods", false)
-                            .map(AnnotationValueWrapper::asBoolean))),
             false,
-            MergeFunction.notDefault(false),
+            MergeFunction.notDefault(),
             ConfigProperty.PropagationKind.all());
 
     public static boolean isAbstractAndShouldImplement(ExecutableElement method, AnyConfig config) {
@@ -98,7 +76,7 @@ public record CodeGeneration(AnnotationProcessorUtils utils) {
                 .value();
         if (addGenerated) {
             classBuilder.addAnnotation(AnnotationSpec.builder(
-                            ClassName.get(utils.elements.getTypeElement("org.tillerino.jagger.annotations.Generated")))
+                            ClassName.get(ctx.elements.getTypeElement("org.tillerino.jagger.annotations.Generated")))
                     .build());
         }
         for (TypeElement annotation :
@@ -138,7 +116,7 @@ public record CodeGeneration(AnnotationProcessorUtils utils) {
 
             if (addGeneratedAnnotation) {
                 builder.addAnnotation(AnnotationSpec.builder(ClassName.get(
-                                utils.elements.getTypeElement("org.tillerino.jagger.annotations.Generated")))
+                                ctx.elements.getTypeElement("org.tillerino.jagger.annotations.Generated")))
                         .build());
             }
 
@@ -167,7 +145,7 @@ public record CodeGeneration(AnnotationProcessorUtils utils) {
 
             if (addGeneratedAnnotation) {
                 builder.addAnnotation(AnnotationSpec.builder(ClassName.get(
-                                utils.elements.getTypeElement("org.tillerino.jagger.annotations.Generated")))
+                                ctx.elements.getTypeElement("org.tillerino.jagger.annotations.Generated")))
                         .build());
             }
 
@@ -198,7 +176,7 @@ public record CodeGeneration(AnnotationProcessorUtils utils) {
                 .value();
         if (addGenerated) {
             methodBuilder.addAnnotation(AnnotationSpec.builder(
-                            ClassName.get(utils.elements.getTypeElement("org.tillerino.jagger.annotations.Generated")))
+                            ClassName.get(ctx.elements.getTypeElement("org.tillerino.jagger.annotations.Generated")))
                     .build());
         }
 

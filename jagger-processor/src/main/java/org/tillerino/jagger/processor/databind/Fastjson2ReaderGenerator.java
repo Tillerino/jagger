@@ -1,4 +1,4 @@
-package org.tillerino.jagger.processor.apis;
+package org.tillerino.jagger.processor.databind;
 
 import static org.tillerino.jagger.processor.Snippet.join;
 import static org.tillerino.jagger.processor.Snippet.of;
@@ -12,8 +12,8 @@ import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
 import org.apache.commons.lang3.exception.ContextedRuntimeException;
 import org.tillerino.jagger.helpers.Fastjson2ReaderHelper;
-import org.tillerino.jagger.processor.AnnotationProcessorUtils;
 import org.tillerino.jagger.processor.GeneratedClass;
+import org.tillerino.jagger.processor.JaggerContext;
 import org.tillerino.jagger.processor.JaggerPrototype;
 import org.tillerino.jagger.processor.Snippet;
 import org.tillerino.jagger.processor.config.AnyConfig;
@@ -23,9 +23,8 @@ public class Fastjson2ReaderGenerator extends AbstractReaderGenerator<Fastjson2R
 
     private final VariableElement parserVariable;
 
-    public Fastjson2ReaderGenerator(
-            AnnotationProcessorUtils utils, JaggerPrototype prototype, GeneratedClass generatedClass) {
-        super(utils, prototype, generatedClass);
+    public Fastjson2ReaderGenerator(JaggerContext ctx, JaggerPrototype prototype, GeneratedClass generatedClass) {
+        super(ctx, prototype, generatedClass);
         parserVariable = prototype.methodElement().getParameters().get(0);
     }
 
@@ -44,15 +43,15 @@ public class Fastjson2ReaderGenerator extends AbstractReaderGenerator<Fastjson2R
     protected void readNullable(Branch branch, boolean nullable, boolean lastCase) {
         if (type instanceof ArrayType at) {
             TypeMirror componentType = at.getComponentType();
-            if (utils.commonTypes.isString(componentType)) {
+            if (ctx.commonTypes.isString(componentType)) {
                 addStatement(lhs.assign("$L.readStringArray()", parserVariable.getSimpleName()));
                 return;
             }
-            if (utils.commonTypes.isArrayOf(type, TypeKind.INT)) {
+            if (ctx.commonTypes.isArrayOf(type, TypeKind.INT)) {
                 addStatement(lhs.assign("$L.readInt32ValueArray()", parserVariable.getSimpleName()));
                 return;
             }
-            if (utils.commonTypes.isArrayOf(type, TypeKind.LONG)) {
+            if (ctx.commonTypes.isArrayOf(type, TypeKind.LONG)) {
                 addStatement(lhs.assign("$L.readInt64ValueArray()", parserVariable.getSimpleName()));
                 return;
             }
@@ -182,7 +181,7 @@ public class Fastjson2ReaderGenerator extends AbstractReaderGenerator<Fastjson2R
                 "$L.$L($C)",
                 instance,
                 callee,
-                join(utils.delegation.findArguments(prototype, callee, 0, generatedClass), ", "))));
+                join(ctx.delegation.findArguments(prototype, callee, 0, generatedClass), ", "))));
     }
 
     @Override

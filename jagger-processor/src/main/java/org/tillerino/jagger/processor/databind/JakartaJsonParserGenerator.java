@@ -1,4 +1,4 @@
-package org.tillerino.jagger.processor.apis;
+package org.tillerino.jagger.processor.databind;
 
 import static org.tillerino.jagger.processor.Snippet.join;
 import static org.tillerino.jagger.processor.Snippet.of;
@@ -11,8 +11,8 @@ import javax.lang.model.element.VariableElement;
 import javax.lang.model.type.TypeMirror;
 import org.apache.commons.lang3.exception.ContextedRuntimeException;
 import org.tillerino.jagger.helpers.JakartaJsonParserHelper;
-import org.tillerino.jagger.processor.AnnotationProcessorUtils;
 import org.tillerino.jagger.processor.GeneratedClass;
+import org.tillerino.jagger.processor.JaggerContext;
 import org.tillerino.jagger.processor.JaggerPrototype;
 import org.tillerino.jagger.processor.Snippet;
 import org.tillerino.jagger.processor.config.AnyConfig;
@@ -21,9 +21,8 @@ import org.tillerino.jagger.processor.util.InstantiatedMethod;
 public class JakartaJsonParserGenerator extends AbstractReaderGenerator<JakartaJsonParserGenerator> {
     private final VariableElement parserVariable;
 
-    public JakartaJsonParserGenerator(
-            AnnotationProcessorUtils utils, JaggerPrototype prototype, GeneratedClass generatedClass) {
-        super(utils, prototype, generatedClass);
+    public JakartaJsonParserGenerator(JaggerContext ctx, JaggerPrototype prototype, GeneratedClass generatedClass) {
+        super(ctx, prototype, generatedClass);
         parserVariable = prototype.methodElement().getParameters().get(0);
     }
 
@@ -197,7 +196,7 @@ public class JakartaJsonParserGenerator extends AbstractReaderGenerator<JakartaJ
                 "$L.$L($C)",
                 instance,
                 callee,
-                join(utils.delegation.findArguments(prototype, callee, 0, generatedClass), ", "))));
+                join(ctx.delegation.findArguments(prototype, callee, 0, generatedClass), ", "))));
     }
 
     @Override

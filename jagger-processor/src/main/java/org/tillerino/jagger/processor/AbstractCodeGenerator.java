@@ -1,4 +1,4 @@
-package org.tillerino.jagger.processor.apis;
+package org.tillerino.jagger.processor;
 
 import com.squareup.javapoet.CodeBlock;
 import java.util.LinkedHashSet;
@@ -6,7 +6,6 @@ import java.util.Set;
 import java.util.Stack;
 import java.util.function.Consumer;
 import javax.lang.model.type.TypeMirror;
-import org.tillerino.jagger.processor.Snippet;
 import org.tillerino.jagger.processor.Snippet.Flattened;
 import org.tillerino.jagger.processor.Snippet.PerfectSnippet.TypedVariable;
 import org.tillerino.jagger.processor.util.InstantiatedMethod;
@@ -31,55 +30,55 @@ public class AbstractCodeGenerator<SELF extends AbstractCodeGenerator<SELF>> {
         this.variables = parent.variables;
     }
 
-    protected AbstractCodeGenerator<SELF> addStatement(Snippet s) {
+    public AbstractCodeGenerator<SELF> addStatement(Snippet s) {
         Flattened f = s.flatten();
         code.addStatement(f.format(), f.args());
         return this;
     }
 
-    protected AbstractCodeGenerator<SELF> addStatement(String format, Object... args) {
+    public AbstractCodeGenerator<SELF> addStatement(String format, Object... args) {
         return addStatement(Snippet.of(format, args));
     }
 
-    protected NullaryControlFlowScope beginControlFlow(Snippet s) {
+    public NullaryControlFlowScope beginControlFlow(Snippet s) {
         Flattened f = s.flatten();
         code.beginControlFlow(f.format(), f.args());
         variables.push(new LinkedHashSet<>(variables.peek()));
         return new NullaryControlFlowScope(this);
     }
 
-    protected NullaryControlFlowScope beginControlFlow(String controlFlow, Object... args) {
+    public NullaryControlFlowScope beginControlFlow(String controlFlow, Object... args) {
         return beginControlFlow(Snippet.of(controlFlow, args));
     }
 
-    protected NullaryControlFlowScope nextControlFlow(Snippet s) {
+    public NullaryControlFlowScope nextControlFlow(Snippet s) {
         Flattened f = s.flatten();
         popVariablesStack();
         pushVariablesStack(f);
         return new NullaryControlFlowScope(this);
     }
 
-    protected NullaryControlFlowScope nextControlFlow(String controlFlow, Object... args) {
+    public NullaryControlFlowScope nextControlFlow(String controlFlow, Object... args) {
         return nextControlFlow(Snippet.of(controlFlow, args));
     }
 
-    protected AbstractCodeGenerator<SELF> endControlFlow() {
+    public AbstractCodeGenerator<SELF> endControlFlow() {
         popVariablesStack();
         code.endControlFlow();
         return this;
     }
 
-    protected void pushVariablesStack(Flattened f) {
+    public void pushVariablesStack(Flattened f) {
         code.nextControlFlow(f.format(), f.args());
         variables.push(new LinkedHashSet<>(variables.peek()));
     }
 
-    protected void popVariablesStack() {
+    public void popVariablesStack() {
         variables.pop();
         assert !variables.isEmpty();
     }
 
-    protected ScopedVar createVariable(String name) {
+    public ScopedVar createVariable(String name) {
         if (variables.peek().add(name)) {
             return new ScopedVar(name);
         }
@@ -90,7 +89,7 @@ public class AbstractCodeGenerator<SELF extends AbstractCodeGenerator<SELF>> {
         return new ScopedVar(name + suf);
     }
 
-    protected record ScopedVar(String name) implements Snippet {
+    public record ScopedVar(String name) implements Snippet {
         @Override
         public Flattened flatten() {
             return Flattened.of("$L", name());

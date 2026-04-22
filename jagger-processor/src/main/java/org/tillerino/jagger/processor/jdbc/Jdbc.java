@@ -1,4 +1,4 @@
-package org.tillerino.jagger.processor.features;
+package org.tillerino.jagger.processor.jdbc;
 
 import com.squareup.javapoet.CodeBlock;
 import java.util.ArrayList;
@@ -22,107 +22,55 @@ import net.sf.jsqlparser.util.deparser.ExpressionDeParser;
 import net.sf.jsqlparser.util.deparser.SelectDeParser;
 import net.sf.jsqlparser.util.deparser.StatementDeParser;
 import org.apache.commons.lang3.exception.ContextedRuntimeException;
-import org.tillerino.jagger.processor.AnnotationProcessorUtils;
+import org.tillerino.jagger.processor.JaggerContext;
 import org.tillerino.jagger.processor.Snippet.PerfectSnippet;
 import org.tillerino.jagger.processor.Snippet.PerfectSnippet.TypedVariable;
 import org.tillerino.jagger.processor.config.AnyConfig;
 import org.tillerino.jagger.processor.config.ConfigProperty;
-import org.tillerino.jagger.processor.config.ConfigProperty.AnnotationConfigPropertyRetriever;
 import org.tillerino.jagger.processor.config.ConfigProperty.LocationKind;
 import org.tillerino.jagger.processor.config.ConfigProperty.MergeFunction;
 import org.tillerino.jagger.processor.config.ConfigProperty.PropagationKind;
+import org.tillerino.jagger.processor.features.IgnoreProperty;
 import org.tillerino.jagger.processor.features.Properties.OutputProperty;
 import org.tillerino.jagger.processor.util.Accessor.ReadAccessor;
-import org.tillerino.jagger.processor.util.Annotations.AnnotationValueWrapper;
 import org.tillerino.jagger.processor.util.InstantiatedMethod;
 import org.tillerino.jagger.processor.util.InstantiatedMethod.InstantiatedVariable;
 
-public record Jdbc(AnnotationProcessorUtils utils) {
+public record Jdbc(JaggerContext ctx) {
     public static ConfigProperty<Boolean> ID_PROPERTY = ConfigProperty.createConfigProperty(
-            List.of(LocationKind.PROPERTY),
-            List.of(
-                    new AnnotationConfigPropertyRetriever<>("javax.persistence.Id", (ann, utils) -> Optional.of(true)),
-                    new AnnotationConfigPropertyRetriever<>(
-                            "jakarta.persistence.Id", (ann, utils) -> Optional.of(true))),
-            false,
-            MergeFunction.notDefault(false),
-            PropagationKind.none());
+            "ID_PROPERTY", List.of(LocationKind.PROPERTY), false, MergeFunction.notDefault(), PropagationKind.none());
 
     public static ConfigProperty<Integer> FETCH_SIZE = ConfigProperty.createConfigProperty(
-            List.of(LocationKind.PROTOTYPE),
-            List.of(new AnnotationConfigPropertyRetriever<>(
-                    "org.tillerino.jagger.annotations.JdbcSelect",
-                    (ann, utils) -> ann.method("fetchSize", false).map(AnnotationValueWrapper::asInt))),
-            0,
-            MergeFunction.notDefault(0),
-            PropagationKind.none());
+            "FETCH_SIZE", List.of(LocationKind.PROTOTYPE), 0, MergeFunction.notDefault(), PropagationKind.none());
 
     public static ConfigProperty<String> TABLE_NAME_ON_DTO = ConfigProperty.createConfigProperty(
-            List.of(LocationKind.DTO),
-            List.of(
-                    new AnnotationConfigPropertyRetriever<>(
-                            "org.tillerino.jagger.annotations.JdbcConfig",
-                            (ann, utils) -> ann.method("table", false).map(AnnotationValueWrapper::asString)),
-                    new AnnotationConfigPropertyRetriever<>(
-                            "jakarta.persistence.Table",
-                            (ann, utils) -> ann.method("name", false).map(AnnotationValueWrapper::asString)),
-                    new AnnotationConfigPropertyRetriever<>(
-                            "javax.persistence.Table",
-                            (ann, utils) -> ann.method("name", false).map(AnnotationValueWrapper::asString))),
-            "",
-            MergeFunction.notDefault(""),
-            PropagationKind.none());
+            "TABLE_NAME_ON_DTO", List.of(LocationKind.DTO), "", MergeFunction.notDefault(), PropagationKind.none());
 
     public static ConfigProperty<String> TABLE_NAME_ON_PROTOTYPE = ConfigProperty.createConfigProperty(
+            "TABLE_NAME_ON_PROTOTYPE",
             List.of(LocationKind.BLUEPRINT, LocationKind.PROTOTYPE),
-            List.of(new AnnotationConfigPropertyRetriever<>(
-                    "org.tillerino.jagger.annotations.JdbcConfig",
-                    (ann, utils) -> ann.method("table", false).map(AnnotationValueWrapper::asString))),
             "",
-            MergeFunction.notDefault(""),
+            MergeFunction.notDefault(),
             PropagationKind.none());
 
     public static ConfigProperty<String> SQL_QUERY = ConfigProperty.createConfigProperty(
-            List.of(LocationKind.PROTOTYPE),
-            List.of(
-                    new AnnotationConfigPropertyRetriever<>(
-                            "org.tillerino.jagger.annotations.JdbcSelect",
-                            (ann, utils) -> ann.method("value", false).map(AnnotationValueWrapper::asString)),
-                    new AnnotationConfigPropertyRetriever<>(
-                            "org.tillerino.jagger.annotations.JdbcInsert",
-                            (ann, utils) -> ann.method("value", false).map(AnnotationValueWrapper::asString)),
-                    new AnnotationConfigPropertyRetriever<>(
-                            "org.tillerino.jagger.annotations.JdbcUpdate",
-                            (ann, utils) -> ann.method("value", false).map(AnnotationValueWrapper::asString))),
-            "",
-            MergeFunction.notDefault(""),
-            PropagationKind.none());
+            "SQL_QUERY", List.of(LocationKind.PROTOTYPE), "", MergeFunction.notDefault(), PropagationKind.none());
 
     public static ConfigProperty<String> WHERE_CLAUSE = ConfigProperty.createConfigProperty(
-            List.of(LocationKind.PROTOTYPE),
-            List.of(new AnnotationConfigPropertyRetriever<>(
-                    "org.tillerino.jagger.annotations.JdbcSelect",
-                    (ann, utils) -> ann.method("where", false).map(AnnotationValueWrapper::asString))),
-            "",
-            MergeFunction.notDefault(""),
-            PropagationKind.none());
+            "WHERE_CLAUSE", List.of(LocationKind.PROTOTYPE), "", MergeFunction.notDefault(), PropagationKind.none());
 
     public static ConfigProperty<String> QUOTE_CHAR = ConfigProperty.createConfigProperty(
+            "QUOTE_CHAR",
             List.of(LocationKind.BLUEPRINT, LocationKind.PROTOTYPE, LocationKind.DTO),
-            List.of(new AnnotationConfigPropertyRetriever<>(
-                    "org.tillerino.jagger.annotations.JdbcConfig",
-                    (ann, utils) -> ann.method("quoteChar", false).map(AnnotationValueWrapper::asString))),
             "\"",
-            MergeFunction.notDefault("\""),
+            MergeFunction.notDefault(),
             PropagationKind.none());
 
     public static ConfigProperty<GenerationType> GENERATION_TYPE = ConfigProperty.createConfigProperty(
+            "GENERATION_TYPE",
             List.of(LocationKind.PROPERTY),
-            List.of(new AnnotationConfigPropertyRetriever<>(
-                    "jakarta.persistence.GeneratedValue",
-                    (ann, utils) -> ann.method("strategy", false).map(w -> w.asEnum(GenerationType.class)))),
             GenerationType.NONE,
-            MergeFunction.notDefault(GenerationType.NONE),
+            MergeFunction.notDefault(),
             PropagationKind.none());
 
     public static String determineTableName(AnyConfig prototypeConfig, AnyConfig dtoConfig, String parameterName) {
@@ -208,10 +156,10 @@ public record Jdbc(AnnotationProcessorUtils utils) {
             }
 
             InstantiatedVariable methodParam = getParam(paramMap, f.prefix);
-            TypeMirror paramType = utils.commonTypes.unwrapContainer(methodParam.type());
+            TypeMirror paramType = ctx.commonTypes.unwrapContainer(methodParam.type());
             List<OutputProperty> props =
                     switch (f.suffix) {
-                        case ".#columns" -> utils.properties.outputProperties(paramType, AnyConfig.empty());
+                        case ".#columns" -> ctx.properties.outputProperties(paramType, AnyConfig.empty());
                         case ".#insertColumns" -> getInsertProperties(paramType);
                         case ".#keyColumns" -> getPropertiesWhereIdIs(paramType, true);
                         case ".#updateColumns" -> getPropertiesWhereIdIs(paramType, false);
@@ -247,10 +195,10 @@ public record Jdbc(AnnotationProcessorUtils utils) {
             }
 
             InstantiatedVariable methodParam = getParam(paramMap, f.prefix);
-            TypeMirror paramType = utils.commonTypes.unwrapContainer(methodParam.type());
+            TypeMirror paramType = ctx.commonTypes.unwrapContainer(methodParam.type());
             List<OutputProperty> props =
                     switch (f.suffix) {
-                        case ".#values" -> utils.properties.outputProperties(paramType, AnyConfig.empty());
+                        case ".#values" -> ctx.properties.outputProperties(paramType, AnyConfig.empty());
                         case ".#insertValues" -> getInsertProperties(paramType);
                         case ".#keyValues" -> getPropertiesWhereIdIs(paramType, true);
                         case ".#updateValues" -> getPropertiesWhereIdIs(paramType, false);
@@ -268,14 +216,14 @@ public record Jdbc(AnnotationProcessorUtils utils) {
     }
 
     private List<OutputProperty> getPropertiesWhereIdIs(TypeMirror paramType, boolean value) {
-        List<OutputProperty> allProps = utils.properties.outputProperties(paramType, AnyConfig.empty());
+        List<OutputProperty> allProps = ctx.properties.outputProperties(paramType, AnyConfig.empty());
         return allProps.stream()
                 .filter(p -> p.config().resolveProperty(ID_PROPERTY).value() == value)
                 .toList();
     }
 
     private List<OutputProperty> getInsertProperties(TypeMirror paramType) {
-        List<OutputProperty> allProps = utils.properties.outputProperties(paramType, AnyConfig.empty());
+        List<OutputProperty> allProps = ctx.properties.outputProperties(paramType, AnyConfig.empty());
         return allProps.stream()
                 .filter(p -> p.config().resolveProperty(GENERATION_TYPE).value() == GenerationType.NONE)
                 .toList();
@@ -347,8 +295,8 @@ public record Jdbc(AnnotationProcessorUtils utils) {
                         String propertyName = parts[1];
                         InstantiatedVariable methodParam = paramMap.get(paramName);
                         if (methodParam != null) {
-                            TypeMirror paramType = utils.commonTypes.unwrapContainer(methodParam.type());
-                            Map<String, ReadAccessor> properties = utils.properties.listReadAccessors(paramType);
+                            TypeMirror paramType = ctx.commonTypes.unwrapContainer(methodParam.type());
+                            Map<String, ReadAccessor> properties = ctx.properties.listReadAccessors(paramType);
                             ReadAccessor accessor = properties.get(propertyName);
                             if (accessor == null) {
                                 throw new ContextedRuntimeException("Missing property: " + propertyName)

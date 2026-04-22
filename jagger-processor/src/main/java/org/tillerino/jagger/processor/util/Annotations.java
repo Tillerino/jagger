@@ -6,25 +6,34 @@ import java.util.Optional;
 import javax.lang.model.element.*;
 import javax.lang.model.type.TypeMirror;
 import org.apache.commons.lang3.exception.ContextedRuntimeException;
-import org.tillerino.jagger.processor.AnnotationProcessorUtils;
-import org.tillerino.jagger.processor.AnnotationProcessorUtils.GetAnnotationValues;
+import org.tillerino.jagger.processor.JaggerContext;
+import org.tillerino.jagger.processor.JaggerContext.GetAnnotationValues;
 
-public record Annotations(AnnotationProcessorUtils utils) {
+public record Annotations(JaggerContext ctx) {
     public Optional<AnnotationMirrorWrapper> findAnnotation(Element element, String annotationType) {
         for (AnnotationMirror annotationMirror : element.getAnnotationMirrors()) {
             if (annotationMirror.getAnnotationType().toString().equals(annotationType)) {
-                return Optional.of(new AnnotationMirrorWrapper(annotationMirror, utils));
+                return Optional.of(new AnnotationMirrorWrapper(annotationMirror, ctx));
             }
         }
         return Optional.empty();
     }
 
-    public record AnnotationMirrorWrapper(AnnotationMirror mirror, AnnotationProcessorUtils utils) {
+    public Optional<AnnotationMirrorWrapper> findAnnotation(Element element, TypeElement annotationType) {
+        for (AnnotationMirror annotationMirror : element.getAnnotationMirrors()) {
+            if (annotationMirror.getAnnotationType().asElement().equals(annotationType)) {
+                return Optional.of(new AnnotationMirrorWrapper(annotationMirror, ctx));
+            }
+        }
+        return Optional.empty();
+    }
+
+    public record AnnotationMirrorWrapper(AnnotationMirror mirror, JaggerContext ctx) {
         public Optional<AnnotationValueWrapper> method(String name, boolean withDefaults) {
             return filterMethod(
                             name,
                             withDefaults
-                                    ? utils.elements.getElementValuesWithDefaults(mirror)
+                                    ? ctx.elements.getElementValuesWithDefaults(mirror)
                                     : mirror.getElementValues())
                     .map(Map.Entry::getValue)
                     .map(AnnotationValueWrapper::new);

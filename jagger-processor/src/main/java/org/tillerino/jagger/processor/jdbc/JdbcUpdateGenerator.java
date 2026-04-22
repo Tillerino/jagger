@@ -1,20 +1,19 @@
-package org.tillerino.jagger.processor.apis;
+package org.tillerino.jagger.processor.jdbc;
 
 import com.squareup.javapoet.CodeBlock;
 import javax.lang.model.type.TypeMirror;
-import org.tillerino.jagger.processor.AnnotationProcessorUtils;
+import org.tillerino.jagger.processor.JaggerContext;
 import org.tillerino.jagger.processor.JaggerPrototype;
 import org.tillerino.jagger.processor.Snippet;
 import org.tillerino.jagger.processor.Snippet.PerfectSnippet;
 import org.tillerino.jagger.processor.config.AnyConfig;
 import org.tillerino.jagger.processor.config.ConfigProperty.LocationKind;
-import org.tillerino.jagger.processor.features.Jdbc;
 import org.tillerino.jagger.processor.util.InstantiatedMethod.InstantiatedVariable;
 
 public class JdbcUpdateGenerator extends AbstractJdbcGenerator<JdbcUpdateGenerator> {
 
-    public JdbcUpdateGenerator(JaggerPrototype prototype, AnnotationProcessorUtils utils) {
-        super(utils, prototype);
+    public JdbcUpdateGenerator(JaggerPrototype prototype, JaggerContext ctx) {
+        super(ctx, prototype);
     }
 
     public CodeBlock.Builder build() {
@@ -23,9 +22,9 @@ public class JdbcUpdateGenerator extends AbstractJdbcGenerator<JdbcUpdateGenerat
         if (sqlTemplate.isEmpty()) {
             InstantiatedVariable payloadParameter = getPayloadParameter();
             AnyConfig dtoConfig = AnyConfig.create(
-                    utils.commonTypes.asElement(utils.commonTypes.unwrapContainer(payloadParameter.type())),
+                    ctx.commonTypes.asElement(ctx.commonTypes.unwrapContainer(payloadParameter.type())),
                     LocationKind.DTO,
-                    utils);
+                    ctx);
 
             String quoteChar =
                     dtoConfig.merge(config).resolveProperty(Jdbc.QUOTE_CHAR).value();
@@ -49,8 +48,7 @@ public class JdbcUpdateGenerator extends AbstractJdbcGenerator<JdbcUpdateGenerat
             code.add("// Generated: $L\n", sqlTemplate);
         }
 
-        Jdbc.ParsedSql parsed = utils.jdbc
-                .parseTemplate(sqlTemplate, prototype.asInstantiatedMethod())
+        Jdbc.ParsedSql parsed = jdbc.parseTemplate(sqlTemplate, prototype.asInstantiatedMethod())
                 .addCommentIfPreprocessed(code);
 
         tryPrepareStatement(parsed).withBody(psVar -> {
@@ -62,8 +60,8 @@ public class JdbcUpdateGenerator extends AbstractJdbcGenerator<JdbcUpdateGenerat
 
             InstantiatedVariable toUpdate = getPayloadParameter();
 
-            if (utils.commonTypes.isIterableOrArray(toUpdate.type())) {
-                TypeMirror elementType = utils.commonTypes.unwrapContainer(toUpdate.type());
+            if (ctx.commonTypes.isIterableOrArray(toUpdate.type())) {
+                TypeMirror elementType = ctx.commonTypes.unwrapContainer(toUpdate.type());
 
                 ScopedVar loopVar = createVariable("item");
                 Snippet loopItems = Snippet.of("for ($T $C : $L)", elementType, loopVar, toUpdate.name());

@@ -1,30 +1,30 @@
-package org.tillerino.jagger.processor.apis;
+package org.tillerino.jagger.processor.databind;
 
 import static org.tillerino.jagger.processor.Snippet.joinPrependingCommaToEach;
 import static org.tillerino.jagger.processor.Snippet.of;
 
+import jakarta.annotation.Nonnull;
 import javax.lang.model.element.VariableElement;
 import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
-import org.tillerino.jagger.processor.AnnotationProcessorUtils;
 import org.tillerino.jagger.processor.GeneratedClass;
+import org.tillerino.jagger.processor.JaggerContext;
 import org.tillerino.jagger.processor.JaggerPrototype;
 import org.tillerino.jagger.processor.Snippet;
 import org.tillerino.jagger.processor.config.AnyConfig;
 import org.tillerino.jagger.processor.util.InstantiatedMethod;
 
-public class JaggerWriterGenerator extends AbstractWriterGenerator<JaggerWriterGenerator> {
+public class NanojsonWriterGenerator extends AbstractWriterGenerator<NanojsonWriterGenerator> {
     private final VariableElement generatorVariable;
 
-    public JaggerWriterGenerator(
-            AnnotationProcessorUtils utils, JaggerPrototype prototype, GeneratedClass generatedClass) {
-        super(utils, prototype, generatedClass);
+    public NanojsonWriterGenerator(JaggerContext ctx, JaggerPrototype prototype, GeneratedClass generatedClass) {
+        super(ctx, prototype, generatedClass);
         this.generatorVariable = prototype.methodElement().getParameters().get(1);
     }
 
-    protected JaggerWriterGenerator(
+    protected NanojsonWriterGenerator(
             TypeMirror type,
-            JaggerWriterGenerator parent,
+            @Nonnull NanojsonWriterGenerator parent,
             LHS lhs,
             RHS rhs,
             Property property,
@@ -36,15 +36,15 @@ public class JaggerWriterGenerator extends AbstractWriterGenerator<JaggerWriterG
 
     @Override
     protected Features features() {
-        return new Features(false);
+        return new Features(true);
     }
 
     @Override
     protected void writeNull() {
         if (lhs instanceof LHS.Field f) {
-            addStatement("$L.writeNullField($C)", generatorVariable.getSimpleName(), f);
+            addStatement("$L.nul($C)", generatorVariable.getSimpleName(), f);
         } else {
-            addStatement("$L.writeNull()", generatorVariable.getSimpleName());
+            addStatement("$L.nul()", generatorVariable.getSimpleName());
         }
     }
 
@@ -52,9 +52,9 @@ public class JaggerWriterGenerator extends AbstractWriterGenerator<JaggerWriterG
     protected void writeString(StringKind stringKind) {
         Snippet string = stringKind == StringKind.STRING ? rhs : charArrayToString(rhs);
         if (lhs instanceof LHS.Field f) {
-            addStatement(of("$L.writeField($C, $C)", generatorVariable.getSimpleName(), f, string));
+            addStatement(Snippet.of("$L.value($C, $C)", generatorVariable.getSimpleName(), f, string));
         } else {
-            addStatement(of("$L.write($C)", generatorVariable, string));
+            addStatement(Snippet.of("$L.value($C)", generatorVariable, string));
         }
     }
 
@@ -63,13 +63,13 @@ public class JaggerWriterGenerator extends AbstractWriterGenerator<JaggerWriterG
         Snippet asString = base64Encode(rhs);
         if (lhs instanceof LHS.Field f) {
             if (binaryKind == BinaryKind.BYTE_ARRAY) {
-                addStatement(of("$L.writeField($C, $C)", generatorVariable, f, asString));
+                addStatement(Snippet.of("$L.value($C, $C)", generatorVariable, f, asString));
                 return;
             } else {
             }
         }
         switch (binaryKind) {
-            case BYTE_ARRAY -> addStatement(of("$L.write($C)", generatorVariable, asString));
+            case BYTE_ARRAY -> addStatement(of("$L.value($C)", generatorVariable, asString));
         }
     }
 
@@ -80,56 +80,56 @@ public class JaggerWriterGenerator extends AbstractWriterGenerator<JaggerWriterG
             rhs_ = Snippet.of("String.valueOf($C)", rhs);
         }
         if (lhs instanceof LHS.Field f) {
-            addStatement(of("$L.writeField($C, $C)", generatorVariable, f, rhs_));
+            addStatement(of("$L.value($C, $C)", generatorVariable, f, rhs_));
         } else {
-            addStatement(of("$L.write($C)", generatorVariable, rhs_));
+            addStatement(of("$L.value($C)", generatorVariable, rhs_));
         }
     }
 
     @Override
     protected void startArray() {
         if (lhs instanceof LHS.Field f) {
-            addStatement("$L.startArrayField($C)", generatorVariable.getSimpleName(), f);
+            addStatement("$L.array($C)", generatorVariable.getSimpleName(), f);
         } else {
-            addStatement("$L.startArray()", generatorVariable.getSimpleName());
+            addStatement("$L.array()", generatorVariable.getSimpleName());
         }
     }
 
     @Override
     protected void endArray() {
-        addStatement("$L.endArray()", generatorVariable.getSimpleName());
+        addStatement("$L.end()", generatorVariable.getSimpleName());
     }
 
     @Override
     protected void startObject() {
         if (lhs instanceof LHS.Field f) {
-            addStatement("$L.startObjectField($C)", generatorVariable.getSimpleName(), f);
+            addStatement("$L.object($C)", generatorVariable.getSimpleName(), f);
         } else {
-            addStatement("$L.startObject()", generatorVariable.getSimpleName());
+            addStatement("$L.object()", generatorVariable.getSimpleName());
         }
     }
 
     @Override
     protected void endObject() {
-        addStatement("$L.endObject()", generatorVariable.getSimpleName());
+        addStatement("$L.end()", generatorVariable.getSimpleName());
     }
 
     @Override
     protected void invokeDelegate(String instance, InstantiatedMethod callee) {
         if (lhs instanceof LHS.Field f) {
-            addStatement(of("$L.writeFieldName($C)", generatorVariable, f));
+            addStatement(of("$L.key($C)", generatorVariable, f));
         }
         addStatement(of(
                 "$L.$L($C$C)",
                 instance,
                 callee,
                 rhs,
-                joinPrependingCommaToEach(utils.delegation.findArguments(prototype, callee, 1, generatedClass))));
+                joinPrependingCommaToEach(ctx.delegation.findArguments(prototype, callee, 1, generatedClass))));
     }
 
     @Override
-    protected JaggerWriterGenerator nest(
+    protected NanojsonWriterGenerator nest(
             TypeMirror type, LHS lhs, Property property, RHS rhs, boolean stackRelevantType, AnyConfig config) {
-        return new JaggerWriterGenerator(type, this, lhs, rhs, property, stackRelevantType, config);
+        return new NanojsonWriterGenerator(type, this, lhs, rhs, property, stackRelevantType, config);
     }
 }

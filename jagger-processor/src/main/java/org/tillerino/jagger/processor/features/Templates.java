@@ -8,8 +8,8 @@ import javax.lang.model.type.TypeVariable;
 import org.apache.commons.lang3.exception.ContextedRuntimeException;
 import org.tillerino.jagger.annotations.JsonTemplate;
 import org.tillerino.jagger.annotations.JsonTemplate.JsonTemplates;
-import org.tillerino.jagger.processor.AnnotationProcessorUtils;
 import org.tillerino.jagger.processor.JaggerBlueprint;
+import org.tillerino.jagger.processor.JaggerContext;
 import org.tillerino.jagger.processor.JaggerProcessor.Trigger;
 import org.tillerino.jagger.processor.JaggerPrototype;
 import org.tillerino.jagger.processor.config.ConfigProperty.LocationKind;
@@ -20,9 +20,9 @@ import org.tillerino.jagger.processor.util.Exceptions;
 import org.tillerino.jagger.processor.util.InstantiatedMethod;
 import org.tillerino.jagger.processor.util.PrototypeKind;
 
-public record Templates(AnnotationProcessorUtils utils) {
+public record Templates(JaggerContext ctx) {
     public List<JaggerPrototype> instantiateTemplatedPrototypesFromSingleAnnotation(JaggerBlueprint blueprint) {
-        AnnotationMirrorWrapper templateAnnotation = utils.annotations
+        AnnotationMirrorWrapper templateAnnotation = ctx.annotations
                 .findAnnotation(blueprint.typeElement, JsonTemplate.class.getCanonicalName())
                 .orElseThrow(Exceptions::unexpected);
         return createTemplatesFromAnnotation(blueprint, templateAnnotation);
@@ -30,7 +30,7 @@ public record Templates(AnnotationProcessorUtils utils) {
 
     public List<JaggerPrototype> instantiateTemplatedPrototypesFromMultipleAnnotations(JaggerBlueprint blueprint) {
         List<JaggerPrototype> instantiatedPrototypes = new ArrayList<>();
-        utils.annotations
+        ctx.annotations
                 .findAnnotation(blueprint.typeElement, JsonTemplates.class.getCanonicalName())
                 .orElseThrow(Exceptions::unexpected)
                 .method("value", false)
@@ -48,18 +48,13 @@ public record Templates(AnnotationProcessorUtils utils) {
         List<JaggerPrototype> instantiatedPrototypes = new ArrayList<>();
         for (TypeMirror type : types) {
             for (Template template : templates) {
-                PrototypeKind prototypeKind = template.kind.withJavaType(type);
-                InstantiatedMethod instantiatedMethod = utils.generics
+                PrototypeKind prototypeKind = template.kind.withInternalType(type);
+                InstantiatedMethod instantiatedMethod = ctx.generics
                         .applyTypeBindings(template.method, Map.of(template.typeVar, type))
                         .withName(prototypeKind.defaultMethodName());
 
                 instantiatedPrototypes.add(JaggerPrototype.of(
-                        blueprint,
-                        instantiatedMethod,
-                        prototypeKind,
-                        utils,
-                        false,
-                        new Trigger(blueprint.typeElement)));
+                        blueprint, instantiatedMethod, prototypeKind, ctx, false, new Trigger(blueprint.typeElement)));
             }
         }
         return instantiatedPrototypes;
@@ -70,19 +65,19 @@ public record Templates(AnnotationProcessorUtils utils) {
                 .map(templateWrapper -> {
                     TypeMirror templateType = templateWrapper.asTypeMirror();
                     List<InstantiatedMethod> templateMethods =
-                            utils.generics.instantiateMethods(templateType, LocationKind.PROTOTYPE);
+                            ctx.generics.instantiateMethods(templateType, LocationKind.PROTOTYPE);
                     if (templateMethods.size() != 1) {
                         throw new ContextedRuntimeException("Template is not a functional interface")
                                 .addContextValue("template", templateType);
                     }
                     InstantiatedMethod template = templateMethods.get(0);
-                    PrototypeKind prototypeKind = PrototypeKind.of(template, utils)
+                    PrototypeKind prototypeKind = ctx.detectPrototype(template)
                             .orElseThrow(() -> new ContextedRuntimeException("Template prototype of unknown kind")
                                     .addContextValue("prototype", template));
-                    if (!(prototypeKind.javaType() instanceof TypeVariable v)) {
+                    if (!(prototypeKind.internalType() instanceof TypeVariable v)) {
                         throw new ContextedRuntimeException("Template prototype must serialize a type variable")
                                 .addContextValue("prototype", template)
-                                .addContextValue("serialized", prototypeKind.javaType());
+                                .addContextValue("serialized", prototypeKind.internalType());
                     }
                     return new Template(template, prototypeKind, TypeVar.of(v));
                 })

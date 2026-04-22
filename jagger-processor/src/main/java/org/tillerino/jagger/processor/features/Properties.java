@@ -7,7 +7,7 @@ import javax.lang.model.element.*;
 import javax.lang.model.type.DeclaredType;
 import javax.lang.model.type.TypeMirror;
 import javax.lang.model.util.ElementFilter;
-import org.tillerino.jagger.processor.AnnotationProcessorUtils;
+import org.tillerino.jagger.processor.JaggerContext;
 import org.tillerino.jagger.processor.config.AnyConfig;
 import org.tillerino.jagger.processor.features.Generics.TypeVar;
 import org.tillerino.jagger.processor.util.Accessor;
@@ -16,15 +16,15 @@ import org.tillerino.jagger.processor.util.Accessor.ElementAccessor;
 import org.tillerino.jagger.processor.util.Accessor.ReadAccessor;
 import org.tillerino.jagger.processor.util.Exceptions;
 
-public record Properties(AnnotationProcessorUtils utils) {
+public record Properties(JaggerContext ctx) {
 
     public List<OutputProperty> outputProperties(TypeMirror type, AnyConfig config) {
-        return utils.properties.listReadAccessors(type).entrySet().stream()
+        return ctx.properties.listReadAccessors(type).entrySet().stream()
                 .map(entry -> {
                     String canonicalName = entry.getKey();
                     ReadAccessor accessor = entry.getValue();
                     AnyConfig propertyConfig = AnyConfig.fromAccessorConsideringField(
-                                    accessor, accessor.name(), type, canonicalName, utils)
+                                    accessor, accessor.name(), type, canonicalName, ctx)
                             .merge(config);
                     String externalName = PropertyName.resolvePropertyName(propertyConfig, canonicalName);
                     return new OutputProperty(canonicalName, externalName, accessor, propertyConfig);
@@ -39,11 +39,11 @@ public record Properties(AnnotationProcessorUtils utils) {
 
         Map<String, Accessor.ReadAccessor> accessors = new LinkedHashMap<>();
 
-        for (DeclaredType directSupertype : Polymorphism.directSupertypes(type, utils)) {
+        for (DeclaredType directSupertype : Polymorphism.directSupertypes(type, ctx)) {
             accessors.putAll(listReadAccessors(directSupertype));
         }
 
-        Map<TypeVar, TypeMirror> typeBindings = utils.generics.recordTypeBindings(declaredType);
+        Map<TypeVar, TypeMirror> typeBindings = ctx.generics.recordTypeBindings(declaredType);
 
         TypeElement typeElement = (TypeElement) declaredType.asElement();
         if (typeElement.getKind() == ElementKind.RECORD) {
@@ -51,7 +51,7 @@ public record Properties(AnnotationProcessorUtils utils) {
                 accessors.put(
                         recordComponent.getSimpleName().toString(),
                         new ElementAccessor(
-                                utils.generics.applyTypeBindings(recordComponent.asType(), typeBindings),
+                                ctx.generics.applyTypeBindings(recordComponent.asType(), typeBindings),
                                 recordComponent.getAccessor(),
                                 AccessorKind.GETTER));
             }
@@ -63,7 +63,7 @@ public record Properties(AnnotationProcessorUtils utils) {
                     || !field.getModifiers().contains(Modifier.PUBLIC)) {
                 continue;
             }
-            TypeMirror fieldType = utils.generics.applyTypeBindings(field.asType(), typeBindings);
+            TypeMirror fieldType = ctx.generics.applyTypeBindings(field.asType(), typeBindings);
             accessors.put(field.getSimpleName().toString(), new ElementAccessor(fieldType, field, AccessorKind.FIELD));
         }
 
@@ -74,7 +74,7 @@ public record Properties(AnnotationProcessorUtils utils) {
                 accessors.put(
                         propertyName,
                         new Accessor.ElementAccessor(
-                                utils.generics.applyTypeBindings(method.getReturnType(), typeBindings),
+                                ctx.generics.applyTypeBindings(method.getReturnType(), typeBindings),
                                 method,
                                 Accessor.AccessorKind.GETTER));
             }
@@ -90,11 +90,11 @@ public record Properties(AnnotationProcessorUtils utils) {
 
         Map<String, Accessor.WriteAccessor> accessors = new LinkedHashMap<>();
 
-        for (DeclaredType directSupertype : Polymorphism.directSupertypes(type, utils)) {
+        for (DeclaredType directSupertype : Polymorphism.directSupertypes(type, ctx)) {
             accessors.putAll(listWriteAccessors(directSupertype));
         }
 
-        Map<TypeVar, TypeMirror> typeBindings = utils.generics.recordTypeBindings(declaredType);
+        Map<TypeVar, TypeMirror> typeBindings = ctx.generics.recordTypeBindings(declaredType);
 
         for (VariableElement field :
                 ElementFilter.fieldsIn(declaredType.asElement().getEnclosedElements())) {
@@ -107,7 +107,7 @@ public record Properties(AnnotationProcessorUtils utils) {
             accessors.put(
                     field.getSimpleName().toString(),
                     new Accessor.ElementAccessor(
-                            utils.generics.applyTypeBindings(field.asType(), typeBindings),
+                            ctx.generics.applyTypeBindings(field.asType(), typeBindings),
                             field,
                             Accessor.AccessorKind.FIELD));
         }
@@ -124,7 +124,7 @@ public record Properties(AnnotationProcessorUtils utils) {
             accessors.put(
                     propertyName,
                     new ElementAccessor(
-                            utils.generics.applyTypeBindings(
+                            ctx.generics.applyTypeBindings(
                                     method.getParameters().get(0).asType(), typeBindings),
                             method,
                             AccessorKind.SETTER));

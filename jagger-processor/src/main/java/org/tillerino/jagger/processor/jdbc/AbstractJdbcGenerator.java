@@ -1,34 +1,37 @@
-package org.tillerino.jagger.processor.apis;
+package org.tillerino.jagger.processor.jdbc;
 
 import java.sql.PreparedStatement;
 import org.apache.commons.lang3.StringUtils;
-import org.tillerino.jagger.processor.AnnotationProcessorUtils;
+import org.tillerino.jagger.processor.AbstractCodeGenerator;
+import org.tillerino.jagger.processor.JaggerContext;
 import org.tillerino.jagger.processor.JaggerPrototype;
 import org.tillerino.jagger.processor.Snippet;
 import org.tillerino.jagger.processor.Snippet.PerfectSnippet.TypedVariable;
 import org.tillerino.jagger.processor.Snippet.TypedSnippet;
 import org.tillerino.jagger.processor.config.AnyConfig;
-import org.tillerino.jagger.processor.features.Jdbc.ParsedSql;
+import org.tillerino.jagger.processor.jdbc.Jdbc.ParsedSql;
+import org.tillerino.jagger.processor.jdbc.JdbcDetector.JdbcPrototypeKind;
 import org.tillerino.jagger.processor.util.InstantiatedMethod.InstantiatedVariable;
-import org.tillerino.jagger.processor.util.PrototypeKind.JdbcPrototypeKind;
 
 public abstract class AbstractJdbcGenerator<SELF extends AbstractJdbcGenerator<SELF>>
         extends AbstractCodeGenerator<SELF> {
-    protected final AnnotationProcessorUtils utils;
+    protected final JaggerContext ctx;
     protected final JaggerPrototype prototype;
     protected final AnyConfig config;
     protected final JdbcPrototypeKind kind;
+    protected final Jdbc jdbc;
 
-    public AbstractJdbcGenerator(AnnotationProcessorUtils utils, JaggerPrototype prototype) {
+    public AbstractJdbcGenerator(JaggerContext ctx, JaggerPrototype prototype) {
         super(prototype.asInstantiatedMethod());
-        this.utils = utils;
+        this.ctx = ctx;
         this.prototype = prototype;
         this.config = prototype.config();
         this.kind = (JdbcPrototypeKind) prototype.kind();
+        this.jdbc = new Jdbc(ctx);
     }
 
     protected TypedVariable prepareStatement(ParsedSql parsed) {
-        TypedVariable psVar = createVariable("ps").withType(utils.commonTypes.preparedStatement);
+        TypedVariable psVar = createVariable("ps").withType(ctx.commonTypes.preparedStatement);
         addStatement(
                 "$T $C = $L.prepareStatement($S)",
                 PreparedStatement.class,
@@ -39,7 +42,7 @@ public abstract class AbstractJdbcGenerator<SELF extends AbstractJdbcGenerator<S
     }
 
     protected UnaryControlFlowScope<TypedVariable> tryPrepareStatement(ParsedSql parsed) {
-        TypedVariable psVar = createVariable("ps").withType(utils.commonTypes.preparedStatement);
+        TypedVariable psVar = createVariable("ps").withType(ctx.commonTypes.preparedStatement);
         return beginControlFlow(
                         "try ($T $C = $L.prepareStatement($S))",
                         PreparedStatement.class,

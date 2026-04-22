@@ -5,70 +5,40 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collector;
 import java.util.stream.Collectors;
 import javax.lang.model.element.Element;
-import org.tillerino.jagger.processor.AnnotationProcessorUtils;
-import org.tillerino.jagger.processor.JaggerBlueprint;
+import org.tillerino.jagger.processor.JaggerContext;
 import org.tillerino.jagger.processor.util.Annotations.AnnotationMirrorWrapper;
-import org.tillerino.jagger.processor.util.Annotations.AnnotationValueWrapper;
 
 public final class ConfigProperty<T> {
     private static final AtomicInteger counter = new AtomicInteger();
 
-    public static ConfigProperty<Set<JaggerBlueprint>> USES = createConfigProperty(
-            List.of(LocationKind.values()),
-            List.of(new AnnotationConfigPropertyRetriever<>(
-                    "org.tillerino.jagger.annotations.JsonConfig", (wrapper, utils) -> wrapper.method("uses", true)
-                            .map(AnnotationValueWrapper::asArray)
-                            .map(classNames -> classNames.stream()
-                                    .map(className -> utils.blueprint(utils.elements.getTypeElement(
-                                            className.asTypeMirror().toString())))
-                                    .flatMap(JaggerBlueprint::includeUses)
-                                    .collect(toUnmodifiableSet())))),
-            Set.of(),
-            MergeFunction.mergeSets(),
-            PropagationKind.all());
-
     final int index = counter.incrementAndGet();
 
+    public final String name;
     public final List<LocationKind> locationKind;
-    public final List<ConfigPropertyRetriever<T>> retrievers;
     public final T defaultValue;
     public final MergeFunction<T> merger;
     public final List<PropagationKind> propagateTo;
 
     public ConfigProperty(
+            String name,
             List<LocationKind> locationKind,
-            List<ConfigPropertyRetriever<T>> retrievers,
             T defaultValue,
             MergeFunction<T> merger,
             List<PropagationKind> propagateTo) {
+        this.name = name;
         this.locationKind = locationKind;
-        this.retrievers = retrievers;
         this.defaultValue = defaultValue;
         this.merger = merger;
         this.propagateTo = propagateTo;
     }
 
     public static <T> ConfigProperty<T> createConfigProperty(
+            String name,
             List<LocationKind> locationKind,
-            List<ConfigPropertyRetriever<T>> retriever,
             T defaultValue,
             MergeFunction<T> merger,
             List<PropagationKind> doNotPropagateTo) {
-        return new ConfigProperty<>(locationKind, retriever, defaultValue, merger, doNotPropagateTo);
-    }
-
-    Optional<InstantiatedProperty<T>> instantiate(
-            Element element, LocationKind elementType, AnnotationProcessorUtils utils) {
-        if (!this.locationKind.contains(elementType)) {
-            return Optional.empty();
-        }
-        return retrievers.stream()
-                .flatMap(retriever -> retriever
-                        .retrieve(element, utils)
-                        .map(occurrence -> new InstantiatedProperty<>(
-                                ConfigProperty.this, elementType, occurrence.value, occurrence.sourceLocation))
-                        .stream())
-                .reduce(merger::merge);
+        return new ConfigProperty<>(name, locationKind, defaultValue, merger, doNotPropagateTo);
     }
 
     public static <T> Collector<T, ?, Set<T>> toUnmodifiableSet() {
@@ -76,12 +46,17 @@ public final class ConfigProperty<T> {
         return Collectors.collectingAndThen(Collectors.toCollection(LinkedHashSet::new), Collections::unmodifiableSet);
     }
 
+    @Override
+    public String toString() {
+        return name;
+    }
+
     public interface MergeFunction<T> {
         InstantiatedProperty<T> merge(InstantiatedProperty<T> strong, InstantiatedProperty<T> weak);
 
-        static <T> MergeFunction<T> notDefault(T defaultValue) {
+        static <T> MergeFunction<T> notDefault() {
             return (strong, weak) -> {
-                if (strong.property.equals(defaultValue)) {
+                if (strong.property.equals(strong.property.defaultValue)) {
                     return weak;
                 }
                 return strong;
@@ -142,33 +117,26 @@ public final class ConfigProperty<T> {
     }
 
     public interface ConfigPropertyRetriever<T> {
-        Optional<PropertyOccurrence<T>> retrieve(Element element, AnnotationProcessorUtils utils);
+        Optional<PropertyOccurrence<T>> retrieve(Element element, JaggerContext ctx);
     }
 
     public record AnnotationConfigPropertyRetriever<T>(
             String annotationClass, AnnotationPropertyRetriever<T> valueRetriever)
             implements ConfigPropertyRetriever<T> {
 
-        public static <T extends Enum<T>> AnnotationConfigPropertyRetriever<T> jsonConfigPropertyRetriever(
-                String method, Class<T> enumClass) {
-            return new AnnotationConfigPropertyRetriever<>(
-                    "org.tillerino.jagger.annotations.JsonConfig", (wrapper, utils) -> wrapper.method(method, false)
-                            .map(annotationValueWrapper -> annotationValueWrapper.asEnum(enumClass)));
-        }
-
         @Override
-        public Optional<PropertyOccurrence<T>> retrieve(Element element, AnnotationProcessorUtils utils) {
-            return utils
+        public Optional<PropertyOccurrence<T>> retrieve(Element element, JaggerContext ctx) {
+            return ctx
                     .annotations
                     .findAnnotation(element, annotationClass)
-                    .flatMap(annotation -> valueRetriever.retrieve(annotation, utils))
+                    .flatMap(valueRetriever::retrieve)
                     .map(value -> new PropertyOccurrence<>(value, annotationClass + " on " + element))
                     .stream()
                     .findFirst();
         }
 
         public interface AnnotationPropertyRetriever<T> {
-            Optional<T> retrieve(AnnotationMirrorWrapper annotation, AnnotationProcessorUtils utils);
+            Optional<T> retrieve(AnnotationMirrorWrapper annotation);
         }
     }
 

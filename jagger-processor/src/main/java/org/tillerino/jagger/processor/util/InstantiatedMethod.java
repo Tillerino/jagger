@@ -7,7 +7,7 @@ import javax.lang.model.element.ExecutableElement;
 import javax.lang.model.element.VariableElement;
 import javax.lang.model.type.DeclaredType;
 import javax.lang.model.type.TypeMirror;
-import org.tillerino.jagger.processor.AnnotationProcessorUtils;
+import org.tillerino.jagger.processor.JaggerContext;
 import org.tillerino.jagger.processor.Snippet;
 import org.tillerino.jagger.processor.Snippet.PerfectSnippet;
 import org.tillerino.jagger.processor.Snippet.PerfectSnippet.ConstructorCall;
@@ -22,9 +22,9 @@ public record InstantiatedMethod(
         ExecutableElement element,
         AnyConfig config)
         implements Named {
-    public Snippet callSymbol(AnnotationProcessorUtils utils) {
+    public Snippet callSymbol(JaggerContext ctx) {
         TypeMirror tm = element.getEnclosingElement().asType();
-        TypeMirror raw = utils.types.erasure(tm);
+        TypeMirror raw = ctx.types.erasure(tm);
         String diamond =
                 (tm instanceof DeclaredType dt) && !dt.getTypeArguments().isEmpty() ? "<>" : "";
         return element.getKind() == ElementKind.CONSTRUCTOR
@@ -32,9 +32,9 @@ public record InstantiatedMethod(
                 : Snippet.of("$T.$L", raw, name);
     }
 
-    public PerfectSnippet invoke(AnnotationProcessorUtils utils, List<PerfectSnippet> args) {
+    public PerfectSnippet invoke(JaggerContext ctx, List<PerfectSnippet> args) {
         TypeMirror tm = element.getEnclosingElement().asType();
-        TypeMirror raw = utils.types.erasure(tm);
+        TypeMirror raw = ctx.types.erasure(tm);
         String diamond =
                 (tm instanceof DeclaredType dt) && !dt.getTypeArguments().isEmpty() ? "<>" : "";
         return element.getKind() == ElementKind.CONSTRUCTOR
@@ -42,15 +42,15 @@ public record InstantiatedMethod(
                 : new StaticMethodInvocation(returnType, raw, name, args);
     }
 
-    public boolean hasSameSignature(InstantiatedMethod other, AnnotationProcessorUtils utils) {
-        if (!utils.types.isSameType(returnType, other.returnType)) {
+    public boolean hasSameSignature(InstantiatedMethod other, JaggerContext ctx) {
+        if (!ctx.types.isSameType(returnType, other.returnType)) {
             return false;
         }
         if (parameters.size() != other.parameters.size()) {
             return false;
         }
         for (int i = 0; i < parameters.size(); i++) {
-            if (!utils.types.isSameType(
+            if (!ctx.types.isSameType(
                     parameters.get(i).type(), other.parameters.get(i).type())) {
                 return false;
             }
@@ -58,8 +58,8 @@ public record InstantiatedMethod(
         return true;
     }
 
-    public boolean hasParameterAssignableFrom(TypeMirror t, AnnotationProcessorUtils utils) {
-        return parameters.stream().anyMatch(p -> utils.commonTypes.isAssignable(t, p.type));
+    public boolean hasParameterAssignableFrom(TypeMirror t, JaggerContext ctx) {
+        return parameters.stream().anyMatch(p -> ctx.commonTypes.isAssignable(t, p.type));
     }
 
     @Override

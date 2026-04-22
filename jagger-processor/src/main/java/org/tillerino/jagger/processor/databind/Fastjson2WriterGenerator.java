@@ -1,12 +1,12 @@
-package org.tillerino.jagger.processor.apis;
+package org.tillerino.jagger.processor.databind;
 
 import javax.lang.model.element.VariableElement;
 import javax.lang.model.type.ArrayType;
 import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
 import org.apache.commons.lang3.exception.ContextedRuntimeException;
-import org.tillerino.jagger.processor.AnnotationProcessorUtils;
 import org.tillerino.jagger.processor.GeneratedClass;
+import org.tillerino.jagger.processor.JaggerContext;
 import org.tillerino.jagger.processor.JaggerPrototype;
 import org.tillerino.jagger.processor.Snippet;
 import org.tillerino.jagger.processor.config.AnyConfig;
@@ -15,9 +15,8 @@ import org.tillerino.jagger.processor.util.InstantiatedMethod;
 public class Fastjson2WriterGenerator extends AbstractWriterGenerator<Fastjson2WriterGenerator> {
     private final VariableElement writerVariable;
 
-    public Fastjson2WriterGenerator(
-            AnnotationProcessorUtils utils, JaggerPrototype prototype, GeneratedClass generatedClass) {
-        super(utils, prototype, generatedClass);
+    public Fastjson2WriterGenerator(JaggerContext ctx, JaggerPrototype prototype, GeneratedClass generatedClass) {
+        super(ctx, prototype, generatedClass);
         this.writerVariable = prototype.methodElement().getParameters().get(1);
     }
 
@@ -132,8 +131,7 @@ public class Fastjson2WriterGenerator extends AbstractWriterGenerator<Fastjson2W
                 instance,
                 callee,
                 rhs,
-                Snippet.joinPrependingCommaToEach(
-                        utils.delegation.findArguments(prototype, callee, 1, generatedClass))));
+                Snippet.joinPrependingCommaToEach(ctx.delegation.findArguments(prototype, callee, 1, generatedClass))));
     }
 
     @Override
