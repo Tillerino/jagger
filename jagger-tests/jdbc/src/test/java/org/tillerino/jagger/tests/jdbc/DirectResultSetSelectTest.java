@@ -93,4 +93,14 @@ public class DirectResultSetSelectTest extends AbstractJdbcTest {
                     .containsExactly(new SimpleEntityRecord(1, "a"), new SimpleEntityRecord(2, "b"));
         });
     }
+
+    @Test
+    void testSelectIterable() throws SQLException {
+        execute(SimpleEntityRecord.SCHEMA);
+        serde.insertMultiple(connection, List.of(new SimpleEntityRecord(1, "a"), new SimpleEntityRecord(2, "b")));
+        executeQuery("SELECT * FROM \"simple\"", rs -> {
+            Iterable<SimpleEntityRecord> result = rsSerde.iterableFromResultSet(rs);
+            assertThat(result).containsExactly(new SimpleEntityRecord(1, "a"), new SimpleEntityRecord(2, "b"));
+        });
+    }
 }

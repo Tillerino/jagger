@@ -19,4 +19,7 @@ public interface DirectResultSetSelectSerde {
 
     @JdbcSelect
     Iterator<Serde.SimpleEntityRecord> iteratorFromResultSet(ResultSet rs) throws SQLException;
+
+    @JdbcSelect
+    Iterable<Serde.SimpleEntityRecord> iterableFromResultSet(ResultSet rs) throws SQLException;
 }

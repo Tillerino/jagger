@@ -101,6 +101,18 @@ public class JdbcSelectGenerator extends AbstractJdbcGenerator<JdbcSelectGenerat
     }
 
     private CodeBlock.Builder buildFromResultSet() {
+        if (ctx.types.isSameType(
+                ctx.types.erasure(kind.internalType()), ctx.types.erasure(ctx.commonTypes.type(Iterable.class)))) {
+            lambda(
+                    Snippet.of("return ()"),
+                    () -> returnIterator(
+                            ctx.commonTypes.getComponentType(kind.internalType(), Iterable.class),
+                            kind.jdbcVariable(),
+                            new Literal(ctx.commonTypes.preparedStatement, "null")),
+                    Snippet.of(";\n"));
+            return code;
+        }
+
         if (ctx.commonTypes.isErasureAssignableTo(kind.internalType(), Iterator.class)) {
             returnIterator(
                     ctx.commonTypes.getComponentType(kind.internalType(), Iterator.class),
@@ -167,27 +179,29 @@ public class JdbcSelectGenerator extends AbstractJdbcGenerator<JdbcSelectGenerat
 
     private void returnIterator(TypeMirror type, PerfectSnippet rsVar, PerfectSnippet psVar) {
         TypedVariable innerRsVar = createVariable("rs").withType(ctx.commonTypes.resultSet);
-        beginControlFlow("return new $T<>($C, $C, $C ->", ResultSetIterator.class, rsVar, psVar, innerRsVar);
-        PerfectSnippet read = read(type, innerRsVar);
-        addStatement("return $C", read);
-        code.unindent();
-        popVariablesStack();
-        code.addStatement("})");
+        lambda(
+                Snippet.of("return new $T<>($C, $C, $C", ResultSetIterator.class, rsVar, psVar, innerRsVar),
+                () -> {
+                    PerfectSnippet read = read(type, innerRsVar);
+                    addStatement("return $C", read);
+                },
+                Snippet.of(");\n"));
     }
 
     private void selectIterable(ParsedSql parsed, TypeMirror componentType) {
-        beginControlFlow("return () ->");
-        ScopedVar e = createVariable("e");
-        beginControlFlow("try");
-        selectIterator(parsed, componentType);
-        nextControlFlow(Snippet.of("catch ($T $C)", SQLException.class, e))
-                .withBody(() -> addStatement(Snippet.of(
-                        "throw new $T($C)",
-                        ClassName.get("org.tillerino.jagger.helpers.jdbc", "UncheckedSQLException"),
-                        e)));
-        code.unindent();
-        popVariablesStack();
-        addStatement("}");
+        lambda(
+                Snippet.of("return ()"),
+                () -> {
+                    ScopedVar e = createVariable("e");
+                    beginControlFlow("try");
+                    selectIterator(parsed, componentType);
+                    nextControlFlow(Snippet.of("catch ($T $C)", SQLException.class, e))
+                            .withBody(() -> addStatement(Snippet.of(
+                                    "throw new $T($C)",
+                                    ClassName.get("org.tillerino.jagger.helpers.jdbc", "UncheckedSQLException"),
+                                    e)));
+                },
+                Snippet.of(";\n"));
     }
 
     private PerfectSnippet read(TypeMirror type, PerfectSnippet rsVar) {

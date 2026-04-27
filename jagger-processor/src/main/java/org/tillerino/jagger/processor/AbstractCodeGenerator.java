@@ -89,6 +89,25 @@ public class AbstractCodeGenerator<SELF extends AbstractCodeGenerator<SELF>> {
         return new ScopedVar(name + suf);
     }
 
+    /**
+     * @param parameters not including the arrow, must include parentheses if multiple args.
+     * @param body body-generating code - indented with a nested variable scope
+     * @param afterBody e.g. {@code ;\n}
+     */
+    public void lambda(Snippet parameters, Runnable body, Snippet afterBody) {
+        Flattened f = parameters.flatten();
+        code.add(f.format() + " -> {\n", f.args());
+
+        code.indent();
+        variables.push(new LinkedHashSet<>(variables.peek()));
+        body.run();
+        code.unindent();
+        popVariablesStack();
+
+        Flattened g = afterBody.flatten();
+        code.add("}" + g.format(), g.args());
+    }
+
     public record ScopedVar(String name) implements Snippet {
         @Override
         public Flattened flatten() {
