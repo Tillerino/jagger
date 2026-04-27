@@ -14,7 +14,7 @@
         <dependency>
             <groupId>org.tillerino.jagger</groupId>
             <artifactId>jagger-tests-base</artifactId>
-            <version>0.7.1-SNAPSHOT</version>
+            <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
