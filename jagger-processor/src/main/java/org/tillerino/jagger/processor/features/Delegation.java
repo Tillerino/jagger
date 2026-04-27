@@ -16,7 +16,7 @@ import org.tillerino.jagger.processor.config.ConfigProperty.MergeFunction;
 import org.tillerino.jagger.processor.config.ConfigProperty.PropagationKind;
 import org.tillerino.jagger.processor.util.InstantiatedMethod;
 import org.tillerino.jagger.processor.util.InstantiatedMethod.InstantiatedVariable;
-import org.tillerino.jagger.processor.util.PrototypeKind;
+import org.tillerino.jagger.processor.util.PrototypeKind.TemplatablePrototypeKind;
 import org.tillerino.jagger.processor.util.ShortName;
 
 public record Delegation(JaggerContext ctx) {
@@ -79,11 +79,16 @@ public record Delegation(JaggerContext ctx) {
     }
 
     private Optional<Delegatee> findDelegateeInMethodParameters(JaggerPrototype prototype, TypeMirror type) {
-        for (InstantiatedVariable parameter : prototype.kind().otherParameters()) {
+        if (!(prototype.kind() instanceof TemplatablePrototypeKind t)) {
+            return Optional.empty();
+        }
+        for (InstantiatedVariable parameter : prototype.instantiatedParameters()) {
             for (InstantiatedMethod method :
                     ctx.generics.instantiateMethods(parameter.type(), LocationKind.PROTOTYPE)) {
-                Optional<PrototypeKind> prototypeKind = ctx.detectPrototype(method)
-                        .filter(kind -> kind.matches(prototype.kind().withInternalType(type), ctx));
+                Optional<TemplatablePrototypeKind> prototypeKind = ctx.detectPrototype(method)
+                        .filter(kind -> kind instanceof TemplatablePrototypeKind)
+                        .map(TemplatablePrototypeKind.class::cast)
+                        .filter(kind -> kind.matches(t.withInternalType(type), ctx));
                 if (prototypeKind.isPresent()) {
                     return Optional.of(new Delegatee(parameter.name(), method));
                 }

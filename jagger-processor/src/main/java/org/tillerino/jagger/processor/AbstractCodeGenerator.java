@@ -2,32 +2,42 @@ package org.tillerino.jagger.processor;
 
 import com.squareup.javapoet.CodeBlock;
 import java.util.LinkedHashSet;
+import java.util.Objects;
 import java.util.Set;
 import java.util.Stack;
 import java.util.function.Consumer;
 import javax.lang.model.type.TypeMirror;
 import org.tillerino.jagger.processor.Snippet.Flattened;
 import org.tillerino.jagger.processor.Snippet.PerfectSnippet.TypedVariable;
-import org.tillerino.jagger.processor.util.InstantiatedMethod;
 import org.tillerino.jagger.processor.util.InstantiatedMethod.InstantiatedVariable;
+import org.tillerino.jagger.processor.util.PrototypeKind.CodeGeneratorContext;
 
 public class AbstractCodeGenerator<SELF extends AbstractCodeGenerator<SELF>> {
     protected final CodeBlock.Builder code;
     protected final Stack<Set<String>> variables;
+    protected final JaggerContext ctx;
+    protected final GeneratedClass generatedClass;
+    protected final JaggerPrototype prototype;
 
-    public AbstractCodeGenerator(InstantiatedMethod method) {
-        this.code = CodeBlock.builder();
+    public AbstractCodeGenerator(CodeGeneratorContext generatorContext) {
+        this.ctx = generatorContext.ctx();
+        this.generatedClass = Objects.requireNonNull(generatorContext.generatedClass());
+        this.prototype = generatorContext.prototype();
         this.variables = new Stack<>();
         LinkedHashSet<String> rootVariables = new LinkedHashSet<>();
-        for (InstantiatedVariable parameter : method.parameters()) {
+        for (InstantiatedVariable parameter : generatorContext.prototype().instantiatedParameters()) {
             rootVariables.add(parameter.name());
         }
         this.variables.push(rootVariables);
+        this.code = CodeBlock.builder();
     }
 
     public AbstractCodeGenerator(AbstractCodeGenerator<SELF> parent) {
         this.code = parent.code;
         this.variables = parent.variables;
+        this.ctx = parent.ctx;
+        this.generatedClass = Objects.requireNonNull(parent.generatedClass);
+        this.prototype = parent.prototype;
     }
 
     public AbstractCodeGenerator<SELF> addStatement(Snippet s) {

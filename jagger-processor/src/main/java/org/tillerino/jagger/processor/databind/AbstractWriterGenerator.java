@@ -5,9 +5,6 @@ import java.util.*;
 import javax.lang.model.element.TypeElement;
 import javax.lang.model.type.*;
 import org.apache.commons.lang3.exception.ContextedRuntimeException;
-import org.tillerino.jagger.processor.GeneratedClass;
-import org.tillerino.jagger.processor.JaggerContext;
-import org.tillerino.jagger.processor.JaggerPrototype;
 import org.tillerino.jagger.processor.Snippet;
 import org.tillerino.jagger.processor.Snippet.TypedSnippet;
 import org.tillerino.jagger.processor.config.AnyConfig;
@@ -24,6 +21,7 @@ import org.tillerino.jagger.processor.features.Verification.ProtoAndProps;
 import org.tillerino.jagger.processor.util.Exceptions;
 import org.tillerino.jagger.processor.util.InstantiatedMethod;
 import org.tillerino.jagger.processor.util.InstantiatedMethod.InstantiatedVariable;
+import org.tillerino.jagger.processor.util.PrototypeKind.CodeGeneratorContext;
 
 public abstract class AbstractWriterGenerator<SELF extends AbstractWriterGenerator<SELF>>
         extends AbstractCodeGeneratorStack<SELF> {
@@ -44,12 +42,10 @@ public abstract class AbstractWriterGenerator<SELF extends AbstractWriterGenerat
         this.rhs = rhs;
     }
 
-    protected AbstractWriterGenerator(JaggerContext ctx, JaggerPrototype prototype, GeneratedClass generatedClass) {
+    protected AbstractWriterGenerator(CodeGeneratorContext generatorContext) {
         super(
-                ctx,
-                generatedClass,
-                prototype,
-                prototype.instantiatedParameters().get(0).type());
+                generatorContext,
+                generatorContext.prototype().instantiatedParameters().get(0).type());
         this.rhs = new RHS.Variable(
                 prototype.methodElement().getParameters().get(0).getSimpleName().toString(), true);
         this.lhs = new LHS.Return();

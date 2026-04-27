@@ -13,31 +13,24 @@ import org.apache.commons.lang3.exception.ContextedRuntimeException;
 import org.tillerino.jagger.processor.GeneratedClass;
 import org.tillerino.jagger.processor.JaggerContext;
 import org.tillerino.jagger.processor.JaggerPrototype;
+import org.tillerino.jagger.processor.config.AnyConfig;
 import org.tillerino.jagger.processor.util.InstantiatedMethod.InstantiatedVariable;
 
 public interface PrototypeKind {
-    Enum<?> direction();
-
-    TypeMirror externalType();
-
-    TypeMirror internalType();
-
     CodeBlock.Builder generateCode(CodeGeneratorContext context);
-
-    List<InstantiatedMethod.InstantiatedVariable> otherParameters();
-
-    String defaultMethodName();
-
-    PrototypeKind withInternalType(TypeMirror newType);
 
     default Optional<TypeMirror> contextType() {
         return Optional.empty();
     }
 
-    default boolean matches(PrototypeKind other, JaggerContext ctx) {
-        return direction() == other.direction()
-                && ctx.types.isSameType(externalType(), other.externalType())
-                && ctx.types.isSameType(internalType(), other.internalType());
+    /**
+     * By default, code is only generated for unimplemented methods. If you want to generate decorators, use this
+     *
+     * @param config the resolved configuration for this prototype
+     * @return true if code is generated even if there is a suitable super implementation
+     */
+    default boolean decorates(AnyConfig config) {
+        return false;
     }
 
     static Optional<PrototypeKind> detect(
@@ -101,6 +94,24 @@ public interface PrototypeKind {
 
     static List<TypeMirror> nullableTypeList(TypeMirror... nullableTypes) {
         return asList(nullableTypes);
+    }
+
+    interface TemplatablePrototypeKind extends PrototypeKind {
+        Enum<?> direction();
+
+        TypeMirror externalType();
+
+        TypeMirror internalType();
+
+        String defaultMethodName();
+
+        TemplatablePrototypeKind withInternalType(TypeMirror newType);
+
+        default boolean matches(TemplatablePrototypeKind other, JaggerContext ctx) {
+            return direction() == other.direction()
+                    && ctx.types.isSameType(externalType(), other.externalType())
+                    && ctx.types.isSameType(internalType(), other.internalType());
+        }
     }
 
     interface PrototypeKindInstantiator {

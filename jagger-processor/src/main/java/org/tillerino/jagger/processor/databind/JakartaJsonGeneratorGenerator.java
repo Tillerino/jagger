@@ -4,18 +4,16 @@ import jakarta.annotation.Nonnull;
 import javax.lang.model.element.VariableElement;
 import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
-import org.tillerino.jagger.processor.GeneratedClass;
-import org.tillerino.jagger.processor.JaggerContext;
-import org.tillerino.jagger.processor.JaggerPrototype;
 import org.tillerino.jagger.processor.Snippet;
 import org.tillerino.jagger.processor.config.AnyConfig;
 import org.tillerino.jagger.processor.util.InstantiatedMethod;
+import org.tillerino.jagger.processor.util.PrototypeKind.CodeGeneratorContext;
 
 public class JakartaJsonGeneratorGenerator extends AbstractWriterGenerator<JakartaJsonGeneratorGenerator> {
     private final VariableElement generatorVariable;
 
-    public JakartaJsonGeneratorGenerator(JaggerContext ctx, JaggerPrototype prototype, GeneratedClass generatedClass) {
-        super(ctx, prototype, generatedClass);
+    public JakartaJsonGeneratorGenerator(CodeGeneratorContext generatorContext) {
+        super(generatorContext);
         this.generatorVariable = prototype.methodElement().getParameters().get(1);
     }
 

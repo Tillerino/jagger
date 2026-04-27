@@ -12,6 +12,7 @@ import org.tillerino.jagger.processor.JaggerContext;
 import org.tillerino.jagger.processor.util.InstantiatedMethod;
 import org.tillerino.jagger.processor.util.InstantiatedMethod.InstantiatedVariable;
 import org.tillerino.jagger.processor.util.PrototypeKind;
+import org.tillerino.jagger.processor.util.PrototypeKind.TemplatablePrototypeKind;
 
 public class JdbcDetector implements Detector {
     static final String JDBC_SELECT = "org.tillerino.jagger.annotations.JdbcSelect";
@@ -103,13 +104,12 @@ public class JdbcDetector implements Detector {
             InstantiatedVariable jdbcVariable,
             List<InstantiatedVariable> otherParameters,
             Direction direction)
-            implements PrototypeKind {
+            implements TemplatablePrototypeKind {
         @Override
-        public PrototypeKind withInternalType(TypeMirror newType) {
+        public TemplatablePrototypeKind withInternalType(TypeMirror newType) {
             return new JdbcPrototypeKind(externalType, newType, jdbcVariable, otherParameters, direction);
         }
 
-        @Override
         public Direction direction() {
             return direction;
         }
@@ -128,9 +128,9 @@ public class JdbcDetector implements Detector {
         @Override
         public Builder generateCode(CodeGeneratorContext context) {
             return switch (direction) {
-                case JDBC_SELECT -> new JdbcSelectGenerator(context.prototype(), context.ctx()).build();
-                case JDBC_INSERT -> new JdbcInsertGenerator(context.prototype(), context.ctx()).build();
-                case JDBC_UPDATE -> new JdbcUpdateGenerator(context.prototype(), context.ctx()).build();
+                case JDBC_SELECT -> new JdbcSelectGenerator(context).build();
+                case JDBC_INSERT -> new JdbcInsertGenerator(context).build();
+                case JDBC_UPDATE -> new JdbcUpdateGenerator(context).build();
             };
         }
     }

@@ -16,6 +16,7 @@ import org.tillerino.jagger.processor.features.Generics.TypeVar;
 import org.tillerino.jagger.processor.util.InstantiatedMethod;
 import org.tillerino.jagger.processor.util.InstantiatedMethod.InstantiatedVariable;
 import org.tillerino.jagger.processor.util.PrototypeKind;
+import org.tillerino.jagger.processor.util.PrototypeKind.TemplatablePrototypeKind;
 
 /**
  * Accessor object for a method which is annotated with {@link org.tillerino.jagger.annotations.JsonInput} or
@@ -58,8 +59,10 @@ public record JaggerPrototype(
 
     /** Checks if reads/writes the given type and matches the signature of a reference method. */
     public InstantiatedMethod matches(JaggerPrototype caller, TypeMirror callerType, boolean allowExact) {
-        if (kind.direction() != caller.kind().direction()
-                || !ctx.types.isSameType(kind().externalType(), caller.kind().externalType())) {
+        if (!(kind instanceof TemplatablePrototypeKind t) || !(caller.kind instanceof TemplatablePrototypeKind c)) {
+            return null;
+        }
+        if (t.direction() != c.direction() || !ctx.types.isSameType(t.externalType(), c.externalType())) {
             return null;
         }
 
@@ -70,7 +73,7 @@ public record JaggerPrototype(
                 .collect(Collectors.toCollection(LinkedHashSet::new));
         LinkedHashMap<TypeVar, TypeMirror> typeBindings = new LinkedHashMap<>();
 
-        if (isSameTypeWithBindings(kind().internalType(), callerType, localTypeVars, typeBindings)) {
+        if (isSameTypeWithBindings(t.internalType(), callerType, localTypeVars, typeBindings)) {
             if (!allowExact && typeBindings.isEmpty()) {
                 return null;
             }

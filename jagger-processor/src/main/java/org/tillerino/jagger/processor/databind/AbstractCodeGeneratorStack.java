@@ -2,23 +2,17 @@ package org.tillerino.jagger.processor.databind;
 
 import jakarta.annotation.Nonnull;
 import jakarta.annotation.Nullable;
-import java.util.Objects;
 import javax.lang.model.type.DeclaredType;
 import javax.lang.model.type.TypeMirror;
 import org.apache.commons.lang3.exception.ContextedRuntimeException;
 import org.tillerino.jagger.processor.AbstractCodeGenerator;
-import org.tillerino.jagger.processor.GeneratedClass;
-import org.tillerino.jagger.processor.JaggerContext;
-import org.tillerino.jagger.processor.JaggerPrototype;
 import org.tillerino.jagger.processor.config.AnyConfig;
 import org.tillerino.jagger.processor.config.ConfigProperty;
 import org.tillerino.jagger.processor.features.Polymorphism;
+import org.tillerino.jagger.processor.util.PrototypeKind.CodeGeneratorContext;
 
 public abstract class AbstractCodeGeneratorStack<SELF extends AbstractCodeGeneratorStack<SELF>>
         extends AbstractCodeGenerator<SELF> {
-    protected final JaggerContext ctx;
-    protected final GeneratedClass generatedClass;
-    protected final JaggerPrototype prototype;
     protected final TypeMirror type;
 
     @Nullable
@@ -34,12 +28,8 @@ public abstract class AbstractCodeGeneratorStack<SELF extends AbstractCodeGenera
     protected final AnyConfig config;
 
     // for creating the root generator
-    protected AbstractCodeGeneratorStack(
-            JaggerContext ctx, GeneratedClass generatedClass, JaggerPrototype prototype, TypeMirror type) {
-        super(prototype.asInstantiatedMethod()); // add method parameters to variables scope
-        this.ctx = ctx;
-        this.generatedClass = Objects.requireNonNull(generatedClass);
-        this.prototype = prototype;
+    protected AbstractCodeGeneratorStack(CodeGeneratorContext generatorContext, TypeMirror type) {
+        super(generatorContext); // add method parameters to variables scope
         this.type = type;
 
         this.parent = null;
@@ -61,9 +51,6 @@ public abstract class AbstractCodeGeneratorStack<SELF extends AbstractCodeGenera
             @Nullable Property property,
             AnyConfig config) {
         super(parent);
-        this.ctx = parent.ctx;
-        this.generatedClass = Objects.requireNonNull(parent.generatedClass);
-        this.prototype = parent.prototype;
         this.type = type;
 
         this.parent = parent;

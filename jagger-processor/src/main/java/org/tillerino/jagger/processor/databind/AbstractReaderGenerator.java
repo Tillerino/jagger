@@ -46,13 +46,14 @@ import org.tillerino.jagger.processor.util.Accessor.WriteAccessor;
 import org.tillerino.jagger.processor.util.Exceptions;
 import org.tillerino.jagger.processor.util.InstantiatedMethod;
 import org.tillerino.jagger.processor.util.InstantiatedMethod.InstantiatedVariable;
+import org.tillerino.jagger.processor.util.PrototypeKind.CodeGeneratorContext;
 
 public abstract class AbstractReaderGenerator<SELF extends AbstractReaderGenerator<SELF>>
         extends AbstractCodeGeneratorStack<SELF> {
     protected final LHS lhs;
 
-    AbstractReaderGenerator(JaggerContext ctx, JaggerPrototype prototype, GeneratedClass generatedClass) {
-        super(ctx, generatedClass, prototype, prototype.instantiatedReturnType());
+    AbstractReaderGenerator(CodeGeneratorContext generatorContext) {
+        super(generatorContext, generatorContext.prototype().instantiatedReturnType());
         lhs = new LHS.Return();
     }
 

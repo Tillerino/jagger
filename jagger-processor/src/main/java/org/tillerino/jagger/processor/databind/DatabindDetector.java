@@ -15,6 +15,7 @@ import org.tillerino.jagger.processor.JaggerContext;
 import org.tillerino.jagger.processor.util.InstantiatedMethod;
 import org.tillerino.jagger.processor.util.InstantiatedMethod.InstantiatedVariable;
 import org.tillerino.jagger.processor.util.PrototypeKind;
+import org.tillerino.jagger.processor.util.PrototypeKind.TemplatablePrototypeKind;
 
 public class DatabindDetector implements Detector {
     static final String JACKSON_JSON_GENERATOR = "com.fasterxml.jackson.core.JsonGenerator";
@@ -145,9 +146,9 @@ public class DatabindDetector implements Detector {
             TypeMirror internalType,
             List<InstantiatedVariable> otherParameters,
             TypeMirror cType)
-            implements PrototypeKind {
+            implements TemplatablePrototypeKind {
         @Override
-        public PrototypeKind withInternalType(TypeMirror newType) {
+        public TemplatablePrototypeKind withInternalType(TypeMirror newType) {
             return new JsonInput(externalType, newType, otherParameters, cType);
         }
 
@@ -169,19 +170,11 @@ public class DatabindDetector implements Detector {
         @Override
         public Builder generateCode(CodeGeneratorContext context) {
             return switch (externalType().toString()) {
-                case JACKSON_JSON_PARSER ->
-                    new JacksonJsonParserReaderGenerator(context.ctx(), context.prototype(), context.generatedClass())
-                            .build();
-                case GSON_JSON_READER ->
-                    new GsonJsonReaderReaderGenerator(context.ctx(), context.prototype(), context.generatedClass())
-                            .build();
-                case FASTJSON_2_JSONREADER ->
-                    new Fastjson2ReaderGenerator(context.ctx(), context.prototype(), context.generatedClass()).build();
-                case JAKARTA_JSON_PARSER ->
-                    new JakartaJsonParserGenerator(context.ctx(), context.prototype(), context.generatedClass())
-                            .build();
-                case JAGGER_READER ->
-                    new JaggerReaderGenerator(context.ctx(), context.prototype(), context.generatedClass()).build();
+                case JACKSON_JSON_PARSER -> new JacksonJsonParserReaderGenerator(context).build();
+                case GSON_JSON_READER -> new GsonJsonReaderReaderGenerator(context).build();
+                case FASTJSON_2_JSONREADER -> new Fastjson2ReaderGenerator(context).build();
+                case JAKARTA_JSON_PARSER -> new JakartaJsonParserGenerator(context).build();
+                case JAGGER_READER -> new JaggerReaderGenerator(context).build();
                 default -> throw new ContextedRuntimeException("Unknown input type: " + externalType());
             };
         }
@@ -192,9 +185,9 @@ public class DatabindDetector implements Detector {
             TypeMirror internalType,
             List<InstantiatedMethod.InstantiatedVariable> otherParameters,
             TypeMirror cType)
-            implements PrototypeKind {
+            implements TemplatablePrototypeKind {
         @Override
-        public PrototypeKind withInternalType(TypeMirror newType) {
+        public TemplatablePrototypeKind withInternalType(TypeMirror newType) {
             return new JsonOutput(externalType, newType, otherParameters, cType);
         }
 
@@ -216,22 +209,12 @@ public class DatabindDetector implements Detector {
         @Override
         public Builder generateCode(CodeGeneratorContext context) {
             return switch (externalType().toString()) {
-                case JACKSON_JSON_GENERATOR ->
-                    new JacksonJsonGeneratorWriterGenerator(
-                                    context.ctx(), context.prototype(), context.generatedClass())
-                            .build();
-                case GSON_JSON_WRITER ->
-                    new GsonJsonWriterWriterGenerator(context.ctx(), context.prototype(), context.generatedClass())
-                            .build();
-                case FASTJSON_2_JSONWRITER ->
-                    new Fastjson2WriterGenerator(context.ctx(), context.prototype(), context.generatedClass()).build();
-                case JAKARTA_JSON_GENERATOR ->
-                    new JakartaJsonGeneratorGenerator(context.ctx(), context.prototype(), context.generatedClass())
-                            .build();
-                case NANOJSON_JSON_WRITER ->
-                    new NanojsonWriterGenerator(context.ctx(), context.prototype(), context.generatedClass()).build();
-                case JAGGER_WRITER ->
-                    new JaggerWriterGenerator(context.ctx(), context.prototype(), context.generatedClass()).build();
+                case JACKSON_JSON_GENERATOR -> new JacksonJsonGeneratorWriterGenerator(context).build();
+                case GSON_JSON_WRITER -> new GsonJsonWriterWriterGenerator(context).build();
+                case FASTJSON_2_JSONWRITER -> new Fastjson2WriterGenerator(context).build();
+                case JAKARTA_JSON_GENERATOR -> new JakartaJsonGeneratorGenerator(context).build();
+                case NANOJSON_JSON_WRITER -> new NanojsonWriterGenerator(context).build();
+                case JAGGER_WRITER -> new JaggerWriterGenerator(context).build();
                 default -> throw new ContextedRuntimeException("Unknown output type: " + externalType());
             };
         }

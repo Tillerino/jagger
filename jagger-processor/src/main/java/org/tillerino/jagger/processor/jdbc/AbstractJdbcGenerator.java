@@ -3,8 +3,6 @@ package org.tillerino.jagger.processor.jdbc;
 import java.sql.PreparedStatement;
 import org.apache.commons.lang3.StringUtils;
 import org.tillerino.jagger.processor.AbstractCodeGenerator;
-import org.tillerino.jagger.processor.JaggerContext;
-import org.tillerino.jagger.processor.JaggerPrototype;
 import org.tillerino.jagger.processor.Snippet;
 import org.tillerino.jagger.processor.Snippet.PerfectSnippet.TypedVariable;
 import org.tillerino.jagger.processor.Snippet.TypedSnippet;
@@ -12,19 +10,16 @@ import org.tillerino.jagger.processor.config.AnyConfig;
 import org.tillerino.jagger.processor.jdbc.Jdbc.ParsedSql;
 import org.tillerino.jagger.processor.jdbc.JdbcDetector.JdbcPrototypeKind;
 import org.tillerino.jagger.processor.util.InstantiatedMethod.InstantiatedVariable;
+import org.tillerino.jagger.processor.util.PrototypeKind.CodeGeneratorContext;
 
 public abstract class AbstractJdbcGenerator<SELF extends AbstractJdbcGenerator<SELF>>
         extends AbstractCodeGenerator<SELF> {
-    protected final JaggerContext ctx;
-    protected final JaggerPrototype prototype;
     protected final AnyConfig config;
     protected final JdbcPrototypeKind kind;
     protected final Jdbc jdbc;
 
-    public AbstractJdbcGenerator(JaggerContext ctx, JaggerPrototype prototype) {
-        super(prototype.asInstantiatedMethod());
-        this.ctx = ctx;
-        this.prototype = prototype;
+    public AbstractJdbcGenerator(CodeGeneratorContext generatorContext) {
+        super(generatorContext);
         this.config = prototype.config();
         this.kind = (JdbcPrototypeKind) prototype.kind();
         this.jdbc = new Jdbc(ctx);

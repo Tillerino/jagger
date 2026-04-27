@@ -11,6 +11,7 @@ import javax.lang.model.element.*;
 import org.tillerino.jagger.annotations.JsonConfig;
 import org.tillerino.jagger.processor.FullyQualifiedName.FullyQualifiedClassName;
 import org.tillerino.jagger.processor.JaggerContext;
+import org.tillerino.jagger.processor.JaggerPrototype;
 import org.tillerino.jagger.processor.config.AnyConfig;
 import org.tillerino.jagger.processor.config.ConfigProperty;
 import org.tillerino.jagger.processor.config.ConfigProperty.LocationKind;
@@ -54,8 +55,10 @@ public record CodeGeneration(JaggerContext ctx) {
             MergeFunction.notDefault(),
             ConfigProperty.PropagationKind.all());
 
-    public static boolean isAbstractAndShouldImplement(ExecutableElement method, AnyConfig config) {
-        return method.getModifiers().contains(Modifier.ABSTRACT) && shouldImplement(config);
+    public static boolean shouldImplement(JaggerPrototype prototype) {
+        return (prototype.methodElement().getModifiers().contains(Modifier.ABSTRACT)
+                        || prototype.kind().decorates(prototype.config()))
+                && shouldImplement(prototype.config());
     }
 
     public static boolean shouldImplement(AnyConfig config) {

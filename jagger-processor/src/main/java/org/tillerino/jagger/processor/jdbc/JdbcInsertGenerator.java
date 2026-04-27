@@ -2,18 +2,17 @@ package org.tillerino.jagger.processor.jdbc;
 
 import com.squareup.javapoet.CodeBlock;
 import javax.lang.model.type.TypeMirror;
-import org.tillerino.jagger.processor.JaggerContext;
-import org.tillerino.jagger.processor.JaggerPrototype;
 import org.tillerino.jagger.processor.Snippet;
 import org.tillerino.jagger.processor.Snippet.PerfectSnippet;
 import org.tillerino.jagger.processor.config.AnyConfig;
 import org.tillerino.jagger.processor.config.ConfigProperty.LocationKind;
 import org.tillerino.jagger.processor.util.InstantiatedMethod.InstantiatedVariable;
+import org.tillerino.jagger.processor.util.PrototypeKind.CodeGeneratorContext;
 
 public class JdbcInsertGenerator extends AbstractJdbcGenerator<JdbcInsertGenerator> {
 
-    public JdbcInsertGenerator(JaggerPrototype prototype, JaggerContext ctx) {
-        super(ctx, prototype);
+    public JdbcInsertGenerator(CodeGeneratorContext generatorContext) {
+        super(generatorContext);
     }
 
     public CodeBlock.Builder build() {

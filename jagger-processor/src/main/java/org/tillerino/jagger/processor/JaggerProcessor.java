@@ -71,12 +71,12 @@ public class JaggerProcessor extends AbstractProcessor {
                         InstantiatedMethod instantiated =
                                 ctx.generics.instantiateMethod(exec, blueprint.typeBindings, LocationKind.PROTOTYPE);
                         ctx.detectPrototype(instantiated).ifPresent(kind -> {
-                            JaggerPrototype method =
+                            JaggerPrototype prototype =
                                     JaggerPrototype.of(blueprint, instantiated, kind, ctx, true, new Trigger(element));
                             // should actually check if super method is not being generated and THIS is being
                             // generated
-                            if (CodeGeneration.shouldImplement(method.config())) {
-                                blueprint.prototypes.add(method);
+                            if (CodeGeneration.shouldImplement(prototype)) {
+                                blueprint.prototypes.add(prototype);
                             }
                         });
                     }
@@ -171,7 +171,7 @@ public class JaggerProcessor extends AbstractProcessor {
             if (!generatedClasses.add(blueprint.generatedClassName())) {
                 continue;
             }
-            if (blueprint.prototypes.stream().anyMatch(method -> CodeGeneration.shouldImplement(method.config()))) {
+            if (CodeGeneration.shouldImplement(blueprint.config) && !blueprint.prototypes.isEmpty()) {
                 try {
                     generateCode(blueprint);
                 } catch (Exception e) {
@@ -190,7 +190,7 @@ public class JaggerProcessor extends AbstractProcessor {
         GeneratedClass generatedClass = new GeneratedClass(classBuilder, ctx, blueprint);
         for (JaggerPrototype prototype : blueprint.prototypes) {
             try {
-                if (!CodeGeneration.isAbstractAndShouldImplement(prototype.methodElement(), prototype.config())) {
+                if (!CodeGeneration.shouldImplement(prototype)) {
                     // method is implemented by user and can be used by us
                     continue;
                 }

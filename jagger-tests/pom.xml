@@ -20,6 +20,7 @@
         <module>adapter-jackson</module>
         <module>adapter-jackson-node</module>
         <module>jdbc</module>
+        <module>custom-plugins</module>
     </modules>
 
     <properties>

@@ -11,18 +11,16 @@ import javax.lang.model.element.VariableElement;
 import javax.lang.model.type.TypeMirror;
 import org.apache.commons.lang3.exception.ContextedRuntimeException;
 import org.tillerino.jagger.helpers.GsonJsonReaderHelper;
-import org.tillerino.jagger.processor.GeneratedClass;
-import org.tillerino.jagger.processor.JaggerContext;
-import org.tillerino.jagger.processor.JaggerPrototype;
 import org.tillerino.jagger.processor.Snippet;
 import org.tillerino.jagger.processor.config.AnyConfig;
 import org.tillerino.jagger.processor.util.InstantiatedMethod;
+import org.tillerino.jagger.processor.util.PrototypeKind.CodeGeneratorContext;
 
 public class GsonJsonReaderReaderGenerator extends AbstractReaderGenerator<GsonJsonReaderReaderGenerator> {
     private final VariableElement parserVariable;
 
-    public GsonJsonReaderReaderGenerator(JaggerContext ctx, JaggerPrototype prototype, GeneratedClass generatedClass) {
-        super(ctx, prototype, generatedClass);
+    public GsonJsonReaderReaderGenerator(CodeGeneratorContext generatorContext) {
+        super(generatorContext);
         parserVariable = prototype.methodElement().getParameters().get(0);
     }
 

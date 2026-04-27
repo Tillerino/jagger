@@ -3,6 +3,7 @@ package org.tillerino.jagger.processor.features;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import javax.lang.model.type.TypeMirror;
 import javax.lang.model.type.TypeVariable;
 import org.apache.commons.lang3.exception.ContextedRuntimeException;
@@ -19,6 +20,7 @@ import org.tillerino.jagger.processor.util.Annotations.AnnotationValueWrapper;
 import org.tillerino.jagger.processor.util.Exceptions;
 import org.tillerino.jagger.processor.util.InstantiatedMethod;
 import org.tillerino.jagger.processor.util.PrototypeKind;
+import org.tillerino.jagger.processor.util.PrototypeKind.TemplatablePrototypeKind;
 
 public record Templates(JaggerContext ctx) {
     public List<JaggerPrototype> instantiateTemplatedPrototypesFromSingleAnnotation(JaggerBlueprint blueprint) {
@@ -48,7 +50,7 @@ public record Templates(JaggerContext ctx) {
         List<JaggerPrototype> instantiatedPrototypes = new ArrayList<>();
         for (TypeMirror type : types) {
             for (Template template : templates) {
-                PrototypeKind prototypeKind = template.kind.withInternalType(type);
+                TemplatablePrototypeKind prototypeKind = template.kind.withInternalType(type);
                 InstantiatedMethod instantiatedMethod = ctx.generics
                         .applyTypeBindings(template.method, Map.of(template.typeVar, type))
                         .withName(prototypeKind.defaultMethodName());
@@ -74,13 +76,17 @@ public record Templates(JaggerContext ctx) {
                     PrototypeKind prototypeKind = ctx.detectPrototype(template)
                             .orElseThrow(() -> new ContextedRuntimeException("Template prototype of unknown kind")
                                     .addContextValue("prototype", template));
-                    if (!(prototypeKind.internalType() instanceof TypeVariable v)) {
+                    if (!(prototypeKind instanceof TemplatablePrototypeKind t)) {
+                        return null;
+                    }
+                    if (!(t.internalType() instanceof TypeVariable v)) {
                         throw new ContextedRuntimeException("Template prototype must serialize a type variable")
                                 .addContextValue("prototype", template)
-                                .addContextValue("serialized", prototypeKind.internalType());
+                                .addContextValue("serialized", t.internalType());
                     }
-                    return new Template(template, prototypeKind, TypeVar.of(v));
+                    return new Template(template, t, TypeVar.of(v));
                 })
+                .filter(Objects::nonNull)
                 .toList();
     }
 
@@ -90,5 +96,5 @@ public record Templates(JaggerContext ctx) {
                 .toList();
     }
 
-    record Template(InstantiatedMethod method, PrototypeKind kind, TypeVar typeVar) {}
+    record Template(InstantiatedMethod method, TemplatablePrototypeKind kind, TypeVar typeVar) {}
 }
