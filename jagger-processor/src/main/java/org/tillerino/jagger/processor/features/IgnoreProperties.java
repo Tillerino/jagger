@@ -2,11 +2,11 @@ package org.tillerino.jagger.processor.features;
 
 import java.util.List;
 import java.util.Set;
-import org.tillerino.jagger.processor.Snippet;
 import org.tillerino.jagger.processor.config.ConfigProperty;
 import org.tillerino.jagger.processor.config.ConfigProperty.LocationKind;
 import org.tillerino.jagger.processor.config.ConfigProperty.MergeFunction;
 import org.tillerino.jagger.processor.config.ConfigProperty.PropagationKind;
+import org.tillerino.jagger.processor.util.Snippet;
 
 public class IgnoreProperties {
     public static ConfigProperty<Set<String>> IGNORED_PROPERTIES = ConfigProperty.createConfigProperty(

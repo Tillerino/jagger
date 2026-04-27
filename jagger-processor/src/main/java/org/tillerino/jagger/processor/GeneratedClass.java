@@ -11,9 +11,9 @@ import javax.lang.model.type.DeclaredType;
 import javax.lang.model.type.TypeMirror;
 import org.apache.commons.lang3.StringUtils;
 import org.tillerino.jagger.helpers.EnumHelper;
-import org.tillerino.jagger.processor.FullyQualifiedName.FullyQualifiedClassName.TopLevelClassName;
 import org.tillerino.jagger.processor.config.AnyConfig;
 import org.tillerino.jagger.processor.features.Verification.ForBlueprint;
+import org.tillerino.jagger.processor.util.FullyQualifiedName.FullyQualifiedClassName.TopLevelClassName;
 
 /** Keeps track of the delegate readers/writers that are collected while processing a blueprint. */
 public class GeneratedClass {

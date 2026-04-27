@@ -3,7 +3,7 @@ package org.tillerino.jagger.processor.config;
 import com.google.auto.service.AutoService;
 import java.util.Optional;
 import org.tillerino.jagger.processor.JaggerContext;
-import org.tillerino.jagger.processor.JaggerPlugin;
+import org.tillerino.jagger.processor.ext.JaggerPlugin;
 import org.tillerino.jagger.processor.features.IgnoreProperty;
 import org.tillerino.jagger.processor.features.PropertyName;
 import org.tillerino.jagger.processor.jdbc.Jdbc;

@@ -6,12 +6,12 @@ import javax.lang.model.element.TypeElement;
 import javax.lang.model.type.DeclaredType;
 import javax.lang.model.type.TypeMirror;
 import javax.lang.model.util.ElementFilter;
-import org.tillerino.jagger.processor.FullyQualifiedName.FullyQualifiedClassName;
 import org.tillerino.jagger.processor.config.AnyConfig;
 import org.tillerino.jagger.processor.config.ConfigProperty;
 import org.tillerino.jagger.processor.config.ConfigProperty.LocationKind;
 import org.tillerino.jagger.processor.features.Generics.TypeVar;
 import org.tillerino.jagger.processor.features.Polymorphism;
+import org.tillerino.jagger.processor.util.FullyQualifiedName.FullyQualifiedClassName;
 import org.tillerino.jagger.processor.util.InstantiatedMethod;
 
 /** Accessor object for the interface which contains Jagger methods. */

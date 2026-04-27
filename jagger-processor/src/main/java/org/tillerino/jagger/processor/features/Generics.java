@@ -14,6 +14,7 @@ import org.tillerino.jagger.processor.config.ConfigProperty.LocationKind;
 import org.tillerino.jagger.processor.util.InstantiatedMethod;
 import org.tillerino.jagger.processor.util.InstantiatedMethod.InstantiatedVariable;
 import org.tillerino.jagger.processor.util.RebuildingTypeVisitor;
+import org.tillerino.jagger.processor.util.Snippet;
 
 public record Generics(JaggerContext ctx) {
     public Map<TypeVar, TypeMirror> recordTypeBindings(DeclaredType d) {

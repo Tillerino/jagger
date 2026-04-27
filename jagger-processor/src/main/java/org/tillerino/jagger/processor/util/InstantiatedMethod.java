@@ -8,11 +8,10 @@ import javax.lang.model.element.VariableElement;
 import javax.lang.model.type.DeclaredType;
 import javax.lang.model.type.TypeMirror;
 import org.tillerino.jagger.processor.JaggerContext;
-import org.tillerino.jagger.processor.Snippet;
-import org.tillerino.jagger.processor.Snippet.PerfectSnippet;
-import org.tillerino.jagger.processor.Snippet.PerfectSnippet.ConstructorCall;
-import org.tillerino.jagger.processor.Snippet.PerfectSnippet.StaticMethodInvocation;
 import org.tillerino.jagger.processor.config.AnyConfig;
+import org.tillerino.jagger.processor.util.Snippet.PerfectSnippet;
+import org.tillerino.jagger.processor.util.Snippet.PerfectSnippet.ConstructorCall;
+import org.tillerino.jagger.processor.util.Snippet.PerfectSnippet.StaticMethodInvocation;
 
 /** Need this to instantiate generics. */
 public record InstantiatedMethod(

@@ -4,7 +4,7 @@ import com.google.auto.service.AutoService;
 import java.util.Optional;
 import org.tillerino.jagger.annotations.JsonConfig;
 import org.tillerino.jagger.processor.JaggerContext;
-import org.tillerino.jagger.processor.JaggerPlugin;
+import org.tillerino.jagger.processor.ext.JaggerPlugin;
 import org.tillerino.jagger.processor.features.*;
 import org.tillerino.jagger.processor.util.Annotations.AnnotationValueWrapper;
 import org.tillerino.jagger.processor.util.Exceptions;

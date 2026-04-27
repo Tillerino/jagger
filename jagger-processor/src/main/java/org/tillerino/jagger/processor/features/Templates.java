@@ -14,13 +14,13 @@ import org.tillerino.jagger.processor.JaggerContext;
 import org.tillerino.jagger.processor.JaggerProcessor.Trigger;
 import org.tillerino.jagger.processor.JaggerPrototype;
 import org.tillerino.jagger.processor.config.ConfigProperty.LocationKind;
+import org.tillerino.jagger.processor.ext.PrototypeKind;
+import org.tillerino.jagger.processor.ext.PrototypeKind.TemplatablePrototypeKind;
 import org.tillerino.jagger.processor.features.Generics.TypeVar;
 import org.tillerino.jagger.processor.util.Annotations.AnnotationMirrorWrapper;
 import org.tillerino.jagger.processor.util.Annotations.AnnotationValueWrapper;
 import org.tillerino.jagger.processor.util.Exceptions;
 import org.tillerino.jagger.processor.util.InstantiatedMethod;
-import org.tillerino.jagger.processor.util.PrototypeKind;
-import org.tillerino.jagger.processor.util.PrototypeKind.TemplatablePrototypeKind;
 
 public record Templates(JaggerContext ctx) {
     public List<JaggerPrototype> instantiateTemplatedPrototypesFromSingleAnnotation(JaggerBlueprint blueprint) {

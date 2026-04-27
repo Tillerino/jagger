@@ -1,4 +1,4 @@
-package org.tillerino.jagger.processor.util;
+package org.tillerino.jagger.processor.ext;
 
 import static java.util.Arrays.asList;
 
@@ -14,6 +14,8 @@ import org.tillerino.jagger.processor.GeneratedClass;
 import org.tillerino.jagger.processor.JaggerContext;
 import org.tillerino.jagger.processor.JaggerPrototype;
 import org.tillerino.jagger.processor.config.AnyConfig;
+import org.tillerino.jagger.processor.util.Exceptions;
+import org.tillerino.jagger.processor.util.InstantiatedMethod;
 import org.tillerino.jagger.processor.util.InstantiatedMethod.InstantiatedVariable;
 
 public interface PrototypeKind {

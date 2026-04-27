@@ -9,7 +9,6 @@ import javax.lang.model.type.TypeMirror;
 import org.apache.commons.lang3.exception.ContextedRuntimeException;
 import org.tillerino.jagger.processor.JaggerContext;
 import org.tillerino.jagger.processor.JaggerPrototype;
-import org.tillerino.jagger.processor.Snippet;
 import org.tillerino.jagger.processor.config.AnyConfig;
 import org.tillerino.jagger.processor.config.AnyConfig.ResolvedProperty;
 import org.tillerino.jagger.processor.config.ConfigProperty;
@@ -20,6 +19,7 @@ import org.tillerino.jagger.processor.features.Generics.TypeVar;
 import org.tillerino.jagger.processor.util.Accessor.ReadAccessor;
 import org.tillerino.jagger.processor.util.Exceptions;
 import org.tillerino.jagger.processor.util.InstantiatedMethod.InstantiatedVariable;
+import org.tillerino.jagger.processor.util.Snippet;
 
 public record References(JaggerContext ctx) {
     public static ConfigProperty<Config> REFERENCES = ConfigProperty.createConfigProperty(

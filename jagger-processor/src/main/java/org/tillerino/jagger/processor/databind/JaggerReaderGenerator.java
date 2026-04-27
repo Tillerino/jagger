@@ -1,8 +1,8 @@
 package org.tillerino.jagger.processor.databind;
 
 import static org.tillerino.jagger.api.JaggerReader.Advance.CONSUME;
-import static org.tillerino.jagger.processor.Snippet.join;
-import static org.tillerino.jagger.processor.Snippet.of;
+import static org.tillerino.jagger.processor.util.Snippet.join;
+import static org.tillerino.jagger.processor.util.Snippet.of;
 
 import com.squareup.javapoet.ClassName;
 import jakarta.annotation.Nonnull;
@@ -10,10 +10,10 @@ import javax.lang.model.element.VariableElement;
 import javax.lang.model.type.TypeMirror;
 import org.apache.commons.lang3.exception.ContextedRuntimeException;
 import org.tillerino.jagger.api.JaggerReader;
-import org.tillerino.jagger.processor.Snippet;
 import org.tillerino.jagger.processor.config.AnyConfig;
+import org.tillerino.jagger.processor.ext.PrototypeKind.CodeGeneratorContext;
 import org.tillerino.jagger.processor.util.InstantiatedMethod;
-import org.tillerino.jagger.processor.util.PrototypeKind.CodeGeneratorContext;
+import org.tillerino.jagger.processor.util.Snippet;
 
 public class JaggerReaderGenerator extends AbstractReaderGenerator<JaggerReaderGenerator> {
     private final VariableElement parserVariable;

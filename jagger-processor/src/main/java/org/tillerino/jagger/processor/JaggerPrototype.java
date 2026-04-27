@@ -12,11 +12,11 @@ import org.apache.commons.lang3.NotImplementedException;
 import org.tillerino.jagger.processor.JaggerProcessor.Trigger;
 import org.tillerino.jagger.processor.config.AnyConfig;
 import org.tillerino.jagger.processor.config.ConfigProperty;
+import org.tillerino.jagger.processor.ext.PrototypeKind;
+import org.tillerino.jagger.processor.ext.PrototypeKind.TemplatablePrototypeKind;
 import org.tillerino.jagger.processor.features.Generics.TypeVar;
 import org.tillerino.jagger.processor.util.InstantiatedMethod;
 import org.tillerino.jagger.processor.util.InstantiatedMethod.InstantiatedVariable;
-import org.tillerino.jagger.processor.util.PrototypeKind;
-import org.tillerino.jagger.processor.util.PrototypeKind.TemplatablePrototypeKind;
 
 /**
  * Accessor object for a method which is annotated with {@link org.tillerino.jagger.annotations.JsonInput} or

@@ -10,14 +10,14 @@ import javax.lang.model.type.TypeMirror;
 import org.apache.commons.lang3.exception.ContextedRuntimeException;
 import org.tillerino.jagger.api.DeserializationContext;
 import org.tillerino.jagger.api.SerializationContext;
-import org.tillerino.jagger.processor.Detector;
 import org.tillerino.jagger.processor.JaggerContext;
+import org.tillerino.jagger.processor.ext.PrototypeDetector;
+import org.tillerino.jagger.processor.ext.PrototypeKind;
+import org.tillerino.jagger.processor.ext.PrototypeKind.TemplatablePrototypeKind;
 import org.tillerino.jagger.processor.util.InstantiatedMethod;
 import org.tillerino.jagger.processor.util.InstantiatedMethod.InstantiatedVariable;
-import org.tillerino.jagger.processor.util.PrototypeKind;
-import org.tillerino.jagger.processor.util.PrototypeKind.TemplatablePrototypeKind;
 
-public class DatabindDetector implements Detector {
+public class DatabindPrototypeDetector implements PrototypeDetector {
     static final String JACKSON_JSON_GENERATOR = "com.fasterxml.jackson.core.JsonGenerator";
     static final String JACKSON_JSON_PARSER = "com.fasterxml.jackson.core.JsonParser";
 
@@ -62,7 +62,7 @@ public class DatabindDetector implements Detector {
     private final TypeElement jsonInput;
     private final TypeElement jsonOutput;
 
-    public DatabindDetector(JaggerContext ctx) {
+    public DatabindPrototypeDetector(JaggerContext ctx) {
         this.ctx = ctx;
 
         jacksonJsonGenerator = ctx.commonTypes.nullableTypeMirror(JACKSON_JSON_GENERATOR);

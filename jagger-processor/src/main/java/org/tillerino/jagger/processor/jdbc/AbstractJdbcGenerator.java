@@ -3,14 +3,14 @@ package org.tillerino.jagger.processor.jdbc;
 import java.sql.PreparedStatement;
 import org.apache.commons.lang3.StringUtils;
 import org.tillerino.jagger.processor.AbstractCodeGenerator;
-import org.tillerino.jagger.processor.Snippet;
-import org.tillerino.jagger.processor.Snippet.PerfectSnippet.TypedVariable;
-import org.tillerino.jagger.processor.Snippet.TypedSnippet;
 import org.tillerino.jagger.processor.config.AnyConfig;
+import org.tillerino.jagger.processor.ext.PrototypeKind.CodeGeneratorContext;
 import org.tillerino.jagger.processor.jdbc.Jdbc.ParsedSql;
-import org.tillerino.jagger.processor.jdbc.JdbcDetector.JdbcPrototypeKind;
+import org.tillerino.jagger.processor.jdbc.JdbcPrototypeDetector.JdbcPrototypeKind;
 import org.tillerino.jagger.processor.util.InstantiatedMethod.InstantiatedVariable;
-import org.tillerino.jagger.processor.util.PrototypeKind.CodeGeneratorContext;
+import org.tillerino.jagger.processor.util.Snippet;
+import org.tillerino.jagger.processor.util.Snippet.PerfectSnippet.TypedVariable;
+import org.tillerino.jagger.processor.util.Snippet.TypedSnippet;
 
 public abstract class AbstractJdbcGenerator<SELF extends AbstractJdbcGenerator<SELF>>
         extends AbstractCodeGenerator<SELF> {

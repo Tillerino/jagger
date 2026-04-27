@@ -1,9 +1,9 @@
-package org.tillerino.jagger.processor;
+package org.tillerino.jagger.processor.util;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 import org.junit.jupiter.api.Test;
-import org.tillerino.jagger.processor.Snippet.Flattened;
+import org.tillerino.jagger.processor.util.Snippet.Flattened;
 
 class SnippetTest {
     @Test

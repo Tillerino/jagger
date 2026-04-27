@@ -4,10 +4,10 @@ import jakarta.annotation.Nonnull;
 import javax.lang.model.element.VariableElement;
 import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
-import org.tillerino.jagger.processor.Snippet;
 import org.tillerino.jagger.processor.config.AnyConfig;
+import org.tillerino.jagger.processor.ext.PrototypeKind.CodeGeneratorContext;
 import org.tillerino.jagger.processor.util.InstantiatedMethod;
-import org.tillerino.jagger.processor.util.PrototypeKind.CodeGeneratorContext;
+import org.tillerino.jagger.processor.util.Snippet;
 
 public class GsonJsonWriterWriterGenerator extends AbstractWriterGenerator<GsonJsonWriterWriterGenerator> {
     private final VariableElement writerVariable;

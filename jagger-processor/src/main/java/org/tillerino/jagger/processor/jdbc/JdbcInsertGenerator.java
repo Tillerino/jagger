@@ -2,12 +2,12 @@ package org.tillerino.jagger.processor.jdbc;
 
 import com.squareup.javapoet.CodeBlock;
 import javax.lang.model.type.TypeMirror;
-import org.tillerino.jagger.processor.Snippet;
-import org.tillerino.jagger.processor.Snippet.PerfectSnippet;
 import org.tillerino.jagger.processor.config.AnyConfig;
 import org.tillerino.jagger.processor.config.ConfigProperty.LocationKind;
+import org.tillerino.jagger.processor.ext.PrototypeKind.CodeGeneratorContext;
 import org.tillerino.jagger.processor.util.InstantiatedMethod.InstantiatedVariable;
-import org.tillerino.jagger.processor.util.PrototypeKind.CodeGeneratorContext;
+import org.tillerino.jagger.processor.util.Snippet;
+import org.tillerino.jagger.processor.util.Snippet.PerfectSnippet;
 
 public class JdbcInsertGenerator extends AbstractJdbcGenerator<JdbcInsertGenerator> {
 

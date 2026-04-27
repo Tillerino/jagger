@@ -7,14 +7,14 @@ import java.util.Optional;
 import javax.lang.model.element.TypeElement;
 import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
-import org.tillerino.jagger.processor.Detector;
 import org.tillerino.jagger.processor.JaggerContext;
+import org.tillerino.jagger.processor.ext.PrototypeDetector;
+import org.tillerino.jagger.processor.ext.PrototypeKind;
+import org.tillerino.jagger.processor.ext.PrototypeKind.TemplatablePrototypeKind;
 import org.tillerino.jagger.processor.util.InstantiatedMethod;
 import org.tillerino.jagger.processor.util.InstantiatedMethod.InstantiatedVariable;
-import org.tillerino.jagger.processor.util.PrototypeKind;
-import org.tillerino.jagger.processor.util.PrototypeKind.TemplatablePrototypeKind;
 
-public class JdbcDetector implements Detector {
+public class JdbcPrototypeDetector implements PrototypeDetector {
     static final String JDBC_SELECT = "org.tillerino.jagger.annotations.JdbcSelect";
     static final String JDBC_INSERT = "org.tillerino.jagger.annotations.JdbcInsert";
     static final String JDBC_UPDATE = "org.tillerino.jagger.annotations.JdbcUpdate";
@@ -25,7 +25,7 @@ public class JdbcDetector implements Detector {
     private final TypeElement jdbcInsert;
     private final TypeElement jdbcUpdate;
 
-    public JdbcDetector(JaggerContext ctx) {
+    public JdbcPrototypeDetector(JaggerContext ctx) {
         this.ctx = ctx;
         jdbcSelect = ctx.elements.getTypeElement(JDBC_SELECT);
         jdbcInsert = ctx.elements.getTypeElement(JDBC_INSERT);

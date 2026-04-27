@@ -5,10 +5,10 @@ import javax.lang.model.type.ArrayType;
 import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
 import org.apache.commons.lang3.exception.ContextedRuntimeException;
-import org.tillerino.jagger.processor.Snippet;
 import org.tillerino.jagger.processor.config.AnyConfig;
+import org.tillerino.jagger.processor.ext.PrototypeKind.CodeGeneratorContext;
 import org.tillerino.jagger.processor.util.InstantiatedMethod;
-import org.tillerino.jagger.processor.util.PrototypeKind.CodeGeneratorContext;
+import org.tillerino.jagger.processor.util.Snippet;
 
 public class Fastjson2WriterGenerator extends AbstractWriterGenerator<Fastjson2WriterGenerator> {
     private final VariableElement writerVariable;

@@ -1,4 +1,4 @@
-package org.tillerino.jagger.processor;
+package org.tillerino.jagger.processor.util;
 
 import com.squareup.javapoet.CodeBlock;
 import java.util.*;
@@ -6,7 +6,6 @@ import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 import javax.lang.model.element.Element;
 import javax.lang.model.type.TypeMirror;
-import org.tillerino.jagger.processor.util.Named;
 
 /**
  * The purpose of this interface is to provide a way to carry both the format and the arguments for

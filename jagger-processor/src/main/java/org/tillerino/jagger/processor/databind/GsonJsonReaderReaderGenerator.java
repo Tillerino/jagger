@@ -1,7 +1,7 @@
 package org.tillerino.jagger.processor.databind;
 
-import static org.tillerino.jagger.processor.Snippet.join;
-import static org.tillerino.jagger.processor.Snippet.of;
+import static org.tillerino.jagger.processor.util.Snippet.join;
+import static org.tillerino.jagger.processor.util.Snippet.of;
 
 import jakarta.annotation.Nonnull;
 import jakarta.annotation.Nullable;
@@ -11,10 +11,10 @@ import javax.lang.model.element.VariableElement;
 import javax.lang.model.type.TypeMirror;
 import org.apache.commons.lang3.exception.ContextedRuntimeException;
 import org.tillerino.jagger.helpers.GsonJsonReaderHelper;
-import org.tillerino.jagger.processor.Snippet;
 import org.tillerino.jagger.processor.config.AnyConfig;
+import org.tillerino.jagger.processor.ext.PrototypeKind.CodeGeneratorContext;
 import org.tillerino.jagger.processor.util.InstantiatedMethod;
-import org.tillerino.jagger.processor.util.PrototypeKind.CodeGeneratorContext;
+import org.tillerino.jagger.processor.util.Snippet;
 
 public class GsonJsonReaderReaderGenerator extends AbstractReaderGenerator<GsonJsonReaderReaderGenerator> {
     private final VariableElement parserVariable;

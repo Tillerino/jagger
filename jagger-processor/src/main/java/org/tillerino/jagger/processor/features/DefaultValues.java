@@ -11,10 +11,10 @@ import javax.lang.model.type.TypeMirror;
 import org.tillerino.jagger.processor.JaggerBlueprint;
 import org.tillerino.jagger.processor.JaggerContext;
 import org.tillerino.jagger.processor.JaggerPrototype;
-import org.tillerino.jagger.processor.Snippet.PerfectSnippet;
 import org.tillerino.jagger.processor.config.AnyConfig;
 import org.tillerino.jagger.processor.features.Generics.TypeVar;
 import org.tillerino.jagger.processor.util.InstantiatedMethod;
+import org.tillerino.jagger.processor.util.Snippet.PerfectSnippet;
 
 public record DefaultValues(JaggerContext ctx) {
 

@@ -23,8 +23,6 @@ import net.sf.jsqlparser.util.deparser.SelectDeParser;
 import net.sf.jsqlparser.util.deparser.StatementDeParser;
 import org.apache.commons.lang3.exception.ContextedRuntimeException;
 import org.tillerino.jagger.processor.JaggerContext;
-import org.tillerino.jagger.processor.Snippet.PerfectSnippet;
-import org.tillerino.jagger.processor.Snippet.PerfectSnippet.TypedVariable;
 import org.tillerino.jagger.processor.config.AnyConfig;
 import org.tillerino.jagger.processor.config.ConfigProperty;
 import org.tillerino.jagger.processor.config.ConfigProperty.LocationKind;
@@ -35,6 +33,8 @@ import org.tillerino.jagger.processor.features.Properties.OutputProperty;
 import org.tillerino.jagger.processor.util.Accessor.ReadAccessor;
 import org.tillerino.jagger.processor.util.InstantiatedMethod;
 import org.tillerino.jagger.processor.util.InstantiatedMethod.InstantiatedVariable;
+import org.tillerino.jagger.processor.util.Snippet.PerfectSnippet;
+import org.tillerino.jagger.processor.util.Snippet.PerfectSnippet.TypedVariable;
 
 public record Jdbc(JaggerContext ctx) {
     public static ConfigProperty<Boolean> ID_PROPERTY = ConfigProperty.createConfigProperty(

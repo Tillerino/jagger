@@ -7,10 +7,11 @@ import java.util.Set;
 import java.util.Stack;
 import java.util.function.Consumer;
 import javax.lang.model.type.TypeMirror;
-import org.tillerino.jagger.processor.Snippet.Flattened;
-import org.tillerino.jagger.processor.Snippet.PerfectSnippet.TypedVariable;
+import org.tillerino.jagger.processor.ext.PrototypeKind.CodeGeneratorContext;
 import org.tillerino.jagger.processor.util.InstantiatedMethod.InstantiatedVariable;
-import org.tillerino.jagger.processor.util.PrototypeKind.CodeGeneratorContext;
+import org.tillerino.jagger.processor.util.Snippet;
+import org.tillerino.jagger.processor.util.Snippet.Flattened;
+import org.tillerino.jagger.processor.util.Snippet.PerfectSnippet.TypedVariable;
 
 public class AbstractCodeGenerator<SELF extends AbstractCodeGenerator<SELF>> {
     protected final CodeBlock.Builder code;

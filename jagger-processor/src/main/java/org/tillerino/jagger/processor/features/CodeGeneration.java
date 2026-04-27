@@ -9,13 +9,13 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import javax.lang.model.element.*;
 import org.tillerino.jagger.annotations.JsonConfig;
-import org.tillerino.jagger.processor.FullyQualifiedName.FullyQualifiedClassName;
 import org.tillerino.jagger.processor.JaggerContext;
 import org.tillerino.jagger.processor.JaggerPrototype;
 import org.tillerino.jagger.processor.config.AnyConfig;
 import org.tillerino.jagger.processor.config.ConfigProperty;
 import org.tillerino.jagger.processor.config.ConfigProperty.LocationKind;
 import org.tillerino.jagger.processor.config.ConfigProperty.MergeFunction;
+import org.tillerino.jagger.processor.util.FullyQualifiedName.FullyQualifiedClassName;
 import org.tillerino.jagger.processor.util.InstantiatedMethod;
 
 public record CodeGeneration(JaggerContext ctx) {

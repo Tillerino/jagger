@@ -17,12 +17,9 @@ import javax.lang.model.util.ElementFilter;
 import org.apache.commons.lang3.StringUtils;
 import org.tillerino.jagger.helpers.jdbc.JdbcHelper;
 import org.tillerino.jagger.helpers.jdbc.ResultSetIterator;
-import org.tillerino.jagger.processor.Snippet;
-import org.tillerino.jagger.processor.Snippet.PerfectSnippet;
-import org.tillerino.jagger.processor.Snippet.PerfectSnippet.Literal;
-import org.tillerino.jagger.processor.Snippet.PerfectSnippet.TypedVariable;
 import org.tillerino.jagger.processor.config.AnyConfig;
 import org.tillerino.jagger.processor.config.ConfigProperty.LocationKind;
+import org.tillerino.jagger.processor.ext.PrototypeKind.CodeGeneratorContext;
 import org.tillerino.jagger.processor.features.Creators;
 import org.tillerino.jagger.processor.features.Creators.Creator;
 import org.tillerino.jagger.processor.features.Generics.TypeVar;
@@ -32,7 +29,10 @@ import org.tillerino.jagger.processor.util.Accessor.AccessorKind;
 import org.tillerino.jagger.processor.util.Accessor.ElementAccessor;
 import org.tillerino.jagger.processor.util.InstantiatedMethod;
 import org.tillerino.jagger.processor.util.InstantiatedMethod.InstantiatedVariable;
-import org.tillerino.jagger.processor.util.PrototypeKind.CodeGeneratorContext;
+import org.tillerino.jagger.processor.util.Snippet;
+import org.tillerino.jagger.processor.util.Snippet.PerfectSnippet;
+import org.tillerino.jagger.processor.util.Snippet.PerfectSnippet.Literal;
+import org.tillerino.jagger.processor.util.Snippet.PerfectSnippet.TypedVariable;
 
 public class JdbcSelectGenerator extends AbstractJdbcGenerator<JdbcSelectGenerator> {
 

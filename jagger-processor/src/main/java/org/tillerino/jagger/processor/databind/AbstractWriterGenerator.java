@@ -5,13 +5,12 @@ import java.util.*;
 import javax.lang.model.element.TypeElement;
 import javax.lang.model.type.*;
 import org.apache.commons.lang3.exception.ContextedRuntimeException;
-import org.tillerino.jagger.processor.Snippet;
-import org.tillerino.jagger.processor.Snippet.TypedSnippet;
 import org.tillerino.jagger.processor.config.AnyConfig;
 import org.tillerino.jagger.processor.config.ConfigProperty.PropagationKind;
 import org.tillerino.jagger.processor.databind.AbstractReaderGenerator.Branch;
 import org.tillerino.jagger.processor.databind.AbstractWriterGenerator.RHS.AnySnippet;
 import org.tillerino.jagger.processor.databind.AbstractWriterGenerator.RHS.Variable;
+import org.tillerino.jagger.processor.ext.PrototypeKind.CodeGeneratorContext;
 import org.tillerino.jagger.processor.features.Delegation.Delegatee;
 import org.tillerino.jagger.processor.features.IgnoreProperties;
 import org.tillerino.jagger.processor.features.IgnoreProperty;
@@ -21,7 +20,8 @@ import org.tillerino.jagger.processor.features.Verification.ProtoAndProps;
 import org.tillerino.jagger.processor.util.Exceptions;
 import org.tillerino.jagger.processor.util.InstantiatedMethod;
 import org.tillerino.jagger.processor.util.InstantiatedMethod.InstantiatedVariable;
-import org.tillerino.jagger.processor.util.PrototypeKind.CodeGeneratorContext;
+import org.tillerino.jagger.processor.util.Snippet;
+import org.tillerino.jagger.processor.util.Snippet.TypedSnippet;
 
 public abstract class AbstractWriterGenerator<SELF extends AbstractWriterGenerator<SELF>>
         extends AbstractCodeGeneratorStack<SELF> {

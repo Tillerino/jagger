@@ -19,21 +19,25 @@ import javax.lang.model.util.Elements;
 import javax.lang.model.util.SimpleAnnotationValueVisitor14;
 import javax.lang.model.util.Types;
 import org.apache.commons.lang3.exception.ContextedRuntimeException;
-import org.tillerino.jagger.processor.Snippet.PerfectSnippet;
-import org.tillerino.jagger.processor.Snippet.PerfectSnippet.Literal;
 import org.tillerino.jagger.processor.config.ConfigProperties;
 import org.tillerino.jagger.processor.config.JaggerAnnotations;
+import org.tillerino.jagger.processor.ext.JaggerPlugin;
+import org.tillerino.jagger.processor.ext.PrototypeDetector;
+import org.tillerino.jagger.processor.ext.PrototypeKind;
 import org.tillerino.jagger.processor.features.*;
 import org.tillerino.jagger.processor.features.Generics.TypeVar;
 import org.tillerino.jagger.processor.features.Properties;
 import org.tillerino.jagger.processor.util.Annotations;
 import org.tillerino.jagger.processor.util.Exceptions;
 import org.tillerino.jagger.processor.util.InstantiatedMethod;
-import org.tillerino.jagger.processor.util.PrototypeKind;
+import org.tillerino.jagger.processor.util.Snippet.PerfectSnippet;
+import org.tillerino.jagger.processor.util.Snippet.PerfectSnippet.Literal;
 
 public class JaggerContext {
     public final Elements elements;
     public final Types types;
+    public final Messager messager;
+
     public final CommonTypes commonTypes;
     public final Delegation delegation;
     public final Generics generics;
@@ -48,14 +52,15 @@ public class JaggerContext {
     public final Properties properties;
     public final CodeGeneration codeGeneration;
     public final ConfigProperties configProperties;
-    public final List<Detector> detectors = new ArrayList<>();
-    public final List<JaggerPlugin> plugins;
 
-    public final Messager messager;
+    public final List<PrototypeDetector> detectors = new ArrayList<>();
+    public final List<JaggerPlugin> plugins;
 
     public JaggerContext(ProcessingEnvironment processingEnv) {
         elements = processingEnv.getElementUtils();
         types = processingEnv.getTypeUtils();
+        messager = processingEnv.getMessager();
+
         commonTypes = new CommonTypes();
         delegation = new Delegation(this);
         generics = new Generics(this);
@@ -70,7 +75,7 @@ public class JaggerContext {
         codeGeneration = new CodeGeneration(this);
         configProperties = new ConfigProperties(this);
         JaggerAnnotations.configureJaggerAnnotations(this);
-        messager = processingEnv.getMessager();
+
         plugins = ServiceLoader.load(JaggerPlugin.class, JaggerProcessor.class.getClassLoader()).stream()
                 .map(Provider::get)
                 .toList();
@@ -108,7 +113,7 @@ public class JaggerContext {
     }
 
     public Optional<PrototypeKind> detectPrototype(InstantiatedMethod m) {
-        for (Detector detector : detectors) {
+        for (PrototypeDetector detector : detectors) {
             Optional<PrototypeKind> detect = detector.detect(m);
             if (detect.isPresent()) {
                 return detect;

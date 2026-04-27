@@ -2,9 +2,8 @@ package org.tillerino.jagger.processor.util;
 
 import javax.lang.model.element.Element;
 import javax.lang.model.type.TypeMirror;
-import org.tillerino.jagger.processor.Snippet;
-import org.tillerino.jagger.processor.Snippet.PerfectSnippet;
-import org.tillerino.jagger.processor.Snippet.PerfectSnippet.ReadAccessorInvocation;
+import org.tillerino.jagger.processor.util.Snippet.PerfectSnippet;
+import org.tillerino.jagger.processor.util.Snippet.PerfectSnippet.ReadAccessorInvocation;
 
 public sealed interface Accessor {
     TypeMirror type();

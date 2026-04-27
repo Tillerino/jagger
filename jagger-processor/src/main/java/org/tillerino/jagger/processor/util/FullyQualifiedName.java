@@ -1,4 +1,4 @@
-package org.tillerino.jagger.processor;
+package org.tillerino.jagger.processor.util;
 
 import javax.lang.model.element.Element;
 import javax.lang.model.element.PackageElement;

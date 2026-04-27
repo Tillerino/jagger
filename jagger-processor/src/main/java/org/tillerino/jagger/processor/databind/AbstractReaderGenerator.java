@@ -3,8 +3,6 @@ package org.tillerino.jagger.processor.databind;
 import static java.util.stream.Collectors.joining;
 import static java.util.stream.Collectors.toMap;
 import static org.apache.commons.lang3.StringUtils.capitalize;
-import static org.tillerino.jagger.processor.Snippet.joinPrependingCommaToEach;
-import static org.tillerino.jagger.processor.Snippet.of;
 import static org.tillerino.jagger.processor.config.AnyConfig.fromAccessorConsideringField;
 import static org.tillerino.jagger.processor.databind.AbstractCodeGeneratorStack.Property.ITEM;
 import static org.tillerino.jagger.processor.databind.AbstractCodeGeneratorStack.StringKind.STRING;
@@ -15,6 +13,8 @@ import static org.tillerino.jagger.processor.databind.AbstractReaderGenerator.LH
 import static org.tillerino.jagger.processor.databind.AbstractReaderGenerator.LHS.from;
 import static org.tillerino.jagger.processor.features.PropertyName.resolvePropertyName;
 import static org.tillerino.jagger.processor.util.Exceptions.runWithContext;
+import static org.tillerino.jagger.processor.util.Snippet.joinPrependingCommaToEach;
+import static org.tillerino.jagger.processor.util.Snippet.of;
 
 import com.squareup.javapoet.CodeBlock;
 import jakarta.annotation.Nonnull;
@@ -36,6 +36,7 @@ import org.tillerino.jagger.processor.config.AnyConfig;
 import org.tillerino.jagger.processor.config.ConfigProperty.InstantiatedProperty;
 import org.tillerino.jagger.processor.config.ConfigProperty.LocationKind;
 import org.tillerino.jagger.processor.config.ConfigProperty.PropagationKind;
+import org.tillerino.jagger.processor.ext.PrototypeKind.CodeGeneratorContext;
 import org.tillerino.jagger.processor.features.*;
 import org.tillerino.jagger.processor.features.Creators.Creator;
 import org.tillerino.jagger.processor.features.Delegation.Delegatee;
@@ -46,7 +47,7 @@ import org.tillerino.jagger.processor.util.Accessor.WriteAccessor;
 import org.tillerino.jagger.processor.util.Exceptions;
 import org.tillerino.jagger.processor.util.InstantiatedMethod;
 import org.tillerino.jagger.processor.util.InstantiatedMethod.InstantiatedVariable;
-import org.tillerino.jagger.processor.util.PrototypeKind.CodeGeneratorContext;
+import org.tillerino.jagger.processor.util.Snippet;
 
 public abstract class AbstractReaderGenerator<SELF extends AbstractReaderGenerator<SELF>>
         extends AbstractCodeGeneratorStack<SELF> {

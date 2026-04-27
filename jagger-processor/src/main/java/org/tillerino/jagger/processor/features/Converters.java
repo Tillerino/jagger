@@ -11,11 +11,12 @@ import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
 import javax.lang.model.util.ElementFilter;
 import org.tillerino.jagger.processor.*;
-import org.tillerino.jagger.processor.Snippet.TypedSnippet;
 import org.tillerino.jagger.processor.config.AnyConfig;
 import org.tillerino.jagger.processor.config.ConfigProperty.LocationKind;
 import org.tillerino.jagger.processor.features.Generics.TypeVar;
 import org.tillerino.jagger.processor.util.InstantiatedMethod;
+import org.tillerino.jagger.processor.util.Snippet;
+import org.tillerino.jagger.processor.util.Snippet.TypedSnippet;
 
 public record Converters(JaggerContext ctx) {
     public Optional<InstantiatedMethod> findInputConverter(

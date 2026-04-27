@@ -8,8 +8,8 @@ import org.apache.commons.lang3.exception.ContextedRuntimeException;
 import org.tillerino.jagger.processor.AbstractCodeGenerator;
 import org.tillerino.jagger.processor.config.AnyConfig;
 import org.tillerino.jagger.processor.config.ConfigProperty;
+import org.tillerino.jagger.processor.ext.PrototypeKind.CodeGeneratorContext;
 import org.tillerino.jagger.processor.features.Polymorphism;
-import org.tillerino.jagger.processor.util.PrototypeKind.CodeGeneratorContext;
 
 public abstract class AbstractCodeGeneratorStack<SELF extends AbstractCodeGeneratorStack<SELF>>
         extends AbstractCodeGenerator<SELF> {

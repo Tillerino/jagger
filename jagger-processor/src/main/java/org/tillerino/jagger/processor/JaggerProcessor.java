@@ -21,12 +21,14 @@ import javax.tools.JavaFileObject;
 import org.tillerino.jagger.annotations.JsonConfig;
 import org.tillerino.jagger.annotations.JsonTemplate;
 import org.tillerino.jagger.annotations.JsonTemplate.JsonTemplates;
-import org.tillerino.jagger.processor.FullyQualifiedName.FullyQualifiedClassName;
 import org.tillerino.jagger.processor.config.AnyConfig;
 import org.tillerino.jagger.processor.config.ConfigProperty.LocationKind;
+import org.tillerino.jagger.processor.ext.JaggerPlugin;
+import org.tillerino.jagger.processor.ext.PrototypeDetector;
+import org.tillerino.jagger.processor.ext.PrototypeKind.CodeGeneratorContext;
 import org.tillerino.jagger.processor.features.CodeGeneration;
+import org.tillerino.jagger.processor.util.FullyQualifiedName.FullyQualifiedClassName;
 import org.tillerino.jagger.processor.util.InstantiatedMethod;
-import org.tillerino.jagger.processor.util.PrototypeKind.CodeGeneratorContext;
 
 @SupportedSourceVersion(SourceVersion.RELEASE_17)
 @AutoService(Processor.class)
@@ -105,7 +107,7 @@ public class JaggerProcessor extends AbstractProcessor {
     }
 
     private void runDetectorsOnMethods(ExecutableElement elem) {
-        for (Detector detector : ctx.detectors) {
+        for (PrototypeDetector detector : ctx.detectors) {
             for (TypeElement supportedAnnotationType : detector.supportedAnnotationTypes()) {
                 if (supportedAnnotationType == null) {
                     continue;
