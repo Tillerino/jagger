@@ -90,6 +90,7 @@ public class JaggerProcessor extends AbstractProcessor {
     private void collectMethodGenerators(RoundEnvironment roundEnv) {
         Set<TypeElement> types = ctx.detectors.stream()
                 .flatMap(detector -> detector.supportedAnnotationTypes().stream()
+                        .filter(Objects::nonNull)
                         .flatMap(t -> roundEnv.getElementsAnnotatedWith(t).stream()))
                 .filter(elem -> elem.getKind() == ElementKind.METHOD)
                 .map(el -> (TypeElement) el.getEnclosingElement())
@@ -106,6 +107,9 @@ public class JaggerProcessor extends AbstractProcessor {
     private void runDetectorsOnMethods(ExecutableElement elem) {
         for (Detector detector : ctx.detectors) {
             for (TypeElement supportedAnnotationType : detector.supportedAnnotationTypes()) {
+                if (supportedAnnotationType == null) {
+                    continue;
+                }
                 if (ctx.annotations
                         .findAnnotation(elem, supportedAnnotationType)
                         .isPresent()) {
@@ -224,7 +228,7 @@ public class JaggerProcessor extends AbstractProcessor {
 
     private void logError(Exception e, Element element) {
         String msg = e != null ? e.getMessage() : null;
-        if (System.getenv("JAGGER_DEBUG") != null) {
+        if (JaggerContext.isJaggerDebug()) {
             e.printStackTrace();
         }
         logError(msg, element);

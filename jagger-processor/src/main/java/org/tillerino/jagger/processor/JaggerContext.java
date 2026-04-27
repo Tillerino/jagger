@@ -4,6 +4,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.util.*;
+import java.util.ServiceLoader.Provider;
 import javax.annotation.processing.Messager;
 import javax.annotation.processing.ProcessingEnvironment;
 import javax.lang.model.element.AnnotationValue;
@@ -48,6 +49,7 @@ public class JaggerContext {
     public final CodeGeneration codeGeneration;
     public final ConfigProperties configProperties;
     public final List<Detector> detectors = new ArrayList<>();
+    public final List<JaggerPlugin> plugins;
 
     public final Messager messager;
 
@@ -69,8 +71,19 @@ public class JaggerContext {
         configProperties = new ConfigProperties(this);
         JaggerAnnotations.configureJaggerAnnotations(this);
         messager = processingEnv.getMessager();
-        ServiceLoader.load(JaggerPlugin.class, JaggerProcessor.class.getClassLoader()).stream()
-                .forEach(factory -> factory.get().configure(this));
+        plugins = ServiceLoader.load(JaggerPlugin.class, JaggerProcessor.class.getClassLoader()).stream()
+                .map(Provider::get)
+                .toList();
+        for (JaggerPlugin plugin : plugins) {
+            if (isJaggerDebug()) {
+                System.out.println("Detected JaggerPlugin: " + plugin);
+            }
+            plugin.configure(this);
+        }
+    }
+
+    public static boolean isJaggerDebug() {
+        return System.getenv("JAGGER_DEBUG") != null;
     }
 
     public static class GetAnnotationValues<R, P> extends SimpleAnnotationValueVisitor14<R, P> {

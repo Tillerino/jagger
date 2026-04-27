@@ -1,6 +1,7 @@
 package org.tillerino.jagger.processor.databind;
 
 import com.squareup.javapoet.CodeBlock.Builder;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import javax.lang.model.element.TypeElement;
@@ -93,7 +94,7 @@ public class DatabindDetector implements Detector {
 
     @Override
     public List<TypeElement> supportedAnnotationTypes() {
-        return List.of(jsonInput, jsonOutput);
+        return Arrays.asList(jsonInput, jsonOutput);
     }
 
     @Override

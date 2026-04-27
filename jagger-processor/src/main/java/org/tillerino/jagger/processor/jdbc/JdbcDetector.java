@@ -1,6 +1,7 @@
 package org.tillerino.jagger.processor.jdbc;
 
 import com.squareup.javapoet.CodeBlock.Builder;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import javax.lang.model.element.TypeElement;
@@ -32,7 +33,7 @@ public class JdbcDetector implements Detector {
 
     @Override
     public List<TypeElement> supportedAnnotationTypes() {
-        return List.of(jdbcSelect, jdbcInsert, jdbcUpdate);
+        return Arrays.asList(jdbcSelect, jdbcInsert, jdbcUpdate);
     }
 
     @Override
