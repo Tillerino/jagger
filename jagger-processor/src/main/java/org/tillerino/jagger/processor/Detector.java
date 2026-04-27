@@ -10,5 +10,7 @@ public interface Detector {
     /** @return may contain nulls for convenience */
     List<TypeElement> supportedAnnotationTypes();
 
-    Optional<PrototypeKind> detect(InstantiatedMethod m);
+    default Optional<PrototypeKind> detect(InstantiatedMethod m) {
+        return Optional.empty();
+    }
 }

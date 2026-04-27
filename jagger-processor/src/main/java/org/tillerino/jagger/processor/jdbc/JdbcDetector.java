@@ -13,6 +13,10 @@ import org.tillerino.jagger.processor.util.InstantiatedMethod.InstantiatedVariab
 import org.tillerino.jagger.processor.util.PrototypeKind;
 
 public class JdbcDetector implements Detector {
+    static final String JDBC_SELECT = "org.tillerino.jagger.annotations.JdbcSelect";
+    static final String JDBC_INSERT = "org.tillerino.jagger.annotations.JdbcInsert";
+    static final String JDBC_UPDATE = "org.tillerino.jagger.annotations.JdbcUpdate";
+
     private final JaggerContext ctx;
 
     private final TypeElement jdbcSelect;
@@ -21,9 +25,9 @@ public class JdbcDetector implements Detector {
 
     public JdbcDetector(JaggerContext ctx) {
         this.ctx = ctx;
-        jdbcSelect = ctx.elements.getTypeElement("org.tillerino.jagger.annotations.JdbcSelect");
-        jdbcInsert = ctx.elements.getTypeElement("org.tillerino.jagger.annotations.JdbcInsert");
-        jdbcUpdate = ctx.elements.getTypeElement("org.tillerino.jagger.annotations.JdbcUpdate");
+        jdbcSelect = ctx.elements.getTypeElement(JDBC_SELECT);
+        jdbcInsert = ctx.elements.getTypeElement(JDBC_INSERT);
+        jdbcUpdate = ctx.elements.getTypeElement(JDBC_UPDATE);
     }
 
     @Override

@@ -1,12 +1,18 @@
 package org.tillerino.jagger.processor.jdbc;
 
 import com.google.auto.service.AutoService;
+import java.util.Set;
 import org.tillerino.jagger.processor.JaggerContext;
 import org.tillerino.jagger.processor.JaggerPlugin;
 import org.tillerino.jagger.processor.util.Annotations.AnnotationValueWrapper;
 
 @AutoService(JaggerPlugin.class)
 public class JdbcPlugin implements JaggerPlugin {
+    @Override
+    public Set<String> getSupportedAnnotationTypes() {
+        return Set.of(JdbcDetector.JDBC_SELECT, JdbcDetector.JDBC_INSERT, JdbcDetector.JDBC_UPDATE);
+    }
+
     @Override
     public void configure(JaggerContext ctx) {
         ctx.detectors.add(new JdbcDetector(ctx));

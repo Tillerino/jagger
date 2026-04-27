@@ -12,10 +12,12 @@ import org.tillerino.jagger.processor.features.Verification;
 import org.tillerino.jagger.processor.util.Annotations.AnnotationValueWrapper;
 
 public class JaggerAnnotations {
+    public static final String JSON_CONFIG = "org.tillerino.jagger.annotations.JsonConfig";
+
     public static void configureJaggerAnnotations(JaggerContext ctx) {
         ctx.configProperties.addAnnotationPropertyConfigRetriever(
                 AnyConfig.USES,
-                "org.tillerino.jagger.annotations.JsonConfig",
+                JSON_CONFIG,
                 ann -> ann.method("uses", true)
                         .map(AnnotationValueWrapper::asArray)
                         .map(classNames -> classNames.stream()
@@ -34,7 +36,7 @@ public class JaggerAnnotations {
 
         ctx.configProperties.addAnnotationPropertyConfigRetriever(
                 CodeGeneration.ON_GENERATED_CLASS,
-                "org.tillerino.jagger.annotations.JsonConfig",
+                JSON_CONFIG,
                 ann -> ann.method("onGeneratedClass", false)
                         .map(AnnotationValueWrapper::asArray)
                         .map(arr -> arr.stream()
@@ -44,7 +46,7 @@ public class JaggerAnnotations {
 
         ctx.configProperties.addAnnotationPropertyConfigRetriever(
                 CodeGeneration.ON_GENERATED_CONSTRUCTOR,
-                "org.tillerino.jagger.annotations.JsonConfig",
+                JSON_CONFIG,
                 ann -> ann.method("onGeneratedConstructors", false)
                         .map(AnnotationValueWrapper::asArray)
                         .map(arr -> arr.stream()
@@ -54,12 +56,12 @@ public class JaggerAnnotations {
 
         ctx.configProperties.addAnnotationPropertyConfigRetriever(
                 CodeGeneration.ADD_GENERATED_ANNOTATION_TO_CLASS,
-                "org.tillerino.jagger.annotations.JsonConfig",
+                JSON_CONFIG,
                 ann -> ann.method("addGeneratedAnnotationToClass", false).map(AnnotationValueWrapper::asBoolean));
 
         ctx.configProperties.addAnnotationPropertyConfigRetriever(
                 CodeGeneration.ADD_GENERATED_ANNOTATION_TO_METHODS,
-                "org.tillerino.jagger.annotations.JsonConfig",
+                JSON_CONFIG,
                 ann -> ann.method("addGeneratedAnnotationToMethods", false).map(AnnotationValueWrapper::asBoolean));
 
         ctx.configProperties.addRetriever(
@@ -73,7 +75,7 @@ public class JaggerAnnotations {
     public static <T extends Enum<T>> AnnotationConfigPropertyRetriever<T> jsonConfigPropertyRetriever(
             String method, Class<T> enumClass) {
         return new AnnotationConfigPropertyRetriever<>(
-                "org.tillerino.jagger.annotations.JsonConfig",
+                JSON_CONFIG,
                 ann -> ann.method(method, false)
                         .map(annotationValueWrapper -> annotationValueWrapper.asEnum(enumClass)));
     }

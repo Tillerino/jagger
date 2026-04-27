@@ -33,6 +33,9 @@ public class DatabindDetector implements Detector {
     static final String JAGGER_READER = "org.tillerino.jagger.api.JaggerReader";
     static final String JAGGER_WRITER = "org.tillerino.jagger.api.JaggerWriter";
 
+    static final String JSON_INPUT = "org.tillerino.jagger.annotations.JsonInput";
+    static final String JSON_OUTPUT = "org.tillerino.jagger.annotations.JsonOutput";
+
     private final JaggerContext ctx;
 
     public final TypeMirror jacksonJsonGenerator;
@@ -84,8 +87,8 @@ public class DatabindDetector implements Detector {
                 .getTypeElement(DeserializationContext.class.getName())
                 .asType();
 
-        jsonInput = ctx.elements.getTypeElement("org.tillerino.jagger.annotations.JsonInput");
-        jsonOutput = ctx.elements.getTypeElement("org.tillerino.jagger.annotations.JsonOutput");
+        jsonInput = ctx.elements.getTypeElement(JSON_INPUT);
+        jsonOutput = ctx.elements.getTypeElement(JSON_OUTPUT);
     }
 
     @Override
