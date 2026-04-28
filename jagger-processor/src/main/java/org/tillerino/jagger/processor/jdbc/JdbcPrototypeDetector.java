@@ -13,6 +13,7 @@ import org.tillerino.jagger.processor.ext.PrototypeKind;
 import org.tillerino.jagger.processor.ext.PrototypeKind.TemplatablePrototypeKind;
 import org.tillerino.jagger.processor.util.InstantiatedMethod;
 import org.tillerino.jagger.processor.util.InstantiatedMethod.InstantiatedVariable;
+import org.tillerino.jagger.processor.util.PlainTypeName;
 
 public class JdbcPrototypeDetector implements PrototypeDetector {
     static final String JDBC_SELECT = "org.tillerino.jagger.annotations.JdbcSelect";
@@ -122,7 +123,7 @@ public class JdbcPrototypeDetector implements PrototypeDetector {
                         case JDBC_INSERT -> "insert";
                         case JDBC_UPDATE -> "update";
                     };
-            return prefix + PrototypeKind.simpleTypeName(internalType());
+            return prefix + PlainTypeName.of(internalType());
         }
 
         @Override

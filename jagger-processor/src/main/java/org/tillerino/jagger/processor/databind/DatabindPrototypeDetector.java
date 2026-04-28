@@ -16,6 +16,7 @@ import org.tillerino.jagger.processor.ext.PrototypeKind;
 import org.tillerino.jagger.processor.ext.PrototypeKind.TemplatablePrototypeKind;
 import org.tillerino.jagger.processor.util.InstantiatedMethod;
 import org.tillerino.jagger.processor.util.InstantiatedMethod.InstantiatedVariable;
+import org.tillerino.jagger.processor.util.PlainTypeName;
 
 public class DatabindPrototypeDetector implements PrototypeDetector {
     static final String JACKSON_JSON_GENERATOR = "com.fasterxml.jackson.core.JsonGenerator";
@@ -159,7 +160,7 @@ public class DatabindPrototypeDetector implements PrototypeDetector {
 
         @Override
         public String defaultMethodName() {
-            return "read" + PrototypeKind.simpleTypeName(internalType());
+            return "read" + PlainTypeName.of(internalType());
         }
 
         @Override
@@ -198,7 +199,7 @@ public class DatabindPrototypeDetector implements PrototypeDetector {
 
         @Override
         public String defaultMethodName() {
-            return "write" + PrototypeKind.simpleTypeName(internalType());
+            return "write" + PlainTypeName.of(internalType());
         }
 
         @Override

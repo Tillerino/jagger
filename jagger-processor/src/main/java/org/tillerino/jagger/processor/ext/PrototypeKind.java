@@ -5,11 +5,7 @@ import static java.util.Arrays.asList;
 import com.squareup.javapoet.CodeBlock;
 import java.util.List;
 import java.util.Optional;
-import javax.lang.model.type.ArrayType;
-import javax.lang.model.type.DeclaredType;
 import javax.lang.model.type.TypeMirror;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.lang3.exception.ContextedRuntimeException;
 import org.tillerino.jagger.processor.GeneratedClass;
 import org.tillerino.jagger.processor.JaggerContext;
 import org.tillerino.jagger.processor.JaggerPrototype;
@@ -49,22 +45,6 @@ public interface PrototypeKind {
             }
         }
         return Optional.empty();
-    }
-
-    static String simpleTypeName(TypeMirror t) {
-        if (t.getKind().isPrimitive()) {
-            return "Primitive" + StringUtils.capitalize(t.toString());
-        }
-
-        if (t instanceof ArrayType a) {
-            return "ArrayOf" + simpleTypeName(a.getComponentType());
-        }
-
-        if (!(t instanceof DeclaredType d)) {
-            throw new ContextedRuntimeException("Only primitives or declared types expected").addContextValue("t", t);
-        }
-
-        return d.asElement().getSimpleName().toString();
     }
 
     static boolean variablesContain(
