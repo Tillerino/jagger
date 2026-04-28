@@ -25,8 +25,8 @@ public record DefaultValues(JaggerContext ctx) {
                 .flatMap(method -> {
                     typeBindings.clear();
                     if (isInputDefaultValue(method.element())
-                            && ctx.generics.tybeBindingsSatisfyingEquality(
-                                    targetType, method.returnType(), typeBindings)) {
+                            && ctx.generics.typeBindingsSatisfyingEquality(
+                                    targetType, method.returnType(), typeBindings, method.freeTypeVars())) {
                         return Stream.of(ctx.generics.applyTypeBindings(method, typeBindings));
                     }
                     return Stream.empty();

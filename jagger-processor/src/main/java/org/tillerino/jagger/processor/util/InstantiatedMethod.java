@@ -1,6 +1,7 @@
 package org.tillerino.jagger.processor.util;
 
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 import javax.lang.model.element.ElementKind;
 import javax.lang.model.element.ExecutableElement;
@@ -9,16 +10,22 @@ import javax.lang.model.type.DeclaredType;
 import javax.lang.model.type.TypeMirror;
 import org.tillerino.jagger.processor.JaggerContext;
 import org.tillerino.jagger.processor.config.AnyConfig;
+import org.tillerino.jagger.processor.features.Generics.TypeVar;
 import org.tillerino.jagger.processor.util.Snippet.PerfectSnippet;
 import org.tillerino.jagger.processor.util.Snippet.PerfectSnippet.ConstructorCall;
 import org.tillerino.jagger.processor.util.Snippet.PerfectSnippet.StaticMethodInvocation;
 
-/** Need this to instantiate generics. */
+/**
+ * Need this to instantiate generics.
+ *
+ * @param freeTypeVars the type vars declared by the method itself, not the surrounding type
+ */
 public record InstantiatedMethod(
         String name,
         TypeMirror returnType,
         List<InstantiatedVariable> parameters,
         ExecutableElement element,
+        Set<TypeVar> freeTypeVars,
         AnyConfig config)
         implements Named {
     public Snippet callSymbol(JaggerContext ctx) {
@@ -72,7 +79,7 @@ public record InstantiatedMethod(
     }
 
     public InstantiatedMethod withName(String name) {
-        return new InstantiatedMethod(name, returnType, parameters, element, config);
+        return new InstantiatedMethod(name, returnType, parameters, element, freeTypeVars, config);
     }
 
     public record InstantiatedVariable(VariableElement elem, TypeMirror type, String name, AnyConfig config)

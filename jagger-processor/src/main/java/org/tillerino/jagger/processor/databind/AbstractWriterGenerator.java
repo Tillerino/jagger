@@ -8,9 +8,11 @@ import org.apache.commons.lang3.exception.ContextedRuntimeException;
 import org.tillerino.jagger.processor.config.AnyConfig;
 import org.tillerino.jagger.processor.config.ConfigProperty.PropagationKind;
 import org.tillerino.jagger.processor.databind.AbstractReaderGenerator.Branch;
+import org.tillerino.jagger.processor.databind.AbstractWriterGenerator.LHS.Return;
 import org.tillerino.jagger.processor.databind.AbstractWriterGenerator.RHS.AnySnippet;
 import org.tillerino.jagger.processor.databind.AbstractWriterGenerator.RHS.Variable;
 import org.tillerino.jagger.processor.ext.PrototypeKind.CodeGeneratorContext;
+import org.tillerino.jagger.processor.ext.PrototypeKind.TemplatablePrototypeKind;
 import org.tillerino.jagger.processor.features.Delegation.Delegatee;
 import org.tillerino.jagger.processor.features.IgnoreProperties;
 import org.tillerino.jagger.processor.features.IgnoreProperty;
@@ -52,9 +54,14 @@ public abstract class AbstractWriterGenerator<SELF extends AbstractWriterGenerat
     }
 
     public CodeBlock.Builder build() {
-        Optional<Delegatee> delegate = ctx.delegation
-                // delegate to any of the used blueprints
-                .findDelegatee(type, prototype, !(lhs instanceof LHS.Return), stackDepth() > 1, config, generatedClass);
+        // delegate to any of the used blueprints
+        Optional<Delegatee> delegate = ctx.delegation.findDelegatee(
+                ((TemplatablePrototypeKind) prototype.kind()).withInternalType(type),
+                prototype,
+                !(lhs instanceof Return),
+                stackDepth() > 1,
+                config,
+                generatedClass);
         if (delegate.isPresent()) {
             invokeDelegate(delegate.get().fieldOrParameter(), delegate.get().method());
             return code;
@@ -249,8 +256,10 @@ public abstract class AbstractWriterGenerator<SELF extends AbstractWriterGenerat
             AnyConfig childConfig = config.propagateTo(
                     PropagationKind.SUBSTITUTE /* this is fine with the configuration options that we
                  currently have */);
+            TemplatablePrototypeKind target =
+                    ((TemplatablePrototypeKind) prototype.kind()).withInternalType(child.type());
             ctx.delegation
-                    .findDelegatee(child.type(), prototype, false, true, config, generatedClass)
+                    .findDelegatee(target, prototype, false, true, config, generatedClass)
                     .ifPresentOrElse(
                             delegatee -> {
                                 InstantiatedVariable callerContext = prototype

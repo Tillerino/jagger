@@ -43,7 +43,8 @@ public record Creators(JaggerContext ctx) {
             InstantiatedMethod methodWithTypeTypeVars =
                     ctx.generics.instantiateMethod(method, typeBindings, LocationKind.CREATOR);
             Map<TypeVar, TypeMirror> methodTypeVars = new LinkedHashMap<>();
-            if (!ctx.generics.tybeBindingsSatisfyingEquality(tm, methodWithTypeTypeVars.returnType(), methodTypeVars)) {
+            if (!ctx.generics.typeBindingsSatisfyingEquality(
+                    tm, methodWithTypeTypeVars.returnType(), methodTypeVars, methodWithTypeTypeVars.freeTypeVars())) {
                 continue;
             }
             return Optional.of(Creator.of(

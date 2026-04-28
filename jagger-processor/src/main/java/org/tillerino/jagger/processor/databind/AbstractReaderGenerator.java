@@ -36,7 +36,9 @@ import org.tillerino.jagger.processor.config.AnyConfig;
 import org.tillerino.jagger.processor.config.ConfigProperty.InstantiatedProperty;
 import org.tillerino.jagger.processor.config.ConfigProperty.LocationKind;
 import org.tillerino.jagger.processor.config.ConfigProperty.PropagationKind;
+import org.tillerino.jagger.processor.databind.AbstractReaderGenerator.LHS.Return;
 import org.tillerino.jagger.processor.ext.PrototypeKind.CodeGeneratorContext;
+import org.tillerino.jagger.processor.ext.PrototypeKind.TemplatablePrototypeKind;
 import org.tillerino.jagger.processor.features.*;
 import org.tillerino.jagger.processor.features.Creators.Creator;
 import org.tillerino.jagger.processor.features.Delegation.Delegatee;
@@ -81,7 +83,12 @@ public abstract class AbstractReaderGenerator<SELF extends AbstractReaderGenerat
             branch = ELSE_IF;
         }
         Optional<Delegatee> delegate = ctx.delegation.findDelegatee(
-                type, prototype, !(lhs instanceof LHS.Return), stackDepth() > 1, config, generatedClass);
+                ((TemplatablePrototypeKind) prototype.kind()).withInternalType(type),
+                prototype,
+                !(lhs instanceof Return),
+                stackDepth() > 1,
+                config,
+                generatedClass);
         if (delegate.isPresent()) {
             if (branch != Branch.IF) {
                 nextControlFlow("else");
@@ -526,7 +533,13 @@ public abstract class AbstractReaderGenerator<SELF extends AbstractReaderGenerat
                             PropagationKind.SUBSTITUTE /* this is fine with the configuration options that we
                  currently have */));
             ctx.delegation
-                    .findDelegatee(child.type(), prototype, false, true, config, generatedClass)
+                    .findDelegatee(
+                            ((TemplatablePrototypeKind) prototype.kind()).withInternalType(child.type()),
+                            prototype,
+                            false,
+                            true,
+                            config,
+                            generatedClass)
                     .ifPresentOrElse(
                             delegatee -> {
                                 InstantiatedVariable callerContext = prototype

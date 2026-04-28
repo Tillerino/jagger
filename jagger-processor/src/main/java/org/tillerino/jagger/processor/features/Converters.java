@@ -26,8 +26,8 @@ public record Converters(JaggerContext ctx) {
                 .flatMap(method -> {
                     typeBindings.clear();
                     if (isInputConverter(method.element())
-                            && ctx.generics.tybeBindingsSatisfyingEquality(
-                                    targetType, method.returnType(), typeBindings)) {
+                            && ctx.generics.typeBindingsSatisfyingEquality(
+                                    targetType, method.returnType(), typeBindings, method.freeTypeVars())) {
                         return Stream.of(ctx.generics.applyTypeBindings(method, typeBindings));
                     }
                     return Stream.empty();
@@ -42,8 +42,11 @@ public record Converters(JaggerContext ctx) {
                 .flatMap(method -> {
                     typeBindings.clear();
                     if (isOutputConverter(method.element())
-                            && ctx.generics.tybeBindingsSatisfyingEquality(
-                                    toConvert.type(), method.parameters().get(0).type(), typeBindings)) {
+                            && ctx.generics.typeBindingsSatisfyingEquality(
+                                    toConvert.type(),
+                                    method.parameters().get(0).type(),
+                                    typeBindings,
+                                    method.freeTypeVars())) {
                         InstantiatedMethod instantiatedMethod = ctx.generics.applyTypeBindings(method, typeBindings);
                         return Stream.of(TypedSnippet.of(
                                 instantiatedMethod.returnType(),

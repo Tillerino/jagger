@@ -1,13 +1,12 @@
 package org.tillerino.jagger.processor;
 
 import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 import javax.lang.model.element.ExecutableElement;
-import javax.lang.model.element.TypeParameterElement;
-import javax.lang.model.type.*;
+import javax.lang.model.type.TypeMirror;
 import org.apache.commons.lang3.NotImplementedException;
 import org.tillerino.jagger.processor.JaggerProcessor.Trigger;
 import org.tillerino.jagger.processor.config.AnyConfig;
@@ -30,6 +29,7 @@ public record JaggerPrototype(
         JaggerContext ctx,
         TypeMirror instantiatedReturnType,
         List<InstantiatedVariable> instantiatedParameters,
+        Set<TypeVar> freeTypeVars,
         AnyConfig config,
         boolean overrides,
         Trigger trigger) {
@@ -52,82 +52,26 @@ public record JaggerPrototype(
                 ctx,
                 instantiated.returnType(),
                 instantiated.parameters(),
+                instantiated.freeTypeVars(),
                 config,
                 overrides,
                 trigger);
     }
 
     /** Checks if reads/writes the given type and matches the signature of a reference method. */
-    public InstantiatedMethod matches(JaggerPrototype caller, TypeMirror callerType, boolean allowExact) {
-        if (!(kind instanceof TemplatablePrototypeKind t) || !(caller.kind instanceof TemplatablePrototypeKind c)) {
+    public InstantiatedMethod matches(TemplatablePrototypeKind target, boolean allowExact) {
+        if (!(kind instanceof TemplatablePrototypeKind t)) {
             return null;
         }
-        if (t.direction() != c.direction() || !ctx.types.isSameType(t.externalType(), c.externalType())) {
-            return null;
-        }
-
-        LinkedHashSet<TypeVar> localTypeVars = methodElement.getTypeParameters().stream()
-                .map(TypeParameterElement::asType)
-                .map(TypeVariable.class::cast)
-                .map(TypeVar::of)
-                .collect(Collectors.toCollection(LinkedHashSet::new));
         LinkedHashMap<TypeVar, TypeMirror> typeBindings = new LinkedHashMap<>();
 
-        if (isSameTypeWithBindings(t.internalType(), callerType, localTypeVars, typeBindings)) {
+        if (t.matches(target, ctx, typeBindings, freeTypeVars)) {
             if (!allowExact && typeBindings.isEmpty()) {
                 return null;
             }
             return ctx.generics.applyTypeBindings(this.asInstantiatedMethod(), typeBindings);
         }
         return null;
-    }
-
-    private static boolean isSameTypeWithBindings(
-            TypeMirror calleeType,
-            TypeMirror callerType,
-            LinkedHashSet<TypeVar> calleeTypeVars,
-            LinkedHashMap<TypeVar, TypeMirror> calleeBindings) {
-        if (calleeType instanceof TypeVariable t) {
-            TypeVar typeVar = TypeVar.of(t);
-            if (calleeBindings.containsKey(typeVar)) {
-                return calleeBindings.get(typeVar).equals(callerType);
-            }
-            if (calleeTypeVars.contains(typeVar)) {
-                if (callerType.getKind().isPrimitive()) {
-                    return false;
-                }
-                calleeBindings.put(typeVar, callerType);
-                return true;
-            }
-            return false;
-        }
-        if (calleeType instanceof DeclaredType t) {
-            if (!(callerType instanceof DeclaredType tt) || !t.asElement().equals(tt.asElement())) {
-                return false;
-            }
-            if (t.getTypeArguments().isEmpty() || tt.getTypeArguments().isEmpty()) {
-                // if either is raw
-                return true;
-            }
-            for (int i = 0; i < t.getTypeArguments().size(); i++) {
-                TypeMirror type = t.getTypeArguments().get(i);
-                TypeMirror targetTypeArg = tt.getTypeArguments().get(i);
-                if (!isSameTypeWithBindings(type, targetTypeArg, calleeTypeVars, calleeBindings)) {
-                    return false;
-                }
-            }
-            return true;
-        }
-        if (calleeType instanceof PrimitiveType p && callerType instanceof PrimitiveType pt) {
-            return p.getKind().equals(pt.getKind());
-        }
-        if (calleeType instanceof ArrayType a && callerType instanceof ArrayType at) {
-            return isSameTypeWithBindings(a.getComponentType(), at.getComponentType(), calleeTypeVars, calleeBindings);
-        }
-        if (calleeType.getKind() == TypeKind.WILDCARD && callerType.getKind() == TypeKind.WILDCARD) {
-            return true;
-        }
-        return false;
     }
 
     public Optional<InstantiatedVariable> contextParameter() {
@@ -150,7 +94,8 @@ public record JaggerPrototype(
     }
 
     public InstantiatedMethod asInstantiatedMethod() {
-        return new InstantiatedMethod(name, instantiatedReturnType, instantiatedParameters, methodElement, config);
+        return new InstantiatedMethod(
+                name, instantiatedReturnType, instantiatedParameters, methodElement, freeTypeVars, config);
     }
 
     @Override

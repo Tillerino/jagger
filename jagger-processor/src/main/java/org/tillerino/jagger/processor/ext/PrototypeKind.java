@@ -3,13 +3,13 @@ package org.tillerino.jagger.processor.ext;
 import static java.util.Arrays.asList;
 
 import com.squareup.javapoet.CodeBlock;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 import javax.lang.model.type.TypeMirror;
 import org.tillerino.jagger.processor.GeneratedClass;
 import org.tillerino.jagger.processor.JaggerContext;
 import org.tillerino.jagger.processor.JaggerPrototype;
 import org.tillerino.jagger.processor.config.AnyConfig;
+import org.tillerino.jagger.processor.features.Generics.TypeVar;
 import org.tillerino.jagger.processor.util.Exceptions;
 import org.tillerino.jagger.processor.util.InstantiatedMethod;
 import org.tillerino.jagger.processor.util.InstantiatedMethod.InstantiatedVariable;
@@ -103,10 +103,16 @@ public interface PrototypeKind {
 
         TemplatablePrototypeKind withInternalType(TypeMirror newType);
 
-        default boolean matches(TemplatablePrototypeKind other, JaggerContext ctx) {
+        default boolean matches(
+                TemplatablePrototypeKind other,
+                JaggerContext ctx,
+                Map<TypeVar, TypeMirror> typeBindings,
+                Set<TypeVar> freeTypeVariables) {
             return direction() == other.direction()
-                    && ctx.types.isSameType(externalType(), other.externalType())
-                    && ctx.types.isSameType(internalType(), other.internalType());
+                    && ctx.generics.typeBindingsSatisfyingEquality(
+                            other.externalType(), externalType(), typeBindings, freeTypeVariables)
+                    && ctx.generics.typeBindingsSatisfyingEquality(
+                            other.internalType(), internalType(), typeBindings, freeTypeVariables);
         }
     }
 

@@ -1,9 +1,11 @@
 package org.tillerino.jagger.processor.features;
 
 import java.util.*;
+import java.util.stream.Collectors;
 import javax.lang.model.element.Element;
 import javax.lang.model.element.ExecutableElement;
 import javax.lang.model.element.TypeElement;
+import javax.lang.model.element.TypeParameterElement;
 import javax.lang.model.type.*;
 import javax.lang.model.util.AbstractTypeVisitor14;
 import javax.lang.model.util.ElementFilter;
@@ -84,11 +86,14 @@ public record Generics(JaggerContext ctx) {
         List<InstantiatedVariable> newParameters =
                 applyTypeBindingsToAll(instantiatedMethod.parameters(), typeBindings);
         TypeMirror newReturnType = applyTypeBindings(instantiatedMethod.returnType(), typeBindings);
+        Set<TypeVar> methodTypeVars = new LinkedHashSet<>(instantiatedMethod.freeTypeVars());
+        methodTypeVars.removeAll(typeBindings.keySet());
         return new InstantiatedMethod(
                 instantiatedMethod.name(),
                 newReturnType,
                 newParameters,
                 instantiatedMethod.element(),
+                Collections.unmodifiableSet(methodTypeVars),
                 instantiatedMethod.config());
     }
 
@@ -114,11 +119,14 @@ public record Generics(JaggerContext ctx) {
                         p.getSimpleName().toString(),
                         AnyConfig.create(p, LocationKind.PROPERTY, ctx)))
                 .toList();
+        Set<TypeVar> declaredTypeVars =
+                methodElement.getTypeParameters().stream().map(TypeVar::of).collect(Collectors.toUnmodifiableSet());
         return new InstantiatedMethod(
                 methodElement.getSimpleName().toString(),
                 applyTypeBindings(methodElement.getReturnType(), typeBindings),
                 parameters,
                 methodElement,
+                declaredTypeVars,
                 AnyConfig.create(methodElement, locationKind, ctx));
     }
 
@@ -126,9 +134,13 @@ public record Generics(JaggerContext ctx) {
      * Records type variables such that the candidate type is equal to the actual type.
      *
      * @param typeBindings is modified by the (recursive) call
+     * @param freeTypeVariables
      */
-    public boolean tybeBindingsSatisfyingEquality(
-            TypeMirror actualType, TypeMirror candidateType, Map<TypeVar, TypeMirror> typeBindings) {
+    public boolean typeBindingsSatisfyingEquality(
+            TypeMirror actualType,
+            TypeMirror candidateType,
+            Map<TypeVar, TypeMirror> typeBindings,
+            Set<TypeVar> freeTypeVariables) {
         if (ctx.types.isSameType(actualType, candidateType)) {
             return true;
         }
@@ -140,24 +152,38 @@ public record Generics(JaggerContext ctx) {
                     candidateDeclared.asElement().asType())) {
                 return false;
             }
+
+            if (actualDeclared.getTypeArguments().isEmpty()
+                    || candidateDeclared.getTypeArguments().isEmpty()) {
+                // if either is raw
+                return true;
+            }
+
             for (int i = 0; i < actualDeclared.getTypeArguments().size(); i++) {
-                if (!tybeBindingsSatisfyingEquality(
+                if (!typeBindingsSatisfyingEquality(
                         actualDeclared.getTypeArguments().get(i),
                         candidateDeclared.getTypeArguments().get(i),
-                        typeBindings)) {
+                        typeBindings,
+                        freeTypeVariables)) {
                     return false;
                 }
             }
             return true;
         }
         if ((actualType instanceof ArrayType actualArray) && (candidateType instanceof ArrayType candidateArray)) {
-            return tybeBindingsSatisfyingEquality(
-                    actualArray.getComponentType(), candidateArray.getComponentType(), typeBindings);
+            return typeBindingsSatisfyingEquality(
+                    actualArray.getComponentType(), candidateArray.getComponentType(), typeBindings, freeTypeVariables);
         }
         if (candidateType instanceof TypeVariable candidateVar) {
             TypeVar candidate = TypeVar.of(candidateVar);
             if (typeBindings.containsKey(candidate)) {
                 return ctx.types.isSameType(typeBindings.get(candidate), actualType);
+            }
+            if (!freeTypeVariables.contains(candidate)) {
+                return false;
+            }
+            if (actualType.getKind().isPrimitive()) {
+                return false;
             }
             typeBindings.put(candidate, actualType);
             return true;
@@ -297,6 +323,10 @@ public record Generics(JaggerContext ctx) {
             return new TypeVar(
                     t.asElement().getEnclosingElement(),
                     t.asElement().getSimpleName().toString());
+        }
+
+        public static TypeVar of(TypeParameterElement t) {
+            return of((TypeVariable) t.asType());
         }
     }
 }

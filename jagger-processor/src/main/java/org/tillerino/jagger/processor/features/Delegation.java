@@ -1,5 +1,6 @@
 package org.tillerino.jagger.processor.features;
 
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -32,31 +33,35 @@ public record Delegation(JaggerContext ctx) {
             "DELEGATE_FROM", List.of(LocationKind.PROPERTY), true, (x, y) -> x, List.of(PropagationKind.SUBSTITUTE));
 
     public Optional<Delegatee> findDelegatee(
-            TypeMirror type,
+            TemplatablePrototypeKind target,
             JaggerPrototype caller,
             boolean allowRecursion,
             boolean allowExact,
             AnyConfig config,
             GeneratedClass generatedClass) {
-        return findPrototype(type, caller, allowRecursion, allowExact, config)
+        return findPrototype(target, caller, allowRecursion, allowExact, config)
                 .map(d -> new Delegatee(
                         generatedClass.getOrCreateDelegateeField(
                                 caller.blueprint(),
                                 d.blueprint(),
                                 !d.prototype().overrides()),
                         d.method()))
-                .or(() -> ctx.delegation.findDelegateeInMethodParameters(caller, type));
+                .or(() -> ctx.delegation.findDelegateeInMethodParameters(caller, target));
     }
 
     private Optional<InstantiatedPrototype> findPrototype(
-            TypeMirror type, JaggerPrototype caller, boolean allowRecursion, boolean allowExact, AnyConfig config) {
+            TemplatablePrototypeKind target,
+            JaggerPrototype caller,
+            boolean allowRecursion,
+            boolean allowExact,
+            AnyConfig config) {
         if (!config.resolveProperty(DELEGATE_FROM).value()) {
             return Optional.empty();
         }
         JaggerBlueprint blueprint = caller.blueprint();
         for (JaggerPrototype callee : blueprint.prototypes) {
             if (canBeDelegatedTo(callee) && (callee != caller || allowRecursion)) {
-                InstantiatedMethod match = callee.matches(caller, type, allowExact);
+                InstantiatedMethod match = callee.matches(target, allowExact);
                 if (match != null) {
                     return Optional.of(new InstantiatedPrototype(blueprint, callee, match));
                 }
@@ -65,7 +70,7 @@ public record Delegation(JaggerContext ctx) {
         for (JaggerBlueprint use : config.reversedUses()) {
             for (JaggerPrototype callee : use.prototypes) {
                 if (canBeDelegatedTo(callee)) {
-                    InstantiatedMethod match = callee.matches(caller, type, allowExact);
+                    InstantiatedMethod match = callee.matches(target, allowExact);
                     if (match != null) {
                         return Optional.of(new InstantiatedPrototype(use, callee, match));
                     }
@@ -79,7 +84,8 @@ public record Delegation(JaggerContext ctx) {
         return callee.config().resolveProperty(DELEGATE_TO).value().canBeDelegatedTo();
     }
 
-    private Optional<Delegatee> findDelegateeInMethodParameters(JaggerPrototype prototype, TypeMirror type) {
+    private Optional<Delegatee> findDelegateeInMethodParameters(
+            JaggerPrototype prototype, TemplatablePrototypeKind target) {
         if (!(prototype.kind() instanceof TemplatablePrototypeKind t)) {
             return Optional.empty();
         }
@@ -89,7 +95,7 @@ public record Delegation(JaggerContext ctx) {
                 Optional<TemplatablePrototypeKind> prototypeKind = ctx.detectPrototype(method)
                         .filter(kind -> kind instanceof TemplatablePrototypeKind)
                         .map(TemplatablePrototypeKind.class::cast)
-                        .filter(kind -> kind.matches(t.withInternalType(type), ctx));
+                        .filter(kind -> kind.matches(target, ctx, new LinkedHashMap<>(), method.freeTypeVars()));
                 if (prototypeKind.isPresent()) {
                     return Optional.of(new Delegatee(parameter.name(), method));
                 }
