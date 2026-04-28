@@ -217,7 +217,7 @@ public class JaggerProcessor extends AbstractProcessor {
 
     private MethodSpec generateMethod(JaggerPrototype method, GeneratedClass generatedClass) {
         MethodSpec.Builder methodBuilder =
-                ctx.codeGeneration.getMethodBuilder(method.asInstantiatedMethod(), method.overrides(), method.config());
+                ctx.codeGeneration.getMethodBuilder(method.method(), method.overrides(), method.config());
         methodBuilder.addCode(method.kind()
                 .generateCode(new CodeGeneratorContext(ctx, method, generatedClass))
                 .build());

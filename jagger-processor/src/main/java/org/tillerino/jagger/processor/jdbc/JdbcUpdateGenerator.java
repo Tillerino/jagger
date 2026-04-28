@@ -47,8 +47,8 @@ public class JdbcUpdateGenerator extends AbstractJdbcGenerator<JdbcUpdateGenerat
             code.add("// Generated: $L\n", sqlTemplate);
         }
 
-        Jdbc.ParsedSql parsed = jdbc.parseTemplate(sqlTemplate, prototype.asInstantiatedMethod())
-                .addCommentIfPreprocessed(code);
+        Jdbc.ParsedSql parsed =
+                jdbc.parseTemplate(sqlTemplate, prototype.method()).addCommentIfPreprocessed(code);
 
         tryPrepareStatement(parsed).withBody(psVar -> {
             if (parsed.parameters().isEmpty()) {

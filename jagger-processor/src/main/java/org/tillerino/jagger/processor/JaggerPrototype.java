@@ -23,13 +23,9 @@ import org.tillerino.jagger.processor.util.InstantiatedMethod.InstantiatedVariab
  */
 public record JaggerPrototype(
         JaggerBlueprint blueprint,
-        String name,
-        ExecutableElement methodElement,
+        InstantiatedMethod method,
         PrototypeKind kind,
         JaggerContext ctx,
-        TypeMirror instantiatedReturnType,
-        List<InstantiatedVariable> instantiatedParameters,
-        Set<TypeVar> freeTypeVars,
         AnyConfig config,
         boolean overrides,
         Trigger trigger) {
@@ -44,18 +40,7 @@ public record JaggerPrototype(
         AnyConfig config = AnyConfig.create(instantiated.element(), ConfigProperty.LocationKind.PROTOTYPE, ctx)
                 .merge(blueprint.config);
 
-        return new JaggerPrototype(
-                blueprint,
-                instantiated.name(),
-                instantiated.element(),
-                kind,
-                ctx,
-                instantiated.returnType(),
-                instantiated.parameters(),
-                instantiated.freeTypeVars(),
-                config,
-                overrides,
-                trigger);
+        return new JaggerPrototype(blueprint, instantiated, kind, ctx, config, overrides, trigger);
     }
 
     /** Checks if reads/writes the given type and matches the signature of a reference method. */
@@ -65,17 +50,17 @@ public record JaggerPrototype(
         }
         LinkedHashMap<TypeVar, TypeMirror> typeBindings = new LinkedHashMap<>();
 
-        if (t.matches(target, ctx, typeBindings, freeTypeVars)) {
+        if (t.matches(target, ctx, typeBindings, freeTypeVars())) {
             if (!allowExact && typeBindings.isEmpty()) {
                 return null;
             }
-            return ctx.generics.applyTypeBindings(this.asInstantiatedMethod(), typeBindings);
+            return ctx.generics.applyTypeBindings(this.method(), typeBindings);
         }
         return null;
     }
 
     public Optional<InstantiatedVariable> contextParameter() {
-        for (InstantiatedVariable parameter : instantiatedParameters()) {
+        for (InstantiatedVariable parameter : parameters()) {
             Optional<TypeMirror> targetContextType = kind.contextType();
             if (targetContextType.isPresent()
                     && ctx.commonTypes.isAssignable(parameter.type(), targetContextType.get())) {
@@ -87,15 +72,8 @@ public record JaggerPrototype(
 
     @Override
     public String toString() {
-        return blueprint + "." + name
-                + instantiatedParameters().stream()
-                        .map(InstantiatedVariable::toString)
-                        .collect(Collectors.joining(", ", "(", ")"));
-    }
-
-    public InstantiatedMethod asInstantiatedMethod() {
-        return new InstantiatedMethod(
-                name, instantiatedReturnType, instantiatedParameters, methodElement, freeTypeVars, config);
+        return blueprint + "." + name()
+                + parameters().stream().map(InstantiatedVariable::toString).collect(Collectors.joining(", ", "(", ")"));
     }
 
     @Override
@@ -106,5 +84,25 @@ public record JaggerPrototype(
     @Override
     public boolean equals(Object obj) {
         throw new NotImplementedException("equals");
+    }
+
+    public String name() {
+        return method.name();
+    }
+
+    public ExecutableElement element() {
+        return method.element();
+    }
+
+    public List<InstantiatedVariable> parameters() {
+        return method.parameters();
+    }
+
+    public TypeMirror returnType() {
+        return method.returnType();
+    }
+
+    public Set<TypeVar> freeTypeVars() {
+        return method.freeTypeVars();
     }
 }

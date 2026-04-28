@@ -140,8 +140,8 @@ public class DeepClonePlugin implements JaggerPlugin {
 
         private void cloneProperty(WriteAccessor writeAccessor, ReadAccessor readAccessor, ScopedVar result) {
             TypeMirror fieldType = writeAccessor.type();
-            Snippet sourceValue = readAccessor.readSnippet(
-                    prototype.asInstantiatedMethod().parameters().get(0));
+            Snippet sourceValue =
+                    readAccessor.readSnippet(prototype.method().parameters().get(0));
 
             Delegation.Delegatee delegatee = ctx.delegation
                     .findDelegatee(

@@ -37,8 +37,8 @@ public class JdbcInsertGenerator extends AbstractJdbcGenerator<JdbcInsertGenerat
             code.add("// Generated: $L\n", sqlTemplate);
         }
 
-        Jdbc.ParsedSql parsed = jdbc.parseTemplate(sqlTemplate, prototype.asInstantiatedMethod())
-                .addCommentIfPreprocessed(code);
+        Jdbc.ParsedSql parsed =
+                jdbc.parseTemplate(sqlTemplate, prototype.method()).addCommentIfPreprocessed(code);
 
         tryPrepareStatement(parsed).withBody(psVar -> {
             if (ctx.commonTypes.isIterableOrArray(toInsert.type())) {

@@ -130,8 +130,7 @@ public class SimpleMapperPlugin implements JaggerPlugin {
 
             addStatement(writeAccessor.writeSnippet(
                     result,
-                    readAccessor.readSnippet(
-                            prototype.asInstantiatedMethod().parameters().get(0))));
+                    readAccessor.readSnippet(prototype.method().parameters().get(0))));
         }
     }
 

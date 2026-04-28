@@ -79,13 +79,13 @@ public class ContextedRuntimeExceptionDecoratorPlugin implements JaggerPlugin {
             ScopedVar e = createVariable("e");
 
             beginControlFlow("try");
-            if (prototype.instantiatedReturnType().getKind() != TypeKind.VOID) {
+            if (prototype.returnType().getKind() != TypeKind.VOID) {
                 code.add("return ");
             }
-            addStatement("super.$L($C)", this.prototype.name(), Snippet.join(prototype.instantiatedParameters(), ", "));
+            addStatement("super.$L($C)", this.prototype.name(), Snippet.join(prototype.parameters(), ", "));
 
             nextControlFlow("catch ($T $C)", ContextedRuntimeException.class, e);
-            for (InstantiatedVariable parameter : prototype.instantiatedParameters()) {
+            for (InstantiatedVariable parameter : prototype.parameters()) {
                 addStatement("e.addContextValue($S, $C)", parameter.name(), parameter);
             }
             addStatement("e.addContextValue($S, $S)", "method", this.prototype.name());

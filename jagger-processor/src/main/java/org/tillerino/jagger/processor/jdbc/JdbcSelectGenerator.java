@@ -66,8 +66,8 @@ public class JdbcSelectGenerator extends AbstractJdbcGenerator<JdbcSelectGenerat
             sqlTemplate += " WHERE " + whereClause;
         }
 
-        Jdbc.ParsedSql parsed = jdbc.parseTemplate(sqlTemplate, prototype.asInstantiatedMethod())
-                .addCommentIfPreprocessed(code);
+        Jdbc.ParsedSql parsed =
+                jdbc.parseTemplate(sqlTemplate, prototype.method()).addCommentIfPreprocessed(code);
 
         if (ctx.types.isSameType(
                 ctx.types.erasure(kind.internalType()), ctx.types.erasure(ctx.commonTypes.type(Iterable.class)))) {

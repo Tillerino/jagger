@@ -45,11 +45,9 @@ public abstract class AbstractWriterGenerator<SELF extends AbstractWriterGenerat
     }
 
     protected AbstractWriterGenerator(CodeGeneratorContext generatorContext) {
-        super(
-                generatorContext,
-                generatorContext.prototype().instantiatedParameters().get(0).type());
+        super(generatorContext, generatorContext.prototype().parameters().get(0).type());
         this.rhs = new RHS.Variable(
-                prototype.methodElement().getParameters().get(0).getSimpleName().toString(), true);
+                prototype.element().getParameters().get(0).getSimpleName().toString(), true);
         this.lhs = new LHS.Return();
     }
 

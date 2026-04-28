@@ -26,7 +26,7 @@ public class AbstractCodeGenerator<SELF extends AbstractCodeGenerator<SELF>> {
         this.prototype = generatorContext.prototype();
         this.variables = new Stack<>();
         LinkedHashSet<String> rootVariables = new LinkedHashSet<>();
-        for (InstantiatedVariable parameter : generatorContext.prototype().instantiatedParameters()) {
+        for (InstantiatedVariable parameter : generatorContext.prototype().parameters()) {
             rootVariables.add(parameter.name());
         }
         this.variables.push(rootVariables);

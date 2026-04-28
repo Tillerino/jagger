@@ -223,20 +223,20 @@ public record Generics(JaggerContext ctx) {
     private Optional<Snippet> createMethodReference(GeneratedClass callingClass, InstantiatedMethod targetMethod) {
         JaggerBlueprint blueprint = callingClass.blueprint;
         for (JaggerPrototype method : blueprint.prototypes) {
-            if (method.asInstantiatedMethod().hasSameSignature(targetMethod, ctx)) {
+            if (method.method().hasSameSignature(targetMethod, ctx)) {
                 return Optional.of(Snippet.of(
                         "$L::$L",
                         callingClass.getOrCreateDelegateeField(blueprint, blueprint, !method.overrides()),
-                        method.name()));
+                        method.method().name()));
             }
         }
         for (JaggerBlueprint use : blueprint.config.reversedUses()) {
             for (JaggerPrototype method : use.prototypes) {
-                if (method.asInstantiatedMethod().hasSameSignature(targetMethod, ctx)) {
+                if (method.method().hasSameSignature(targetMethod, ctx)) {
                     return Optional.of(Snippet.of(
                             "$L::$L",
                             callingClass.getOrCreateDelegateeField(blueprint, use, !method.overrides()),
-                            method.name()));
+                            method.method().name()));
                 }
             }
         }

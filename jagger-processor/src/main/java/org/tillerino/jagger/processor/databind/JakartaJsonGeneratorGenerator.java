@@ -14,7 +14,7 @@ public class JakartaJsonGeneratorGenerator extends AbstractWriterGenerator<Jakar
 
     public JakartaJsonGeneratorGenerator(CodeGeneratorContext generatorContext) {
         super(generatorContext);
-        this.generatorVariable = prototype.methodElement().getParameters().get(1);
+        this.generatorVariable = prototype.element().getParameters().get(1);
     }
 
     public JakartaJsonGeneratorGenerator(

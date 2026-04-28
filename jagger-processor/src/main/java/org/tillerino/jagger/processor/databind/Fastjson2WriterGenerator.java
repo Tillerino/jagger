@@ -15,7 +15,7 @@ public class Fastjson2WriterGenerator extends AbstractWriterGenerator<Fastjson2W
 
     public Fastjson2WriterGenerator(CodeGeneratorContext generatorContext) {
         super(generatorContext);
-        this.writerVariable = prototype.methodElement().getParameters().get(1);
+        this.writerVariable = prototype.element().getParameters().get(1);
     }
 
     public Fastjson2WriterGenerator(

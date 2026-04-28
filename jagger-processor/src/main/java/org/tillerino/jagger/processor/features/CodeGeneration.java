@@ -56,7 +56,7 @@ public record CodeGeneration(JaggerContext ctx) {
             ConfigProperty.PropagationKind.all());
 
     public static boolean shouldImplement(JaggerPrototype prototype) {
-        return (prototype.methodElement().getModifiers().contains(Modifier.ABSTRACT)
+        return (prototype.element().getModifiers().contains(Modifier.ABSTRACT)
                         || prototype.kind().decorates(prototype.config()))
                 && shouldImplement(prototype.config());
     }

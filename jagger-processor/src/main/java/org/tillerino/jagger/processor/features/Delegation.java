@@ -89,7 +89,7 @@ public record Delegation(JaggerContext ctx) {
         if (!(prototype.kind() instanceof TemplatablePrototypeKind t)) {
             return Optional.empty();
         }
-        for (InstantiatedVariable parameter : prototype.instantiatedParameters()) {
+        for (InstantiatedVariable parameter : prototype.parameters()) {
             for (InstantiatedMethod method :
                     ctx.generics.instantiateMethods(parameter.type(), LocationKind.PROTOTYPE)) {
                 Optional<TemplatablePrototypeKind> prototypeKind = ctx.detectPrototype(method)
@@ -115,7 +115,7 @@ public record Delegation(JaggerContext ctx) {
                                                     .formatted(ShortName.of(targetParameter.type())))
                                     .addContextValue("parameter", targetParameter)
                                     .addContextValue("callee", callee)
-                                    .addContextValue("caller", caller.asInstantiatedMethod()));
+                                    .addContextValue("caller", caller.method()));
                 })
                 .collect(Collectors.toList());
     }
@@ -123,7 +123,7 @@ public record Delegation(JaggerContext ctx) {
     private Optional<Snippet> findArgument(
             JaggerPrototype caller, GeneratedClass generatedClass, InstantiatedVariable targetArgument) {
         // search in caller's own parameters
-        for (InstantiatedVariable instantiatedParameter : caller.instantiatedParameters()) {
+        for (InstantiatedVariable instantiatedParameter : caller.parameters()) {
             if (ctx.commonTypes.isAssignable(instantiatedParameter.type(), targetArgument.type())) {
                 return Optional.of(Snippet.of("$L", instantiatedParameter.name()));
             }
@@ -143,8 +143,7 @@ public record Delegation(JaggerContext ctx) {
             }
         }
         // see if we can instantiate a lambda from our list of used blueprints
-        return ctx.generics.getOrCreateLambda(
-                generatedClass, targetArgument.type(), caller.instantiatedParameters(), 0);
+        return ctx.generics.getOrCreateLambda(generatedClass, targetArgument.type(), caller.parameters(), 0);
     }
 
     public record Delegatee(String fieldOrParameter, InstantiatedMethod method) {}

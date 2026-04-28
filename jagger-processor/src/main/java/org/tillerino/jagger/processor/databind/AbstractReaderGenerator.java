@@ -56,7 +56,7 @@ public abstract class AbstractReaderGenerator<SELF extends AbstractReaderGenerat
     protected final LHS lhs;
 
     AbstractReaderGenerator(CodeGeneratorContext generatorContext) {
-        super(generatorContext, generatorContext.prototype().instantiatedReturnType());
+        super(generatorContext, generatorContext.prototype().returnType());
         lhs = new LHS.Return();
     }
 
@@ -374,8 +374,7 @@ public abstract class AbstractReaderGenerator<SELF extends AbstractReaderGenerat
             endControlFlow(); // end of loop
             afterArray();
             if (componentType.getKind() == TypeKind.TYPEVAR) {
-                Optional<Snippet> classParameter =
-                        ctx.generics.findClassParameter(prototype.asInstantiatedMethod(), type);
+                Optional<Snippet> classParameter = ctx.generics.findClassParameter(prototype.method(), type);
                 if (classParameter.isEmpty()) {
                     throw new ContextedRuntimeException(
                             "You are trying to read a generic array. For this, you need the array class at runtime.\n"

@@ -21,7 +21,7 @@ public class JakartaJsonParserGenerator extends AbstractReaderGenerator<JakartaJ
 
     public JakartaJsonParserGenerator(CodeGeneratorContext generatorContext) {
         super(generatorContext);
-        parserVariable = prototype.methodElement().getParameters().get(0);
+        parserVariable = prototype.element().getParameters().get(0);
     }
 
     public JakartaJsonParserGenerator(
