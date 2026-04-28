@@ -3,8 +3,10 @@
     <modelVersion>4.0.0</modelVersion>
     <parent>
         <groupId>org.tillerino.jagger</groupId>
-        <artifactId>jagger-tests</artifactId>
+        <!-- We do not inherit from jagger-tests because the shaded profile breaks auto-service -->
+        <artifactId>jagger-parent</artifactId>
         <version>0.7.1-SNAPSHOT</version>
+        <relativePath>../../pom.xml</relativePath>
     </parent>
 
     <artifactId>jagger-tests-custom-plugins</artifactId>
@@ -13,6 +15,11 @@
         <dependency>
             <groupId>com.google.auto.service</groupId>
             <artifactId>auto-service-annotations</artifactId>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
             <scope>provided</scope>
         </dependency>
         <dependency>
@@ -77,5 +84,4 @@
             </plugin>
         </plugins>
     </build>
-
 </project>

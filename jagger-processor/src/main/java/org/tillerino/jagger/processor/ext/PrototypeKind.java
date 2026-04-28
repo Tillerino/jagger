@@ -14,7 +14,21 @@ import org.tillerino.jagger.processor.util.Exceptions;
 import org.tillerino.jagger.processor.util.InstantiatedMethod;
 import org.tillerino.jagger.processor.util.InstantiatedMethod.InstantiatedVariable;
 
+/**
+ * A light abstraction for code that can be generated.
+ *
+ * <p>Instances are detected by {@link PrototypeDetector}, turned into {@link JaggerPrototype}. Eventually, code will be
+ * generated via {@link #generateCode(CodeGeneratorContext)}.
+ *
+ * <p>Code that is suitable for delegation or templating should implement {@link TemplatablePrototypeKind}.
+ */
 public interface PrototypeKind {
+    /**
+     * Generates the code for the detected prototype.
+     *
+     * @param context see {@link CodeGeneratorContext}
+     * @return the body of the generated method
+     */
     CodeBlock.Builder generateCode(CodeGeneratorContext context);
 
     default Optional<TypeMirror> contextType() {
@@ -103,5 +117,13 @@ public interface PrototypeKind {
                 List<InstantiatedVariable> otherParameters);
     }
 
+    /**
+     * Everything that is available to the generated code.
+     *
+     * @param ctx The overall context of the annotation processor. This contains utility classes for generics,
+     *     delegation, and many more.
+     * @param prototype The method that is being generated.
+     * @param generatedClass The class that will contain the generated code.
+     */
     record CodeGeneratorContext(JaggerContext ctx, JaggerPrototype prototype, GeneratedClass generatedClass) {}
 }

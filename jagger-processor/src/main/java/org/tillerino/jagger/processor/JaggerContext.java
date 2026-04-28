@@ -114,6 +114,10 @@ public class JaggerContext {
 
     public Optional<PrototypeKind> detectPrototype(InstantiatedMethod m) {
         for (PrototypeDetector detector : detectors) {
+            if (detector.supportedAnnotationTypes().stream()
+                    .noneMatch(at -> annotations.findAnnotation(m.element(), at).isPresent())) {
+                continue;
+            }
             Optional<PrototypeKind> detect = detector.detect(m);
             if (detect.isPresent()) {
                 return detect;

@@ -13,6 +13,12 @@ public interface PrototypeDetector {
      */
     List<TypeElement> supportedAnnotationTypes();
 
+    /**
+     * Any method annotated with types from {@link #supportedAnnotationTypes()} is passed to this method.
+     *
+     * @param m the signature of the method to be processed. Type bindings from child types will have been applied.
+     * @return the detected prototype kind. If empty, an error will be reported.
+     */
     default Optional<PrototypeKind> detect(InstantiatedMethod m) {
         return Optional.empty();
     }
