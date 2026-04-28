@@ -26,7 +26,7 @@ class ShadedJarIT {
             version = pomProperties.getProperty("version");
         }
 
-        Path jarPath = Paths.get("target/jagger-processor-" + version + ".jar");
+        Path jarPath = Paths.get("target/jagger-processor-" + version + "-shaded.jar");
 
         String licenseFromJar;
         try (ZipFile zip = new ZipFile(jarPath.toFile())) {
@@ -48,7 +48,7 @@ class ShadedJarIT {
                             || e.startsWith("META-INF/maven/")
                             || e.equals("META-INF/services/")
                             || e.equals("META-INF/services/javax.annotation.processing.Processor")
-                            || e.equals("META-INF/services/org.tillerino.jagger.processor.JaggerPlugin")
+                            || e.equals("META-INF/services/org.tillerino.jagger.processor.ext.JaggerPlugin")
                             || e.startsWith("META-INF/versions/"));
         }
 

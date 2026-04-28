@@ -81,6 +81,8 @@
                         </goals>
                         <configuration>
                             <minimizeJar>true</minimizeJar>
+                            <shadedArtifactAttached>true</shadedArtifactAttached>
+                            <createDependencyReducedPom>false</createDependencyReducedPom>
                             <artifactSet>
                                 <includes>
                                     <include>org.tillerino.jagger:*</include>
@@ -138,7 +140,7 @@
                         </goals>
                         <configuration>
                             <includes>
-                                <include>**/ShadedJarIT.java</include>
+                                <include>**/*IT.java</include>
                             </includes>
                         </configuration>
                     </execution>
