@@ -277,23 +277,6 @@
                 <plugins>
                     <plugin>
                         <groupId>org.apache.maven.plugins</groupId>
-                        <artifactId>maven-dependency-plugin</artifactId>
-                        <executions>
-                            <execution>
-                                <id>copy-lombok</id>
-                                <goals>
-                                    <goal>copy-dependencies</goal>
-                                </goals>
-                                <phase>initialize</phase>
-                                <configuration>
-                                    <includeScope>provided</includeScope>
-                                    <includeArtifactIds>lombok</includeArtifactIds>
-                                </configuration>
-                            </execution>
-                        </executions>
-                    </plugin>
-                    <plugin>
-                        <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-compiler-plugin</artifactId>
                         <configuration>
                             <annotationProcessorPaths>
@@ -307,7 +290,7 @@
                             <compilerArgs>
                                 <arg>-parameters</arg>
                                 <arg>-processorpath</arg>
-                                <arg>${project.build.directory}/dependency/lombok-${lombok.version}.jar:${basedir}/../../jagger-processor/target/jagger-processor-${project.version}.jar</arg>
+                                <arg>${org.projectlombok:lombok:jar}:${basedir}/../../jagger-processor/target/jagger-processor-${project.version}-shaded.jar</arg>
                             </compilerArgs>
                         </configuration>
                     </plugin>
