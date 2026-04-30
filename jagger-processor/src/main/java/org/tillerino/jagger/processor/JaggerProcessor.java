@@ -3,31 +3,24 @@ package org.tillerino.jagger.processor;
 import static javax.tools.Diagnostic.Kind.ERROR;
 
 import com.google.auto.service.AutoService;
-import com.squareup.javapoet.JavaFile;
 import com.squareup.javapoet.MethodSpec;
+import com.squareup.javapoet.TypeSpec;
 import com.squareup.javapoet.TypeSpec.Builder;
 import java.io.IOException;
-import java.io.Writer;
 import java.util.*;
 import java.util.stream.Collectors;
 import javax.annotation.processing.*;
 import javax.lang.model.SourceVersion;
-import javax.lang.model.element.Element;
-import javax.lang.model.element.ElementKind;
-import javax.lang.model.element.ExecutableElement;
-import javax.lang.model.element.TypeElement;
+import javax.lang.model.element.*;
 import javax.lang.model.util.ElementFilter;
-import javax.tools.JavaFileObject;
 import org.tillerino.jagger.annotations.JsonConfig;
 import org.tillerino.jagger.annotations.JsonTemplate;
 import org.tillerino.jagger.annotations.JsonTemplate.JsonTemplates;
-import org.tillerino.jagger.processor.config.AnyConfig;
 import org.tillerino.jagger.processor.config.ConfigProperty.LocationKind;
 import org.tillerino.jagger.processor.ext.JaggerPlugin;
 import org.tillerino.jagger.processor.ext.PrototypeDetector;
 import org.tillerino.jagger.processor.ext.PrototypeKind.CodeGeneratorContext;
 import org.tillerino.jagger.processor.features.CodeGeneration;
-import org.tillerino.jagger.processor.util.FullyQualifiedName.FullyQualifiedClassName;
 import org.tillerino.jagger.processor.util.InstantiatedMethod;
 
 @SupportedSourceVersion(SourceVersion.RELEASE_17)
@@ -169,26 +162,58 @@ public class JaggerProcessor extends AbstractProcessor {
     }
 
     private void generateCode() {
-        for (JaggerBlueprint blueprint : ctx.blueprints.values()) {
+        // blueprints are sorted so that the providers from breaking up circles remain in stable places
+        ArrayList<JaggerBlueprint> blueprintsSorted = new ArrayList<>(ctx.blueprints.values());
+        blueprintsSorted.sort(
+                Comparator.comparing(b -> b.typeElement.getQualifiedName().toString()));
+
+        List<GeneratedClass> toBeWritten = new ArrayList<>();
+        for (JaggerBlueprint blueprint : blueprintsSorted) {
             if (!generatedClasses.add(blueprint.generatedClassName())) {
                 continue;
             }
             if (CodeGeneration.shouldImplement(blueprint.config) && !blueprint.prototypes.isEmpty()) {
                 try {
-                    generateCode(blueprint);
+                    toBeWritten.add(generateMethods(blueprint));
                 } catch (Exception e) {
                     logError(e, blueprint.typeElement);
                 }
             }
         }
+
+        // Classes' constructors might need each other as arguments. This is tricky.
+        // First, we break up cyclic dependencies with providers.
+        Map<JaggerBlueprint, GeneratedClass> others =
+                toBeWritten.stream().collect(Collectors.toMap(gc -> gc.blueprint, gc -> gc));
+
+        for (GeneratedClass generatedClass : toBeWritten) {
+            generatedClass.breakCircle(new LinkedHashSet<>(), generatedClass.blueprint, others);
+        }
+
+        // Then we propagate through the dependency graph if classes require args for the constructor:
+        // Once one class requires args for a constructor, dependent classes cannot initialize that class in a field,
+        // and need to get an instance passed to their constructor.
+        for (boolean changed = true; changed; ) {
+            changed = false;
+            for (GeneratedClass generatedClass : toBeWritten) {
+                changed |= generatedClass.propagateRequiresArgsForConstructor(others);
+            }
+        }
+
+        for (GeneratedClass generatedClass : toBeWritten) {
+            try {
+                finishGenerationAndWriteCompilationUnit(generatedClass, others);
+            } catch (IOException e) {
+                logError(e, generatedClass.blueprint.typeElement);
+            }
+        }
     }
 
-    private void generateCode(JaggerBlueprint blueprint) throws IOException {
-        AnyConfig config = blueprint.config;
-        TypeElement typeElement = blueprint.typeElement;
-        FullyQualifiedClassName className = blueprint.className;
-        Builder classBuilder = ctx.codeGeneration.getClassBuilder(className, typeElement, config);
-        List<MethodSpec> methods = new ArrayList<>();
+    private GeneratedClass generateMethods(JaggerBlueprint blueprint) {
+        Builder classBuilder = TypeSpec.classBuilder(blueprint.className.nameInCompilationUnit() + "Impl")
+                .addModifiers(Modifier.PUBLIC);
+        ctx.codeGeneration.addClassAnnotations(blueprint.config, classBuilder);
+        ctx.codeGeneration.addSuper(blueprint.typeElement, classBuilder);
         GeneratedClass generatedClass = new GeneratedClass(classBuilder, ctx, blueprint);
         for (JaggerPrototype prototype : blueprint.prototypes) {
             try {
@@ -196,22 +221,19 @@ public class JaggerProcessor extends AbstractProcessor {
                     // method is implemented by user and can be used by us
                     continue;
                 }
-                methods.add(generateMethod(prototype, generatedClass));
+                classBuilder.addMethod(generateMethod(prototype, generatedClass));
             } catch (Exception ex) {
                 logError(ex, prototype.trigger().element());
             }
         }
-        generatedClass.buildFields(classBuilder);
-        for (MethodSpec method : methods) {
-            classBuilder.addMethod(method);
-        }
-        JavaFileObject sourceFile = processingEnv.getFiler().createSourceFile(blueprint.generatedClassName());
-        try (Writer writer = sourceFile.openWriter()) {
-            JavaFile.Builder builder = JavaFile.builder(className.packageName(), classBuilder.build());
-            generatedClass.fileBuilderMods.forEach(mod -> mod.accept(builder));
-            JavaFile file = builder.build();
-            file.writeTo(writer);
-        }
+        return generatedClass;
+    }
+
+    private void finishGenerationAndWriteCompilationUnit(
+            GeneratedClass generatedClass, Map<JaggerBlueprint, GeneratedClass> others) throws IOException {
+        generatedClass.buildFields(others);
+        ctx.codeGeneration.addRequiredConstructors(generatedClass);
+        generatedClass.writeFile(processingEnv.getFiler());
         generatedClass.verificationForBlueprint.finish();
     }
 

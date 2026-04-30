@@ -112,12 +112,12 @@ public class JaggerWriterGenerator extends AbstractWriterGenerator<JaggerWriterG
     }
 
     @Override
-    protected void invokeDelegate(String instance, InstantiatedMethod callee) {
+    protected void invokeDelegate(Snippet instance, InstantiatedMethod callee) {
         if (lhs instanceof LHS.Field f) {
             addStatement(of("$L.writeFieldName($C)", generatorVariable, f));
         }
         addStatement(of(
-                "$L.$L($C$C)",
+                "$C.$L($C$C)",
                 instance,
                 callee,
                 rhs,

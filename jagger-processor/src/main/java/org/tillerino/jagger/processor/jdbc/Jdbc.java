@@ -159,7 +159,7 @@ public record Jdbc(JaggerContext ctx) {
             TypeMirror paramType = ctx.commonTypes.unwrapContainer(methodParam.type());
             List<OutputProperty> props =
                     switch (f.suffix) {
-                        case ".#columns" -> ctx.properties.outputProperties(paramType, AnyConfig.empty());
+                        case ".#columns" -> ctx.properties.outputProperties(paramType, AnyConfig.empty(ctx));
                         case ".#insertColumns" -> getInsertProperties(paramType);
                         case ".#keyColumns" -> getPropertiesWhereIdIs(paramType, true);
                         case ".#updateColumns" -> getPropertiesWhereIdIs(paramType, false);
@@ -198,7 +198,7 @@ public record Jdbc(JaggerContext ctx) {
             TypeMirror paramType = ctx.commonTypes.unwrapContainer(methodParam.type());
             List<OutputProperty> props =
                     switch (f.suffix) {
-                        case ".#values" -> ctx.properties.outputProperties(paramType, AnyConfig.empty());
+                        case ".#values" -> ctx.properties.outputProperties(paramType, AnyConfig.empty(ctx));
                         case ".#insertValues" -> getInsertProperties(paramType);
                         case ".#keyValues" -> getPropertiesWhereIdIs(paramType, true);
                         case ".#updateValues" -> getPropertiesWhereIdIs(paramType, false);
@@ -216,14 +216,14 @@ public record Jdbc(JaggerContext ctx) {
     }
 
     private List<OutputProperty> getPropertiesWhereIdIs(TypeMirror paramType, boolean value) {
-        List<OutputProperty> allProps = ctx.properties.outputProperties(paramType, AnyConfig.empty());
+        List<OutputProperty> allProps = ctx.properties.outputProperties(paramType, AnyConfig.empty(ctx));
         return allProps.stream()
                 .filter(p -> p.config().resolveProperty(ID_PROPERTY).value() == value)
                 .toList();
     }
 
     private List<OutputProperty> getInsertProperties(TypeMirror paramType) {
-        List<OutputProperty> allProps = ctx.properties.outputProperties(paramType, AnyConfig.empty());
+        List<OutputProperty> allProps = ctx.properties.outputProperties(paramType, AnyConfig.empty(ctx));
         return allProps.stream()
                 .filter(p -> p.config().resolveProperty(GENERATION_TYPE).value() == GenerationType.NONE)
                 .toList();

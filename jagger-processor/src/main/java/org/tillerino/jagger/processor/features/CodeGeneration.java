@@ -8,17 +8,20 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 import javax.lang.model.element.*;
+import javax.lang.model.type.DeclaredType;
+import javax.lang.model.type.TypeMirror;
+import org.apache.commons.lang3.exception.ContextedRuntimeException;
 import org.tillerino.jagger.annotations.JsonConfig;
+import org.tillerino.jagger.processor.GeneratedClass;
 import org.tillerino.jagger.processor.JaggerContext;
 import org.tillerino.jagger.processor.JaggerPrototype;
 import org.tillerino.jagger.processor.config.AnyConfig;
 import org.tillerino.jagger.processor.config.ConfigProperty;
 import org.tillerino.jagger.processor.config.ConfigProperty.LocationKind;
 import org.tillerino.jagger.processor.config.ConfigProperty.MergeFunction;
-import org.tillerino.jagger.processor.util.FullyQualifiedName.FullyQualifiedClassName;
 import org.tillerino.jagger.processor.util.InstantiatedMethod;
 
-public record CodeGeneration(JaggerContext ctx) {
+public class CodeGeneration {
 
     public static ConfigProperty<JsonConfig.ImplementationMode> IMPLEMENT = createConfigProperty(
             "IMPLEMENT",
@@ -55,6 +58,19 @@ public record CodeGeneration(JaggerContext ctx) {
             MergeFunction.notDefault(),
             ConfigProperty.PropagationKind.all());
 
+    public final JaggerContext ctx;
+    public final ConfigProperty<TypeMirror> provider;
+
+    public CodeGeneration(JaggerContext ctx) {
+        this.ctx = ctx;
+        provider = new ConfigProperty<>(
+                "PROVIDER",
+                List.of(LocationKind.BLUEPRINT),
+                ctx.elements.getTypeElement("java.lang.Object").asType(),
+                MergeFunction.notDefault(),
+                List.of());
+    }
+
     public static boolean shouldImplement(JaggerPrototype prototype) {
         return (prototype.element().getModifiers().contains(Modifier.ABSTRACT)
                         || prototype.kind().decorates(prototype.config()))
@@ -63,15 +79,6 @@ public record CodeGeneration(JaggerContext ctx) {
 
     public static boolean shouldImplement(AnyConfig config) {
         return config.resolveProperty(IMPLEMENT).value().shouldImplement();
-    }
-
-    public Builder getClassBuilder(FullyQualifiedClassName className, TypeElement typeElement, AnyConfig config) {
-        Builder classBuilder = TypeSpec.classBuilder(className.nameInCompilationUnit() + "Impl")
-                .addModifiers(Modifier.PUBLIC);
-        addClassAnnotations(config, classBuilder);
-        addSuper(typeElement, classBuilder);
-        addRequiredConstructors(typeElement, classBuilder, config);
-        return classBuilder;
     }
 
     public void addClassAnnotations(AnyConfig config, Builder classBuilder) {
@@ -97,7 +104,10 @@ public record CodeGeneration(JaggerContext ctx) {
         }
     }
 
-    public void addRequiredConstructors(TypeElement type, Builder classBuilder, AnyConfig config) {
+    public void addRequiredConstructors(GeneratedClass generatedClass) {
+        TypeElement type = generatedClass.blueprint.typeElement;
+        Builder classBuilder = generatedClass.typeBuilder;
+        AnyConfig config = generatedClass.blueprint.config;
         Set<TypeElement> addAnnotations =
                 config.resolveProperty(CodeGeneration.ON_GENERATED_CONSTRUCTOR).value();
 
@@ -109,55 +119,69 @@ public record CodeGeneration(JaggerContext ctx) {
                 .map(e -> (ExecutableElement) e)
                 .toList();
 
+        List<FieldSpec> finalFields = generatedClass.uninitializedFields().toList();
+
         for (ExecutableElement superConstructor : constructors) {
             MethodSpec.Builder builder = MethodSpec.constructorBuilder().addModifiers(Modifier.PUBLIC);
 
-            if (superConstructor.getParameters().isEmpty() && constructors.size() == 1 && addAnnotations.isEmpty()) {
+            if (superConstructor.getParameters().isEmpty()
+                    && constructors.size() == 1
+                    && addAnnotations.isEmpty()
+                    && finalFields.isEmpty()) {
                 // only default constructor, so not necessary to generate anything
                 return;
             }
 
-            if (addGeneratedAnnotation) {
-                builder.addAnnotation(AnnotationSpec.builder(ClassName.get(
-                                ctx.elements.getTypeElement("org.tillerino.jagger.annotations.Generated")))
-                        .build());
-            }
+            addConstructorAnnotations(builder, addGeneratedAnnotation, addAnnotations);
 
-            for (TypeElement annotation : addAnnotations) {
-                builder.addAnnotation(
-                        AnnotationSpec.builder(ClassName.get(annotation)).build());
-            }
+            addSuperParametersAndCallSuper(superConstructor, builder);
 
-            for (VariableElement parameter : superConstructor.getParameters()) {
-                builder.addParameter(
-                        TypeName.get(parameter.asType()),
-                        parameter.getSimpleName().toString());
-            }
-
-            builder.addStatement(
-                    "super($L)",
-                    superConstructor.getParameters().stream()
-                            .map(p -> p.getSimpleName().toString())
-                            .collect(Collectors.joining(", ")));
+            addAndInitializeFieldsInConstructor(finalFields, builder);
 
             classBuilder.addMethod(builder.build());
         }
 
-        if (constructors.isEmpty() && !addAnnotations.isEmpty()) {
+        if (constructors.isEmpty() && (!addAnnotations.isEmpty() || !finalFields.isEmpty())) {
             MethodSpec.Builder builder = MethodSpec.constructorBuilder().addModifiers(Modifier.PUBLIC);
 
-            if (addGeneratedAnnotation) {
-                builder.addAnnotation(AnnotationSpec.builder(ClassName.get(
-                                ctx.elements.getTypeElement("org.tillerino.jagger.annotations.Generated")))
-                        .build());
-            }
-
-            for (TypeElement annotation : addAnnotations) {
-                builder.addAnnotation(
-                        AnnotationSpec.builder(ClassName.get(annotation)).build());
-            }
+            addConstructorAnnotations(builder, addGeneratedAnnotation, addAnnotations);
+            addAndInitializeFieldsInConstructor(finalFields, builder);
 
             classBuilder.addMethod(builder.build());
+        }
+    }
+
+    private void addConstructorAnnotations(
+            MethodSpec.Builder builder, boolean addGeneratedAnnotation, Set<TypeElement> addAnnotations) {
+        if (addGeneratedAnnotation) {
+            builder.addAnnotation(AnnotationSpec.builder(
+                            ClassName.get(ctx.elements.getTypeElement("org.tillerino.jagger.annotations.Generated")))
+                    .build());
+        }
+
+        for (TypeElement annotation : addAnnotations) {
+            builder.addAnnotation(
+                    AnnotationSpec.builder(ClassName.get(annotation)).build());
+        }
+    }
+
+    private void addSuperParametersAndCallSuper(ExecutableElement superConstructor, MethodSpec.Builder builder) {
+        for (VariableElement parameter : superConstructor.getParameters()) {
+            builder.addParameter(
+                    TypeName.get(parameter.asType()), parameter.getSimpleName().toString());
+        }
+
+        builder.addStatement(
+                "super($L)",
+                superConstructor.getParameters().stream()
+                        .map(p -> p.getSimpleName().toString())
+                        .collect(Collectors.joining(", ")));
+    }
+
+    private void addAndInitializeFieldsInConstructor(List<FieldSpec> finalFields, MethodSpec.Builder builder) {
+        for (FieldSpec finalField : finalFields) {
+            builder.addParameter(finalField.type, finalField.name);
+            builder.addStatement("this.$L = $L", finalField.name, finalField.name);
         }
     }
 
@@ -184,5 +208,38 @@ public record CodeGeneration(JaggerContext ctx) {
         }
 
         return methodBuilder;
+    }
+
+    public TypeName providerType(TypeName type, AnyConfig config) {
+        DeclaredType t = resolveProviderType(config);
+        return ParameterizedTypeName.get(ClassName.get((TypeElement) t.asElement()), type);
+    }
+
+    private DeclaredType resolveProviderType(AnyConfig config) {
+        TypeMirror value = config.resolveProperty(provider).value();
+        if (ctx.types.isSameType(ctx.commonTypes.object, value)) {
+            value = ctx.commonTypes.supplier;
+        }
+        if (!(value instanceof DeclaredType t)) {
+            throw new ContextedRuntimeException("Type not allowed as provider: " + value);
+        }
+        return t;
+    }
+
+    public String callProvider(String literal, AnyConfig config) {
+        DeclaredType declaredType = resolveProviderType(config);
+        if (declaredType.getTypeArguments().size() != 1) {
+            throw new ContextedRuntimeException("Provider type must have exactly one type parameter")
+                    .addContextValue("type", declaredType);
+        }
+        TypeMirror typeArgument = declaredType.getTypeArguments().get(0);
+        for (InstantiatedMethod instantiateMethod : ctx.generics.instantiateMethods(declaredType, null)) {
+            if (instantiateMethod.parameters().isEmpty()
+                    && ctx.types.isSameType(instantiateMethod.returnType(), typeArgument)) {
+                return "%s.%s()".formatted(literal, instantiateMethod.name());
+            }
+        }
+        throw new ContextedRuntimeException("Cannot find provider method on provider type")
+                .addContextValue("type", declaredType);
     }
 }

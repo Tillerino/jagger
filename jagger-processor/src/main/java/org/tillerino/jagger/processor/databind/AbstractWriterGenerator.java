@@ -395,7 +395,7 @@ public abstract class AbstractWriterGenerator<SELF extends AbstractWriterGenerat
 
     protected void writeComma() {}
 
-    protected abstract void invokeDelegate(String instance, InstantiatedMethod callee);
+    protected abstract void invokeDelegate(Snippet instance, InstantiatedMethod callee);
 
     protected abstract SELF nest(
             TypeMirror type, LHS lhs, Property property, RHS rhs, boolean stackRelevantType, AnyConfig config);

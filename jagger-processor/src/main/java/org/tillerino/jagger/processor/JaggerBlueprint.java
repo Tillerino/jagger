@@ -1,7 +1,7 @@
 package org.tillerino.jagger.processor;
 
 import java.util.*;
-import java.util.stream.Stream;
+import javax.lang.model.element.ExecutableElement;
 import javax.lang.model.element.TypeElement;
 import javax.lang.model.type.DeclaredType;
 import javax.lang.model.type.TypeMirror;
@@ -22,18 +22,21 @@ public final class JaggerBlueprint {
     public final List<InstantiatedMethod> declaredMethods;
     public final AnyConfig config;
     public final Map<TypeVar, TypeMirror> typeBindings;
+    public final JaggerContext ctx;
 
     private JaggerBlueprint(
             FullyQualifiedClassName className,
             TypeElement typeElement,
             List<InstantiatedMethod> declaredMethods,
             AnyConfig config,
-            Map<TypeVar, TypeMirror> typeBindings) {
+            Map<TypeVar, TypeMirror> typeBindings,
+            JaggerContext ctx) {
         this.className = className;
         this.typeElement = typeElement;
         this.declaredMethods = declaredMethods;
         this.config = config;
         this.typeBindings = typeBindings;
+        this.ctx = ctx;
     }
 
     static JaggerBlueprint of(TypeElement element, JaggerContext ctx) {
@@ -51,15 +54,18 @@ public final class JaggerBlueprint {
                 element,
                 declaredMethods,
                 AnyConfig.create(element, ConfigProperty.LocationKind.BLUEPRINT, ctx),
-                typeBindings);
+                typeBindings,
+                ctx);
     }
 
     String generatedClassName() {
         return className.fileName().replace("/", ".") + "Impl";
     }
 
-    public Stream<JaggerBlueprint> includeUses() {
-        return Stream.concat(config.resolveProperty(AnyConfig.USES).value().stream(), Stream.of(this));
+    public boolean hasNoArgSuperConstructor() {
+        List<ExecutableElement> constructors = ElementFilter.constructorsIn(typeElement.getEnclosedElements());
+        return constructors.isEmpty()
+                || constructors.stream().anyMatch(c -> c.getParameters().isEmpty());
     }
 
     @Override

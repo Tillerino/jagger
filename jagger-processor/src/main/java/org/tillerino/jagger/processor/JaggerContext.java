@@ -5,6 +5,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.util.*;
 import java.util.ServiceLoader.Provider;
+import java.util.function.Supplier;
 import javax.annotation.processing.Messager;
 import javax.annotation.processing.ProcessingEnvironment;
 import javax.lang.model.element.AnnotationValue;
@@ -169,6 +170,9 @@ public class JaggerContext {
 
         public TypeMirror resultSet =
                 elements.getTypeElement(ResultSet.class.getName()).asType();
+
+        public TypeMirror supplier =
+                elements.getTypeElement(Supplier.class.getName()).asType();
 
         public TypeMirror nullableTypeMirror(String name) {
             TypeElement typeElement = elements.getTypeElement(name);

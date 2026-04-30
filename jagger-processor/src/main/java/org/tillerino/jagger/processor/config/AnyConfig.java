@@ -16,28 +16,13 @@ import org.tillerino.jagger.processor.config.ConfigProperty.LocationKind;
 import org.tillerino.jagger.processor.config.ConfigProperty.MergeFunction;
 import org.tillerino.jagger.processor.config.ConfigProperty.PropagationKind;
 import org.tillerino.jagger.processor.features.*;
-import org.tillerino.jagger.processor.jdbc.Jdbc;
 import org.tillerino.jagger.processor.util.Accessor;
 import org.tillerino.jagger.processor.util.Accessor.AccessorKind;
 import org.tillerino.jagger.processor.util.Accessor.ElementAccessor;
 
 public final class AnyConfig {
-    public static ConfigProperty<Set<JaggerBlueprint>> USES = ConfigProperty.createConfigProperty(
+    public static ConfigProperty<Set<TypeElement>> USES = ConfigProperty.createConfigProperty(
             "USES", List.of(LocationKind.values()), Set.of(), MergeFunction.mergeSets(), PropagationKind.all());
-
-    public static final ConfigProperty[] available = {
-        PropertyName.PROPERTY_NAME,
-        IgnoreProperty.IGNORE_PROPERTY,
-        Jdbc.ID_PROPERTY,
-        Jdbc.FETCH_SIZE,
-        Jdbc.TABLE_NAME_ON_DTO,
-        Jdbc.TABLE_NAME_ON_PROTOTYPE,
-        Jdbc.WHERE_CLAUSE,
-        Jdbc.QUOTE_CHAR,
-        Jdbc.SQL_QUERY,
-        Jdbc.GENERATION_TYPE,
-        // leave a trailing comma for cleaner diffs :)
-    };
 
     static final Comparator<InstantiatedProperty> COMPARATOR = Comparator.<InstantiatedProperty>comparingInt(
                     prop -> prop.property().index)
@@ -45,7 +30,12 @@ public final class AnyConfig {
 
     private final List<InstantiatedProperty> properties;
 
-    public AnyConfig(List<InstantiatedProperty> properties) {
+    private final JaggerContext ctx;
+
+    private final UsesHolder uses = new UsesHolder();
+
+    public AnyConfig(List<InstantiatedProperty> properties, JaggerContext ctx) {
+        this.ctx = ctx;
         // validate that the properties are sorted
         for (int i = 1; i < properties.size(); i++) {
             if (COMPARATOR.compare(properties.get(i - 1), properties.get(i)) >= 0) {
@@ -56,7 +46,11 @@ public final class AnyConfig {
         this.properties = List.copyOf(properties); // copy so order cannot be changed externally
     }
 
-    public static AnyConfig create(Element element, LocationKind elementType, JaggerContext ctx) {
+    public static AnyConfig create(Element element, @Nullable LocationKind elementType, JaggerContext ctx) {
+        if (elementType == null) {
+            return empty(ctx);
+        }
+
         // TODO resolve config
         List<InstantiatedProperty> list = ctx.configProperties.instantiate(element, elementType);
 
@@ -67,15 +61,15 @@ public final class AnyConfig {
                 superConfig = superConfig != null ? thisSuperConfig.merge(superConfig) : thisSuperConfig;
             }
             if (superConfig != null) {
-                return new AnyConfig(list).merge(superConfig);
+                return new AnyConfig(list, ctx).merge(superConfig);
             }
         }
 
-        return new AnyConfig(list);
+        return new AnyConfig(list, ctx);
     }
 
-    public static AnyConfig empty() {
-        return new AnyConfig(List.of());
+    public static AnyConfig empty(JaggerContext ctx) {
+        return new AnyConfig(List.of(), ctx);
     }
 
     /**
@@ -83,9 +77,11 @@ public final class AnyConfig {
      * kind required.
      */
     public AnyConfig propagateTo(PropagationKind newLocation) {
-        return new AnyConfig(properties.stream()
-                .filter(p -> p.property().propagateTo.contains(newLocation))
-                .toList());
+        return new AnyConfig(
+                properties.stream()
+                        .filter(p -> p.property().propagateTo.contains(newLocation))
+                        .toList(),
+                ctx);
     }
 
     /**
@@ -166,8 +162,7 @@ public final class AnyConfig {
      * the latest gets prio.
      */
     public List<JaggerBlueprint> reversedUses() {
-        Set<JaggerBlueprint> uses = resolveProperty(USES).value();
-        List<JaggerBlueprint> reversedUses = new ArrayList<>(uses);
+        List<JaggerBlueprint> reversedUses = new ArrayList<>(uses.get());
         Collections.reverse(reversedUses);
         return reversedUses;
     }
@@ -191,7 +186,7 @@ public final class AnyConfig {
             }
         }
 
-        return new AnyConfig(mergedProperties);
+        return new AnyConfig(mergedProperties, ctx);
     }
 
     public <T> ResolvedProperty<T> resolveProperty(ConfigProperty<T> prop) {
@@ -209,4 +204,34 @@ public final class AnyConfig {
     }
 
     public record ResolvedProperty<T>(T value, @Nullable String location) {}
+
+    class UsesHolder {
+        List<JaggerBlueprint> uses = null;
+
+        List<JaggerBlueprint> get() {
+            if (uses == null) {
+                Set<JaggerBlueprint> acc = new LinkedHashSet<>();
+                LinkedHashSet<UsesHolder> visited = new LinkedHashSet<>();
+                visited.add(this);
+                resolveProperty(USES).value().forEach(use -> {
+                    JaggerBlueprint blueprint = ctx.blueprint(use);
+                    acc.add(blueprint);
+                    blueprint.config.uses.putUses(acc, visited);
+                });
+                uses = acc.stream().toList();
+            }
+            return uses;
+        }
+
+        void putUses(Set<JaggerBlueprint> acc, Set<UsesHolder> visited) {
+            if (!visited.add(this)) {
+                return;
+            }
+            resolveProperty(USES).value().forEach(use -> {
+                JaggerBlueprint blueprint = ctx.blueprint(use);
+                acc.add(blueprint);
+                blueprint.config.uses.putUses(acc, visited);
+            });
+        }
+    }
 }

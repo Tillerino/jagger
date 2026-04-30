@@ -1,5 +1,6 @@
 package org.tillerino.jagger.processor.features;
 
+import jakarta.annotation.Nullable;
 import java.util.*;
 import java.util.stream.Collectors;
 import javax.lang.model.element.Element;
@@ -97,7 +98,7 @@ public record Generics(JaggerContext ctx) {
                 instantiatedMethod.config());
     }
 
-    public List<InstantiatedMethod> instantiateMethods(TypeMirror tm, LocationKind locationKind) {
+    public List<InstantiatedMethod> instantiateMethods(TypeMirror tm, @Nullable LocationKind locationKind) {
         if (!(tm instanceof DeclaredType d)) {
             return List.of();
         }
@@ -111,7 +112,9 @@ public record Generics(JaggerContext ctx) {
     }
 
     public InstantiatedMethod instantiateMethod(
-            ExecutableElement methodElement, Map<TypeVar, TypeMirror> typeBindings, LocationKind locationKind) {
+            ExecutableElement methodElement,
+            Map<TypeVar, TypeMirror> typeBindings,
+            @Nullable LocationKind locationKind) {
         List<InstantiatedVariable> parameters = methodElement.getParameters().stream()
                 .map(p -> new InstantiatedVariable(
                         p,
@@ -225,7 +228,7 @@ public record Generics(JaggerContext ctx) {
         for (JaggerPrototype method : blueprint.prototypes) {
             if (method.method().hasSameSignature(targetMethod, ctx)) {
                 return Optional.of(Snippet.of(
-                        "$L::$L",
+                        "$C::$L",
                         callingClass.getOrCreateDelegateeField(blueprint, blueprint, !method.overrides()),
                         method.method().name()));
             }
@@ -234,7 +237,7 @@ public record Generics(JaggerContext ctx) {
             for (JaggerPrototype method : use.prototypes) {
                 if (method.method().hasSameSignature(targetMethod, ctx)) {
                     return Optional.of(Snippet.of(
-                            "$L::$L",
+                            "$C::$L",
                             callingClass.getOrCreateDelegateeField(blueprint, use, !method.overrides()),
                             method.method().name()));
                 }

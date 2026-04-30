@@ -97,7 +97,7 @@ public record Delegation(JaggerContext ctx) {
                         .map(TemplatablePrototypeKind.class::cast)
                         .filter(kind -> kind.matches(target, ctx, new LinkedHashMap<>(), method.freeTypeVars()));
                 if (prototypeKind.isPresent()) {
-                    return Optional.of(new Delegatee(parameter.name(), method));
+                    return Optional.of(new Delegatee(parameter, method));
                 }
             }
         }
@@ -129,10 +129,10 @@ public record Delegation(JaggerContext ctx) {
             }
         }
         // see if we can instantiate an instance from our list of used blueprints
-        String delegateeInField =
+        Snippet delegateeInField =
                 generatedClass.getOrCreateUsedBlueprintWithTypeField(targetArgument.type(), caller.config());
         if (delegateeInField != null) {
-            return Optional.of(Snippet.of("$L", delegateeInField));
+            return Optional.of(delegateeInField);
         }
         if (targetArgument.type() instanceof DeclaredType t
                 && t.asElement().equals(ctx.commonTypes.classElement)
@@ -146,7 +146,7 @@ public record Delegation(JaggerContext ctx) {
         return ctx.generics.getOrCreateLambda(generatedClass, targetArgument.type(), caller.parameters(), 0);
     }
 
-    public record Delegatee(String fieldOrParameter, InstantiatedMethod method) {}
+    public record Delegatee(Snippet fieldOrParameter, InstantiatedMethod method) {}
 
     public record InstantiatedPrototype(
             JaggerBlueprint blueprint, JaggerPrototype prototype, InstantiatedMethod method) {}

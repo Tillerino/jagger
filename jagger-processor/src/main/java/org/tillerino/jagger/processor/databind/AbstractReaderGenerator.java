@@ -139,8 +139,10 @@ public abstract class AbstractReaderGenerator<SELF extends AbstractReaderGenerat
         TypeMirror idType = setup.finalIdType(type, ctx);
         addStatement("$T $C", idType, idVar);
         // We cannot call a delegator from this nested serializer or an else-branch is forced!
-        AnyConfig nestedConfig = new AnyConfig(List.of(
-                        new InstantiatedProperty(Delegation.DELEGATE_FROM, LocationKind.PROPERTY, false, "(internal)")))
+        AnyConfig nestedConfig = new AnyConfig(
+                        List.of(new InstantiatedProperty(
+                                Delegation.DELEGATE_FROM, LocationKind.PROPERTY, false, "(internal)")),
+                        ctx)
                 .merge(config.propagateTo(PropagationKind.PROPERTY));
         nest(idType, new Property("id", "id", null), Variable.from(idVar), false, nestedConfig)
                 .build(branch, false, false);
@@ -839,7 +841,7 @@ public abstract class AbstractReaderGenerator<SELF extends AbstractReaderGenerat
 
     protected abstract void throwUnrecognizedProperty(Snippet propertyName);
 
-    protected abstract void invokeDelegate(String instance, InstantiatedMethod callee);
+    protected abstract void invokeDelegate(Snippet instance, InstantiatedMethod callee);
 
     protected abstract SELF nest(
             TypeMirror type, @Nullable Property property, LHS lhs, boolean stackRelevantType, AnyConfig config);

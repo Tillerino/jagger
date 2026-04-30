@@ -4,6 +4,7 @@ import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
+import java.util.function.Supplier;
 
 @Target({ElementType.TYPE, ElementType.METHOD})
 @Retention(RetentionPolicy.CLASS)
@@ -67,6 +68,15 @@ public @interface JsonConfig {
     UnknownPropertiesMode unknownProperties() default UnknownPropertiesMode.DEFAULT;
 
     VerificationMode verifySymmetry() default VerificationMode.NO_VERIFICATION;
+
+    /**
+     * Providers are used to break circular dependencies between blueprints where instantiation via constructor is
+     * required.
+     *
+     * @return a {@link Supplier}-like types like {@code jakarta.inject.Provider} or {@code dagger.Lazy}: A parametric
+     *     interface {@code I<T>} with a no-arg method that returns {@code T}.
+     */
+    Class<?> provider() default Object.class;
 
     enum DelegateeMode {
         /** The annotated element can be called from other serializers. */

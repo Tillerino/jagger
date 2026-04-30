@@ -189,9 +189,9 @@ public class JakartaJsonParserGenerator extends AbstractReaderGenerator<JakartaJ
     }
 
     @Override
-    protected void invokeDelegate(String instance, InstantiatedMethod callee) {
+    protected void invokeDelegate(Snippet instance, InstantiatedMethod callee) {
         addStatement(lhs.assign(of(
-                "$L.$L($C)",
+                "$C.$L($C)",
                 instance,
                 callee,
                 join(ctx.delegation.findArguments(prototype, callee, 0, generatedClass), ", "))));

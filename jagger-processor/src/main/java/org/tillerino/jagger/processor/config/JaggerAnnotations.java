@@ -2,13 +2,9 @@ package org.tillerino.jagger.processor.config;
 
 import java.util.stream.Collectors;
 import org.tillerino.jagger.annotations.JsonConfig;
-import org.tillerino.jagger.processor.JaggerBlueprint;
 import org.tillerino.jagger.processor.JaggerContext;
 import org.tillerino.jagger.processor.config.ConfigProperty.AnnotationConfigPropertyRetriever;
-import org.tillerino.jagger.processor.features.CodeGeneration;
-import org.tillerino.jagger.processor.features.Delegation;
-import org.tillerino.jagger.processor.features.UnknownProperties;
-import org.tillerino.jagger.processor.features.Verification;
+import org.tillerino.jagger.processor.features.*;
 import org.tillerino.jagger.processor.util.Annotations.AnnotationValueWrapper;
 
 public class JaggerAnnotations {
@@ -21,9 +17,8 @@ public class JaggerAnnotations {
                 ann -> ann.method("uses", true)
                         .map(AnnotationValueWrapper::asArray)
                         .map(classNames -> classNames.stream()
-                                .map(className -> ctx.blueprint(ctx.elements.getTypeElement(
-                                        className.asTypeMirror().toString())))
-                                .flatMap(JaggerBlueprint::includeUses)
+                                .map(className -> ctx.elements.getTypeElement(
+                                        className.asTypeMirror().toString()))
                                 .collect(Collectors.toUnmodifiableSet())));
 
         ctx.configProperties.addRetriever(
@@ -70,6 +65,11 @@ public class JaggerAnnotations {
         ctx.configProperties.addRetriever(
                 Verification.VERIFY_SYMMETRY,
                 jsonConfigPropertyRetriever("verifySymmetry", JsonConfig.VerificationMode.class));
+
+        ctx.configProperties.addRetriever(
+                ctx.codeGeneration.provider,
+                new AnnotationConfigPropertyRetriever<>(
+                        JSON_CONFIG, ann -> ann.method("provider", false).map(AnnotationValueWrapper::asTypeMirror)));
     }
 
     public static <T extends Enum<T>> AnnotationConfigPropertyRetriever<T> jsonConfigPropertyRetriever(

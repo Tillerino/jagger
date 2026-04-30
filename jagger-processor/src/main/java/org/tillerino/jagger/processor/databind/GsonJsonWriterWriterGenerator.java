@@ -92,10 +92,10 @@ public class GsonJsonWriterWriterGenerator extends AbstractWriterGenerator<GsonJ
     }
 
     @Override
-    protected void invokeDelegate(String instance, InstantiatedMethod callee) {
+    protected void invokeDelegate(Snippet instance, InstantiatedMethod callee) {
         addFieldNameIfNeeded();
         addStatement(Snippet.of(
-                "$L.$L($C$C)",
+                "$C.$L($C$C)",
                 instance,
                 callee,
                 rhs,
