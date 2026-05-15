@@ -3,14 +3,17 @@ package org.tillerino.jagger.processor.features;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.Predicate;
 import java.util.stream.Stream;
 import javax.lang.model.element.ExecutableElement;
 import javax.lang.model.element.Modifier;
-import javax.lang.model.type.DeclaredType;
 import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
 import javax.lang.model.util.ElementFilter;
-import org.tillerino.jagger.processor.*;
+import org.tillerino.jagger.processor.GeneratedClass;
+import org.tillerino.jagger.processor.JaggerBlueprint;
+import org.tillerino.jagger.processor.JaggerContext;
+import org.tillerino.jagger.processor.JaggerPrototype;
 import org.tillerino.jagger.processor.config.AnyConfig;
 import org.tillerino.jagger.processor.config.ConfigProperty.LocationKind;
 import org.tillerino.jagger.processor.features.Generics.TypeVar;
@@ -84,10 +87,13 @@ public record Converters(JaggerContext ctx) {
     }
 
     public Optional<TypedSnippet> findJsonValueMethod(TypedSnippet toConvert) {
-        if (!(toConvert.type() instanceof DeclaredType dt)) {
-            return Optional.empty();
-        }
-        Optional<InstantiatedMethod> result = Polymorphism.typeHierarchyBfs(dt, ctx, type -> {
+        Optional<InstantiatedMethod> result = findJsonValueMethod(toConvert.type(), __ -> true);
+        return result.map(m -> TypedSnippet.of(m.returnType(), Snippet.of("$C.$L()", toConvert, m.name())));
+    }
+
+    public Optional<InstantiatedMethod> findJsonValueMethod(
+            TypeMirror dtoType, Predicate<TypeMirror> returnTypeFilter) {
+        return Polymorphism.typeHierarchyBfs(dtoType, ctx, type -> {
             Map<TypeVar, TypeMirror> typeBindings = ctx.generics.recordTypeBindings(type);
             for (ExecutableElement method :
                     ElementFilter.methodsIn(type.asElement().getEnclosedElements())) {
@@ -95,12 +101,12 @@ public record Converters(JaggerContext ctx) {
                                 .findAnnotation(method, "com.fasterxml.jackson.annotation.JsonValue")
                                 .isPresent()
                         && method.getParameters().isEmpty()
-                        && method.getReturnType().getKind() != TypeKind.VOID) {
+                        && method.getReturnType().getKind() != TypeKind.VOID
+                        && returnTypeFilter.test(method.getReturnType())) {
                     return Optional.of(ctx.generics.instantiateMethod(method, typeBindings, LocationKind.BLUEPRINT));
                 }
             }
             return Optional.empty();
         });
-        return result.map(m -> TypedSnippet.of(m.returnType(), Snippet.of("$C.$L()", toConvert, m.name())));
     }
 }

@@ -18,6 +18,7 @@ import org.tillerino.jagger.helpers.EnumHelper;
 import org.tillerino.jagger.processor.config.AnyConfig;
 import org.tillerino.jagger.processor.features.Verification.ForBlueprint;
 import org.tillerino.jagger.processor.util.FullyQualifiedName.FullyQualifiedClassName.TopLevelClassName;
+import org.tillerino.jagger.processor.util.InstantiatedMethod;
 import org.tillerino.jagger.processor.util.PlainTypeName;
 import org.tillerino.jagger.processor.util.Snippet;
 
@@ -85,16 +86,20 @@ public class GeneratedClass {
 
     public String getOrCreateEnumField(TypeMirror enumType) {
         return enumFields
-                .computeIfAbsent(
-                        enumType.toString(),
-                        __ -> new EnumValuesField(
-                                StringUtils.uncapitalize(((DeclaredType) enumType)
-                                                .asElement()
-                                                .getSimpleName()
-                                                .toString())
-                                        + "$" + enumFields.size() + "$values",
-                                enumType,
-                                "name"))
+                .computeIfAbsent(enumType.toString(), __ -> {
+                    String valueFunction = ctx.converters
+                            .findJsonValueMethod(enumType, ctx.converters.ctx().commonTypes::isString)
+                            .map(InstantiatedMethod::name)
+                            .orElse("name");
+                    return new EnumValuesField(
+                            StringUtils.uncapitalize(((DeclaredType) enumType)
+                                            .asElement()
+                                            .getSimpleName()
+                                            .toString())
+                                    + "$" + enumFields.size() + "$values",
+                            enumType,
+                            valueFunction);
+                })
                 .name();
     }
 
