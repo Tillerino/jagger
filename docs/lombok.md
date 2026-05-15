@@ -4,7 +4,7 @@ Jagger and Lombok work together exactly as you would expect: Accessors and const
 picked up by Jagger. In fact, Lombok is used in Jagger's tests to cut down on boilerplate code:
 
 ```java
-// ../jagger-tests/base/src/main/java/org/tillerino/jagger/tests/model/features/RequiredPropertyModel.java#L16-L25
+// ../jagger-tests/base/src/main/java/org/tillerino/jagger/tests/model/features/RequiredPropertyModel.java#L18-L27
 
 @Data
 @AllArgsConstructor
@@ -21,7 +21,7 @@ class RequiredPropertyWithSetter {
 However, it is important that you order Lombok before Jagger in the annotation processors:
 
 ```xml
-<!-- ../jagger-tests/pom.xml#L90-L110 -->
+<!-- ../jagger-tests/pom.xml#L92-L112 -->
 
 <plugin>
     <groupId>org.apache.maven.plugins</groupId>

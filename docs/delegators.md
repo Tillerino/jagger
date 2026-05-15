@@ -76,7 +76,7 @@ The implementation of `BoxedScalarsSerde` will then call instantiate and call th
 // ../jagger-tests/jackson/target/generated-sources/annotations/org/tillerino/jagger/tests/base/features/DelegationSerde$BoxedScalarsSerdeImpl.java#L25-L35
 
 public class DelegationSerde$BoxedScalarsSerdeImpl implements DelegationSerde.BoxedScalarsSerde {
-  PrimitiveScalarsSerde primitiveScalarsSerde$0$delegate = new PrimitiveScalarsSerdeImpl();
+  final PrimitiveScalarsSerde primitiveScalarsSerde$0$delegate = new PrimitiveScalarsSerdeImpl();
 
   @Override
   public void writeBoxedBooleanX(Boolean b, JsonGenerator generator) throws Exception {

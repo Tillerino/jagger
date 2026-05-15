@@ -179,13 +179,12 @@ class MultiPropertyPojo {
 These two queries demonstrate pseudo-property expansion:
 
 ```java
-// ../jagger-tests/jdbc/src/main/java/org/tillerino/jagger/tests/jdbc/Docs.java#L46-L53
+// ../jagger-tests/jdbc/src/main/java/org/tillerino/jagger/tests/jdbc/Docs.java#L46-L52
 
 @JdbcUpdate("INSERT INTO tablename (entity.#insertColumns) VALUES (:entity.#insertValues)")
 void insert(Connection c, MultiPropertyPojo entity) throws SQLException;
 
-@JdbcUpdate(
-        """
+@JdbcUpdate("""
         UPDATE tablename SET (entity.#updateColumns) = (:entity.#updateValues)
           WHERE (entity.#keyColumns) = (:entity.#keyValues)""")
 void update(Connection c, MultiPropertyPojo entity) throws SQLException;
@@ -240,14 +239,14 @@ Where `t` is the name of the entity's table and `p` is the name of the parameter
 The table name is specified with `jakarta.persistence.Table` or with `org.tillerino.jagger.annotations.JdbcConfig`.
 
 ```java
-// ../jagger-tests/jdbc/src/main/java/org/tillerino/jagger/tests/jdbc/Docs.java#L56-L57
+// ../jagger-tests/jdbc/src/main/java/org/tillerino/jagger/tests/jdbc/Docs.java#L55-L56
 
 @Table(name = "tablename")
 record AutoRecord(@Id int id, String payload) {}
 ```
 
 ```java
-// ../jagger-tests/jdbc/src/main/java/org/tillerino/jagger/tests/jdbc/Docs.java#L60-L67
+// ../jagger-tests/jdbc/src/main/java/org/tillerino/jagger/tests/jdbc/Docs.java#L59-L66
 
 @JdbcSelect
 AutoRecord select(Connection c) throws SQLException;
@@ -291,7 +290,7 @@ Select queries typically require a `WHERE` clause, making the auto-generated `SE
 Specify an expression in `@JdbcSelect(where = ...)` to append to the generated query:
 
 ```java
-// ../jagger-tests/jdbc/src/main/java/org/tillerino/jagger/tests/jdbc/Docs.java#L69-L70
+// ../jagger-tests/jdbc/src/main/java/org/tillerino/jagger/tests/jdbc/Docs.java#L68-L69
 
 @JdbcSelect(where = "id = :id")
 AutoRecord selectById(Connection c, int id) throws SQLException;
@@ -315,7 +314,7 @@ For dialects requiring different quote characters (e.g. MySQL without `ANSI` SQL
 with `@JdbcConfig(quoteChar = ...`)
 
 ```java
-// ../jagger-tests/jdbc/src/main/java/org/tillerino/jagger/tests/jdbc/AutoQuerySerde.java#L70-L72
+// ../jagger-tests/jdbc/src/main/java/org/tillerino/jagger/tests/jdbc/AutoQuerySerde.java#L69-L71
 
 @JdbcConfig(quoteChar = "`")
 @JdbcSelect
@@ -350,7 +349,7 @@ List<Serde.SimpleEntityRecord> listFromResultSet(ResultSet rs) throws SQLExcepti
 This generates code that reads directly from the passed `ResultSet`:
 
 ```java
-// ../jagger-tests/jdbc/target/generated-sources/annotations/org/tillerino/jagger/tests/jdbc/DirectResultSetSelectSerdeImpl.java#L33-L42
+// ../jagger-tests/jdbc/target/generated-sources/annotations/org/tillerino/jagger/tests/jdbc/DirectResultSetSelectSerdeImpl.java#L34-L43
 
 @Override
 public List<Serde.SimpleEntityRecord> listFromResultSet(ResultSet rs) throws SQLException {

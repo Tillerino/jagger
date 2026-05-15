@@ -306,7 +306,7 @@ The idea is that you write the SQL and Jagger takes care of mapping between your
 Jagger will also generate the boilerplate-ish parts of SQL queries.
 
 ```java
-// jagger-tests/jdbc/src/main/java/org/tillerino/jagger/tests/jdbc/AutoQuerySerde.java#L42-L43
+// jagger-tests/jdbc/src/main/java/org/tillerino/jagger/tests/jdbc/AutoQuerySerde.java#L41-L42
 
 @JdbcSelect(where = "\"id\" = :someId")
 JakartaTable selectJakartaById(Connection c, int someId) throws SQLException;
@@ -439,7 +439,7 @@ A checkmark indicates _basic_ compatibility, although there can be edge cases wh
 - [ ] JsonMerge
 - [X] JsonProperty (`value` and `required`)
 - [ ] JsonPropertyDescription
-- [ ] JsonPropertyOrder
+- [X] JsonPropertyOrder
 - [ ] JsonRawValue
 - [ ] JsonRootName
 - [ ] JsonSetter

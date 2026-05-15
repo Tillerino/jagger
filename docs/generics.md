@@ -107,9 +107,9 @@ implement these concrete prototypes like so:
 // ../jagger-tests/jackson/target/generated-sources/annotations/org/tillerino/jagger/tests/base/features/GenericsSerde$IntegerRecordSerdeImpl.java#L12-L31
 
 public class GenericsSerde$IntegerRecordSerdeImpl implements GenericsSerde.IntegerRecordSerde {
-  GenericsSerde.GenericRecordSerde genericRecordSerde$0$delegate = new GenericsSerde$GenericRecordSerdeImpl();
+  final GenericsSerde.GenericRecordSerde genericRecordSerde$0$delegate = new GenericsSerde$GenericRecordSerdeImpl();
 
-  DelegationSerde.BoxedScalarsSerde boxedScalarsSerde$1$delegate = new DelegationSerde$BoxedScalarsSerdeImpl();
+  final DelegationSerde.BoxedScalarsSerde boxedScalarsSerde$1$delegate = new DelegationSerde$BoxedScalarsSerdeImpl();
 
   @Override
   public GenericsModel.GenericRecord<Integer> readIntegerRecord(JsonParser parser) throws

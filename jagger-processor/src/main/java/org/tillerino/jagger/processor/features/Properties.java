@@ -1,5 +1,6 @@
 package org.tillerino.jagger.processor.features;
 
+import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -19,7 +20,7 @@ import org.tillerino.jagger.processor.util.Exceptions;
 public record Properties(JaggerContext ctx) {
 
     public List<OutputProperty> outputProperties(TypeMirror type, AnyConfig config) {
-        return ctx.properties.listReadAccessors(type).entrySet().stream()
+        List<OutputProperty> properties = ctx.properties.listReadAccessors(type).entrySet().stream()
                 .map(entry -> {
                     String canonicalName = entry.getKey();
                     ReadAccessor accessor = entry.getValue();
@@ -30,6 +31,10 @@ public record Properties(JaggerContext ctx) {
                     return new OutputProperty(canonicalName, externalName, accessor, propertyConfig);
                 })
                 .toList();
+
+        Comparator<OutputProperty> orderComparator =
+                Comparator.comparing(OutputProperty::externalName, PropertyOrder.comparator(config));
+        return properties.stream().sorted(orderComparator).toList();
     }
 
     public Map<String, Accessor.ReadAccessor> listReadAccessors(TypeMirror type) {

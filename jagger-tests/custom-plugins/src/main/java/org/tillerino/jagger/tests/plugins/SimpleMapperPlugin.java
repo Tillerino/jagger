@@ -70,11 +70,6 @@ public class SimpleMapperPlugin implements JaggerPlugin {
         }
 
         @Override
-        public boolean decorates(org.tillerino.jagger.processor.config.AnyConfig config) {
-            return true;
-        }
-
-        @Override
         public Direction direction() {
             return Direction.IRRELEVANT;
         }
