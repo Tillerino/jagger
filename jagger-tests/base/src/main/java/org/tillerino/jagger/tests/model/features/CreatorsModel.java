@@ -216,4 +216,25 @@ public interface CreatorsModel {
             }
         }
     }
+
+    interface ConvertersInheritance {
+
+        interface JsonValueInterface {
+            @JsonValue
+            default String toStringValue() {
+                return "custom";
+            }
+        }
+
+        interface GenericJsonValueInterface<T> {
+            @JsonValue
+            default T toValue() {
+                return (T) (Integer) 123;
+            }
+        }
+
+        class JsonValueChild implements JsonValueInterface {}
+
+        class GenericJsonValueChild implements GenericJsonValueInterface<Integer> {}
+    }
 }

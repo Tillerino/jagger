@@ -5,6 +5,8 @@ import com.fasterxml.jackson.core.JsonParser;
 import org.tillerino.jagger.annotations.JsonInput;
 import org.tillerino.jagger.annotations.JsonOutput;
 import org.tillerino.jagger.tests.model.features.CreatorsModel.*;
+import org.tillerino.jagger.tests.model.features.CreatorsModel.ConvertersInheritance.GenericJsonValueChild;
+import org.tillerino.jagger.tests.model.features.CreatorsModel.ConvertersInheritance.JsonValueChild;
 import org.tillerino.jagger.tests.model.features.CreatorsModel.Priority.*;
 
 public interface CreatorsSerde {
@@ -38,20 +40,20 @@ public interface CreatorsSerde {
             throws Exception;
 
     @JsonOutput
-    void write(JsonValueRecord<Integer> obj, JsonGenerator generator) throws Exception;
+    void write(JsonValueRecord<Integer> obj, JsonGenerator gen) throws Exception;
 
     @JsonInput
     PolyInterface readPolyInterfaceNestedWithCreator(JsonParser parser) throws Exception;
 
     interface Priority {
         @JsonOutput
-        void writeJsonValueEnum(JsonValueEnum enumValue, JsonGenerator generator) throws Exception;
+        void writeJsonValueEnum(JsonValueEnum enumValue, JsonGenerator gen) throws Exception;
 
         @JsonOutput
-        void writeJsonValueIterable(JsonValueIterable iterable, JsonGenerator generator) throws Exception;
+        void writeJsonValueIterable(JsonValueIterable iterable, JsonGenerator gen) throws Exception;
 
         @JsonOutput
-        void writeJsonValueMap(JsonValueMap map, JsonGenerator generator) throws Exception;
+        void writeJsonValueMap(JsonValueMap map, JsonGenerator gen) throws Exception;
 
         @JsonInput
         JsonCreatorMethodEnum readJsonCreatorMethodEnum(JsonParser parser) throws Exception;
@@ -71,5 +73,13 @@ public interface CreatorsSerde {
 
         @JsonInput
         JsonCreatorMethodMultipleParamsMap readJsonCreatorMethodMultipleParamsMap(JsonParser parser) throws Exception;
+    }
+
+    interface ConvertersInheritance {
+        @JsonOutput
+        void writeJsonValueChild(JsonValueChild obj, JsonGenerator gen) throws Exception;
+
+        @JsonOutput
+        void writeGenericJsonValueChild(GenericJsonValueChild obj, JsonGenerator gen) throws Exception;
     }
 }

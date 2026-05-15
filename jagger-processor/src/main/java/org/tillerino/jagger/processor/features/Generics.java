@@ -37,17 +37,10 @@ public record Generics(JaggerContext ctx) {
         if (d.asElement().equals(superType)) {
             Map<TypeVar, TypeMirror> bindings = new LinkedHashMap<>();
             for (int i = 0; i < superType.getTypeParameters().size(); i++) {
-                bindings.put(
-                        new TypeVar(
-                                superType,
-                                ((TypeVariable) superType
-                                                .getTypeParameters()
-                                                .get(i)
-                                                .asType())
-                                        .asElement()
-                                        .getSimpleName()
-                                        .toString()),
-                        d.getTypeArguments().get(i));
+                TypeVariable typeVariable =
+                        (TypeVariable) superType.getTypeParameters().get(i).asType();
+                String name = typeVariable.asElement().getSimpleName().toString();
+                bindings.put(new TypeVar(superType, name), d.getTypeArguments().get(i));
             }
             return bindings;
         }

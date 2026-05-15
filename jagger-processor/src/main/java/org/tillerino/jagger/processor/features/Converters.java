@@ -87,20 +87,20 @@ public record Converters(JaggerContext ctx) {
         if (!(toConvert.type() instanceof DeclaredType dt)) {
             return Optional.empty();
         }
-        Map<TypeVar, TypeMirror> typeBindings = ctx.generics.recordTypeBindings(dt);
-        for (ExecutableElement method : ElementFilter.methodsIn(dt.asElement().getEnclosedElements())) {
-            if (ctx.annotations
-                            .findAnnotation(method, "com.fasterxml.jackson.annotation.JsonValue")
-                            .isEmpty()
-                    || !method.getParameters().isEmpty()
-                    || method.getReturnType().getKind() == TypeKind.VOID) {
-                continue;
+        Optional<InstantiatedMethod> result = Polymorphism.typeHierarchyBfs(dt, ctx, type -> {
+            Map<TypeVar, TypeMirror> typeBindings = ctx.generics.recordTypeBindings(type);
+            for (ExecutableElement method :
+                    ElementFilter.methodsIn(type.asElement().getEnclosedElements())) {
+                if (ctx.annotations
+                                .findAnnotation(method, "com.fasterxml.jackson.annotation.JsonValue")
+                                .isPresent()
+                        && method.getParameters().isEmpty()
+                        && method.getReturnType().getKind() != TypeKind.VOID) {
+                    return Optional.of(ctx.generics.instantiateMethod(method, typeBindings, LocationKind.BLUEPRINT));
+                }
             }
-            InstantiatedMethod instantiatedMethod =
-                    ctx.generics.instantiateMethod(method, typeBindings, LocationKind.BLUEPRINT);
-            return Optional.of(TypedSnippet.of(
-                    instantiatedMethod.returnType(), Snippet.of("$C.$L()", toConvert, instantiatedMethod.name())));
-        }
-        return Optional.empty();
+            return Optional.empty();
+        });
+        return result.map(m -> TypedSnippet.of(m.returnType(), Snippet.of("$C.$L()", toConvert, m.name())));
     }
 }

@@ -8,7 +8,10 @@ import org.junit.jupiter.api.Test;
 import org.tillerino.jagger.tests.ReferenceTest;
 import org.tillerino.jagger.tests.SerdeUtil;
 import org.tillerino.jagger.tests.TestSettings;
+import org.tillerino.jagger.tests.base.features.CreatorsSerde.ConvertersInheritance;
 import org.tillerino.jagger.tests.model.features.CreatorsModel;
+import org.tillerino.jagger.tests.model.features.CreatorsModel.ConvertersInheritance.GenericJsonValueChild;
+import org.tillerino.jagger.tests.model.features.CreatorsModel.ConvertersInheritance.JsonValueChild;
 import org.tillerino.jagger.tests.model.features.CreatorsModel.JsonCreatorConstructorFactoryMultiplePropertiesClass;
 import org.tillerino.jagger.tests.model.features.CreatorsModel.JsonCreatorMethodFactoryMultiplePropertiesRecord;
 import org.tillerino.jagger.tests.model.features.CreatorsModel.PolyInterface;
@@ -172,6 +175,23 @@ public class CreatorsTest extends ReferenceTest {
                     new TypeReference<>() {});
             assertThat(map.name).isEqualTo("foo");
             assertThat(map.count).isEqualTo(3);
+        }
+    }
+
+    @Nested
+    class ConvertersInheritanceTest {
+        ConvertersInheritance serde = SerdeUtil.impl(ConvertersInheritance.class);
+
+        @Test
+        public void jsonValueEnumImplementingInterface() throws Exception {
+            JsonValueChild enumValue = new JsonValueChild();
+            outputUtils.assertIsEqualToDatabind(enumValue, serde::writeJsonValueChild);
+        }
+
+        @Test
+        public void genericJsonValueClassImplementingInterface() throws Exception {
+            GenericJsonValueChild value = new GenericJsonValueChild();
+            outputUtils.assertIsEqualToDatabind(value, serde::writeGenericJsonValueChild);
         }
     }
 }

@@ -141,6 +141,34 @@ public record Polymorphism(String discriminator, JsonTypeInfoId id, List<Child> 
                 .toList();
     }
 
+    public interface DeclaredTypeVisitor<T> {
+        T visit(DeclaredType type);
+    }
+
+    /** @param visitor once this returns a non-empty, the search is aborted, and the result returned */
+    public static <T> Optional<T> typeHierarchyBfs(
+            TypeMirror type, JaggerContext ctx, DeclaredTypeVisitor<Optional<T>> visitor) {
+        // TypeMirror does not implement equals, so we can't use a Set and must use ctx.types.isSameType
+        List<TypeMirror> visitedOrQueued = new ArrayList<>();
+        visitedOrQueued.add(type);
+        for (int head = 0; head < visitedOrQueued.size(); head++) {
+            TypeMirror current = visitedOrQueued.get(head);
+            if (!(current instanceof DeclaredType dt)) {
+                continue;
+            }
+            Optional<T> result = visitor.visit(dt);
+            if (result.isPresent()) {
+                return result;
+            }
+            for (TypeMirror supertype : directSupertypes(dt, ctx)) {
+                if (visitedOrQueued.stream().noneMatch(v -> ctx.types.isSameType(v, supertype))) {
+                    visitedOrQueued.add(supertype);
+                }
+            }
+        }
+        return Optional.empty();
+    }
+
     public enum JsonTypeInfoId {
         NONE(null),
         CLASS("@class"),
