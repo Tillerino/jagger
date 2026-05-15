@@ -31,7 +31,7 @@ import javax.lang.model.type.TypeMirror;
 import javax.lang.model.util.ElementFilter;
 import org.apache.commons.lang3.exception.ContextedRuntimeException;
 import org.tillerino.jagger.input.EmptyArrays;
-import org.tillerino.jagger.processor.*;
+import org.tillerino.jagger.processor.AbstractCodeGenerator;
 import org.tillerino.jagger.processor.config.AnyConfig;
 import org.tillerino.jagger.processor.config.ConfigProperty.InstantiatedProperty;
 import org.tillerino.jagger.processor.config.ConfigProperty.LocationKind;
@@ -695,7 +695,7 @@ public abstract class AbstractReaderGenerator<SELF extends AbstractReaderGenerat
             if (ignoredProperties.contains(nest.property.serializedName())) {
                 continue;
             }
-            beginControlFlow("case $S:", nest.property.serializedName());
+            beginControlFlow(Alias.caseSnippet(nest.property));
             Exceptions.runWithContext(
                     () -> {
                         if (referencesSetup

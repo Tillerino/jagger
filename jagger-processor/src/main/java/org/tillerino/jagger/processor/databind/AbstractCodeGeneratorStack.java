@@ -96,7 +96,7 @@ public abstract class AbstractCodeGeneratorStack<SELF extends AbstractCodeGenera
         BYTE_ARRAY
     }
 
-    protected record Property(
+    public record Property(
             String canonicalName,
             String serializedName,
             @Nullable AnyConfig config) {

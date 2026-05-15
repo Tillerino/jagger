@@ -71,5 +71,14 @@ public class JacksonAnnotationsPlugin implements JaggerPlugin {
                 PropertyOrder.PROPERTY_ORDER_ALPHABETIC,
                 CFJA + ".JsonPropertyOrder",
                 ann -> ann.method("alphabetic", false).map(AnnotationValueWrapper::asBoolean));
+
+        ctx.configProperties.addAnnotationPropertyConfigRetriever(
+                Alias.ALIASES,
+                CFJA + ".JsonAlias",
+                ann -> ann.method("value", true)
+                        .map(AnnotationValueWrapper::asArray)
+                        .map(arr -> arr.stream()
+                                .map(AnnotationValueWrapper::asString)
+                                .collect(ConfigProperty.toUnmodifiableSet())));
     }
 }

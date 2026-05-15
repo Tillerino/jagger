@@ -416,7 +416,7 @@ The following is a rough indication of compatibility with Jackson's annotations.
 A checkmark indicates _basic_ compatibility, although there can be edge cases where we are not compatible.
 
 - [ ] JacksonInject
-- [ ] JsonAlias
+- [X] JsonAlias (not for enum values yet)
 - [ ] JsonAnyGetter
 - [ ] JsonAnySetter
 - [ ] JsonAutoDetect
@@ -455,6 +455,7 @@ A checkmark indicates _basic_ compatibility, although there can be edge cases wh
 
 ### Short-term
 - Custom converters per property.
+- `#table` for JDBC
 
 ### Long-term
 
