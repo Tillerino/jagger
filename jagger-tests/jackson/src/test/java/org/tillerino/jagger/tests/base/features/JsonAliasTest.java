@@ -1,9 +1,11 @@
 package org.tillerino.jagger.tests.base.features;
 
 import com.fasterxml.jackson.core.type.TypeReference;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.tillerino.jagger.tests.ReferenceTest;
 import org.tillerino.jagger.tests.SerdeUtil;
+import org.tillerino.jagger.tests.model.features.JsonAliasModel;
 import org.tillerino.jagger.tests.model.features.JsonAliasModel.InnerJsonAlias;
 import org.tillerino.jagger.tests.model.features.JsonAliasModel.JsonAliasValue;
 import org.tillerino.jagger.tests.model.features.JsonAliasModel.NestedJsonAlias;
@@ -56,5 +58,55 @@ class JsonAliasTest extends ReferenceTest {
         inputUtils.assertIsEqualToDatabind("""
                 { "innerAlias1": "Moopsy" }
             """, serde::readInnerJsonAlias, new TypeReference<>() {});
+    }
+
+    @Nested
+    class Enums {
+        JsonAliasSerde.Enums serde = SerdeUtil.impl(JsonAliasSerde.Enums.class);
+
+        @Test
+        void onlyAliasesRoundTrip() throws Exception {
+            for (JsonAliasModel.Enums.OnlyAliases value : JsonAliasModel.Enums.OnlyAliases.values()) {
+                outputUtils.roundTrip(value, serde::writeOnlyAliases, serde::readOnlyAliases, new TypeReference<>() {});
+            }
+        }
+
+        @Test
+        void onlyAliasesDeserializeWithAlias() throws Exception {
+            inputUtils.assertIsEqualToDatabind("\"alias-one\"", serde::readOnlyAliases, new TypeReference<>() {});
+            inputUtils.assertIsEqualToDatabind("\"alias1\"", serde::readOnlyAliases, new TypeReference<>() {});
+            inputUtils.assertIsEqualToDatabind("\"alias-two\"", serde::readOnlyAliases, new TypeReference<>() {});
+        }
+
+        @Test
+        void onlyAliasesDeserializeWithEnumName() throws Exception {
+            inputUtils.assertIsEqualToDatabind("\"VALUE1\"", serde::readOnlyAliases, new TypeReference<>() {});
+            inputUtils.assertIsEqualToDatabind("\"VALUE2\"", serde::readOnlyAliases, new TypeReference<>() {});
+            inputUtils.assertIsEqualToDatabind("\"VALUE3\"", serde::readOnlyAliases, new TypeReference<>() {});
+        }
+
+        @Test
+        void aliasAndJsonPropertyRoundTrip() throws Exception {
+            for (JsonAliasModel.Enums.AliasAndJsonProperty value : JsonAliasModel.Enums.AliasAndJsonProperty.values()) {
+                outputUtils.roundTrip(
+                        value,
+                        serde::writeAliasAndJsonProperty,
+                        serde::readAliasAndJsonProperty,
+                        new TypeReference<>() {});
+            }
+        }
+
+        @Test
+        void aliasAndJsonPropertyDeserializeWithAlias() throws Exception {
+            inputUtils.assertIsEqualToDatabind(
+                    "\"customAlias\"", serde::readAliasAndJsonProperty, new TypeReference<>() {});
+            inputUtils.assertIsEqualToDatabind("\"cv\"", serde::readAliasAndJsonProperty, new TypeReference<>() {});
+        }
+
+        @Test
+        void aliasAndJsonPropertyDeserializeWithCustomName() throws Exception {
+            inputUtils.assertIsEqualToDatabind(
+                    "\"custom-value\"", serde::readAliasAndJsonProperty, new TypeReference<>() {});
+        }
     }
 }

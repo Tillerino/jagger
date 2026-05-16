@@ -47,6 +47,7 @@ public class JaggerContext {
     public Creators creators;
     public References references;
     public Properties properties;
+    public Alias alias;
     public Enums enums;
     public CodeGeneration codeGeneration;
     public ConfigProperties configProperties;
@@ -70,6 +71,7 @@ public class JaggerContext {
         creators = new Creators(this);
         references = new References(this);
         properties = new Properties(this);
+        alias = new Alias(this);
         enums = new Enums(this);
         codeGeneration = new CodeGeneration(this);
         configProperties = new ConfigProperties(this);

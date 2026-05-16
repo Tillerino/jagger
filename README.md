@@ -436,7 +436,7 @@ The following is a rough indication of compatibility with Jackson's annotations.
 A checkmark indicates _basic_ compatibility, although there can be edge cases where we are not compatible.
 
 - [ ] JacksonInject
-- [X] JsonAlias (not for enum values yet)
+- [X] JsonAlias
 - [ ] JsonAnyGetter
 - [ ] JsonAnySetter
 - [ ] JsonAutoDetect

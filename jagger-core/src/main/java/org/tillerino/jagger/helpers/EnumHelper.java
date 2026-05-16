@@ -7,14 +7,25 @@ import java.util.Map;
 import java.util.function.Function;
 
 public class EnumHelper {
+
     public static <T extends Enum<T>> Map<String, T> deserializationMap(
-            Class<T> enumType, Function<T, String> keyMapper, Object[] explicitMappings) {
+            Class<T> enumType, Function<T, String> keyMapper, Object[] explicitMappings, Object[] aliases) {
         Map<String, T> result = new LinkedHashMap<>();
         for (T constant : enumType.getEnumConstants()) {
             int idx = findInPairs(explicitMappings, constant);
             String key = idx >= 0 ? explicitMappings[idx + 1].toString() : keyMapper.apply(constant);
             result.put(key, constant);
         }
+
+        T currentConstant = null;
+        for (Object item : aliases) {
+            if (item instanceof Enum) {
+                currentConstant = (T) item;
+            } else {
+                result.put(item.toString(), currentConstant);
+            }
+        }
+
         return Collections.unmodifiableMap(result);
     }
 

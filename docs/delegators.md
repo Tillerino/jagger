@@ -28,7 +28,7 @@ List<ScalarFieldsRecord> deserializeList(JsonParser parser) throws Exception;
 
 `deserializeList` will then refer to `deserializeSingle` instead of repeating the entire deserialization of `ScalarFieldsRecord`.
 ```java
-// ../jagger-tests/jackson/target/generated-sources/annotations/org/tillerino/jagger/tests/base/features/DelegationSerde$SimpleDelegationSerdeImpl.java#L330-L346
+// ../jagger-tests/jackson/target/generated-sources/annotations/org/tillerino/jagger/tests/base/features/DelegationSerde$SimpleDelegationSerdeImpl.java#L331-L347
 
 @Override
 public List<ScalarFieldsRecord> deserializeList(JsonParser parser) throws Exception {
@@ -93,7 +93,7 @@ To keep the generated code small and readable, it is recommended to build a libr
 Even something as simple as reading a `Float[]` generates a lot of code:
 
 ```java
-// ../jagger-tests/jackson/target/generated-sources/annotations/org/tillerino/jagger/tests/base/ScalarArraysSerdeImpl.java#L708-L750
+// ../jagger-tests/jackson/target/generated-sources/annotations/org/tillerino/jagger/tests/base/ScalarArraysSerdeImpl.java#L709-L751
 
 @Override
 public Float[] readBoxedFloatArray(JsonParser parser) throws Exception {
