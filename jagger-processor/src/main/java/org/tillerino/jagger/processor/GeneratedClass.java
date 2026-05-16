@@ -10,15 +10,13 @@ import java.util.function.Consumer;
 import java.util.stream.Stream;
 import javax.annotation.processing.Filer;
 import javax.lang.model.element.Modifier;
-import javax.lang.model.type.DeclaredType;
 import javax.lang.model.type.TypeMirror;
 import javax.tools.JavaFileObject;
 import org.apache.commons.lang3.StringUtils;
-import org.tillerino.jagger.helpers.EnumHelper;
 import org.tillerino.jagger.processor.config.AnyConfig;
+import org.tillerino.jagger.processor.features.Enums.EnumValuesField;
 import org.tillerino.jagger.processor.features.Verification.ForBlueprint;
 import org.tillerino.jagger.processor.util.FullyQualifiedName.FullyQualifiedClassName.TopLevelClassName;
-import org.tillerino.jagger.processor.util.InstantiatedMethod;
 import org.tillerino.jagger.processor.util.PlainTypeName;
 import org.tillerino.jagger.processor.util.Snippet;
 
@@ -84,28 +82,19 @@ public class GeneratedClass {
         return null;
     }
 
-    public String getOrCreateEnumField(TypeMirror enumType) {
-        return enumFields
-                .computeIfAbsent(enumType.toString(), __ -> {
-                    String valueFunction = ctx.converters
-                            .findJsonValueMethod(enumType, ctx.converters.ctx().commonTypes::isString)
-                            .map(InstantiatedMethod::name)
-                            .orElse("name");
-                    return new EnumValuesField(
-                            StringUtils.uncapitalize(((DeclaredType) enumType)
-                                            .asElement()
-                                            .getSimpleName()
-                                            .toString())
-                                    + "$" + enumFields.size() + "$values",
-                            enumType,
-                            valueFunction);
-                })
-                .name();
+    public EnumValuesField getOrCreateEnumField(TypeMirror enumType) {
+        return enumFields.computeIfAbsent(
+                enumType.toString(), __ -> ctx.enums.createEnumField(enumType, enumFields.size()));
     }
 
     public void buildFields(Map<JaggerBlueprint, GeneratedClass> others) {
         delegateeFields.values().forEach(value -> value.writeField(typeBuilder, others));
-        enumFields.values().forEach(value -> value.writeField(typeBuilder));
+        enumFields
+                .values()
+                .forEach(value -> value.createFields()
+                        .forEach(f ->
+                                typeBuilder.addField(f.addModifiers(Modifier.PRIVATE, Modifier.STATIC, Modifier.FINAL)
+                                        .build())));
         requiredFields.values().forEach(value -> value.writeField(typeBuilder));
     }
 
@@ -180,22 +169,6 @@ public class GeneratedClass {
             }
 
             classBuilder.addField(builder.build());
-        }
-    }
-
-    record EnumValuesField(String name, TypeMirror type, String valueFunction) {
-        private void writeField(TypeSpec.Builder classBuilder) {
-            FieldSpec.Builder field = FieldSpec.builder(
-                            ParameterizedTypeName.get(
-                                    ClassName.get(Map.class), TypeName.get(String.class), TypeName.get(type)),
-                            name)
-                    .initializer(
-                            "$T.buildValuesMap($T.class, $T::$L)",
-                            TypeName.get(EnumHelper.class),
-                            type,
-                            type,
-                            valueFunction);
-            classBuilder.addField(field.build());
         }
     }
 

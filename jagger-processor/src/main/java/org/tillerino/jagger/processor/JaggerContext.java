@@ -51,6 +51,7 @@ public class JaggerContext {
     public final Creators creators;
     public final References references;
     public final Properties properties;
+    public Enums enums;
     public final CodeGeneration codeGeneration;
     public final ConfigProperties configProperties;
 
@@ -73,6 +74,7 @@ public class JaggerContext {
         creators = new Creators(this);
         references = new References(this);
         properties = new Properties(this);
+        enums = new Enums(this);
         codeGeneration = new CodeGeneration(this);
         configProperties = new ConfigProperties(this);
         JaggerAnnotations.configureJaggerAnnotations(this);

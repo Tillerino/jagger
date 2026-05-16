@@ -317,7 +317,7 @@ public abstract class AbstractReaderGenerator<SELF extends AbstractReaderGenerat
     private void readEnum(Branch branch, boolean lastCase) {
         branch.controlFlow(this, stringCaseCondition());
         {
-            String enumValuesField = generatedClass.getOrCreateEnumField(type);
+            String enumValuesField = generatedClass.getOrCreateEnumField(type).name();
             Variable enumVar = Variable.from(createVariable("string"));
             addStatement("$T $L", ctx.commonTypes.string, enumVar.name);
             nest(ctx.commonTypes.string, null, enumVar, false, config.propagateTo(PropagationKind.SUBSTITUTE))
@@ -325,7 +325,7 @@ public abstract class AbstractReaderGenerator<SELF extends AbstractReaderGenerat
             beginControlFlow("if ($L.containsKey($L))", enumValuesField, enumVar.name);
             addStatement(lhs.assign("$L.get($L)", enumValuesField, enumVar.name));
             nextControlFlow("else");
-            throwUnexpectedValue(Snippet.of("$S", "enum value"));
+            throwUnexpectedValue(Snippet.of("$S + $C + $S", "Unexpected enum value: \"", enumVar, "\""));
             endControlFlow();
         }
         elseThrowUnexpected("string", lastCase);

@@ -14,6 +14,7 @@ import org.tillerino.jagger.processor.databind.AbstractWriterGenerator.RHS.Varia
 import org.tillerino.jagger.processor.ext.PrototypeKind.CodeGeneratorContext;
 import org.tillerino.jagger.processor.ext.PrototypeKind.TemplatablePrototypeKind;
 import org.tillerino.jagger.processor.features.Delegation.Delegatee;
+import org.tillerino.jagger.processor.features.Enums;
 import org.tillerino.jagger.processor.features.IgnoreProperties;
 import org.tillerino.jagger.processor.features.IgnoreProperty;
 import org.tillerino.jagger.processor.features.Polymorphism;
@@ -361,10 +362,11 @@ public abstract class AbstractWriterGenerator<SELF extends AbstractWriterGenerat
     }
 
     private void writeEnum() {
-        RHS.Variable enumValue =
-                new RHS.Variable(createVariable(propertyName() + "String").name(), false);
-        addStatement("$T $L = $C.name()", ctx.commonTypes.string, enumValue.name(), rhs);
-        nest(ctx.commonTypes.string, lhs, null, enumValue, false, config.propagateTo(PropagationKind.SUBSTITUTE))
+        RHS.Variable representation =
+                new RHS.Variable(createVariable(propertyName()).name(), false);
+        Snippet reprSnippet = Enums.serializationSnippet(ctx, generatedClass, type, rhs);
+        addStatement("$T $C = $C", ctx.commonTypes.string, representation, reprSnippet);
+        nest(ctx.commonTypes.string, lhs, null, representation, false, config.propagateTo(PropagationKind.SUBSTITUTE))
                 .build();
     }
 
