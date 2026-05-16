@@ -2,7 +2,6 @@ package org.tillerino.jagger.processor;
 
 import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import javax.lang.model.element.ExecutableElement;
@@ -57,17 +56,6 @@ public record JaggerPrototype(
             return ctx.generics.applyTypeBindings(this.method(), typeBindings);
         }
         return null;
-    }
-
-    public Optional<InstantiatedVariable> contextParameter() {
-        for (InstantiatedVariable parameter : parameters()) {
-            Optional<TypeMirror> targetContextType = kind.contextType();
-            if (targetContextType.isPresent()
-                    && ctx.commonTypes.isAssignable(parameter.type(), targetContextType.get())) {
-                return Optional.of(parameter);
-            }
-        }
-        return Optional.empty();
     }
 
     @Override

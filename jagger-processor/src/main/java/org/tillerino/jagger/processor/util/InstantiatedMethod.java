@@ -13,6 +13,7 @@ import org.tillerino.jagger.processor.config.AnyConfig;
 import org.tillerino.jagger.processor.features.Generics.TypeVar;
 import org.tillerino.jagger.processor.util.Snippet.PerfectSnippet;
 import org.tillerino.jagger.processor.util.Snippet.PerfectSnippet.ConstructorCall;
+import org.tillerino.jagger.processor.util.Snippet.PerfectSnippet.InstanceMethodInvocation;
 import org.tillerino.jagger.processor.util.Snippet.PerfectSnippet.StaticMethodInvocation;
 
 /**
@@ -38,7 +39,7 @@ public record InstantiatedMethod(
                 : Snippet.of("$T.$L", raw, name);
     }
 
-    public PerfectSnippet invoke(JaggerContext ctx, List<PerfectSnippet> args) {
+    public PerfectSnippet invokeStatic(JaggerContext ctx, List<PerfectSnippet> args) {
         TypeMirror tm = element.getEnclosingElement().asType();
         TypeMirror raw = ctx.types.erasure(tm);
         String diamond =
@@ -46,6 +47,10 @@ public record InstantiatedMethod(
         return element.getKind() == ElementKind.CONSTRUCTOR
                 ? new ConstructorCall(returnType, raw, diamond, args)
                 : new StaticMethodInvocation(returnType, raw, name, args);
+    }
+
+    public PerfectSnippet invokeInstance(PerfectSnippet instance, List<PerfectSnippet> args) {
+        return new InstanceMethodInvocation(returnType, instance, name, args);
     }
 
     public boolean hasSameSignature(InstantiatedMethod other, JaggerContext ctx) {

@@ -70,10 +70,6 @@ public class DeepClonePlugin implements JaggerPlugin {
     @Target(ElementType.METHOD)
     public @interface Clone {}
 
-    enum Direction {
-        CLONE
-    }
-
     record CloneKind(TypeMirror type) implements TemplatablePrototypeKind {
 
         @Override
@@ -82,18 +78,8 @@ public class DeepClonePlugin implements JaggerPlugin {
         }
 
         @Override
-        public Direction direction() {
-            return Direction.CLONE;
-        }
-
-        @Override
-        public TypeMirror externalType() {
-            return type;
-        }
-
-        @Override
-        public TypeMirror internalType() {
-            return type;
+        public List<TypeMirror> types() {
+            return List.of(type);
         }
 
         @Override
@@ -102,8 +88,8 @@ public class DeepClonePlugin implements JaggerPlugin {
         }
 
         @Override
-        public TemplatablePrototypeKind withInternalType(TypeMirror newType) {
-            return new CloneKind(newType);
+        public TemplatablePrototypeKind withTypes(List<TypeMirror> newTypes) {
+            return new CloneKind(newTypes.get(0));
         }
     }
 
@@ -115,7 +101,7 @@ public class DeepClonePlugin implements JaggerPlugin {
 
         public CodeBlock.Builder build() {
             CloneKind kind = (CloneKind) prototype.kind();
-            TypeMirror type = kind.externalType();
+            TypeMirror type = kind.types().get(0);
 
             ScopedVar result = createVariable("result");
 
@@ -145,7 +131,7 @@ public class DeepClonePlugin implements JaggerPlugin {
 
             Delegation.Delegatee delegatee = ctx.delegation
                     .findDelegatee(
-                            ((TemplatablePrototypeKind) prototype.kind()).withInternalType(fieldType),
+                            ((TemplatablePrototypeKind) prototype.kind()).withTypes(List.of(fieldType)),
                             prototype,
                             false,
                             true,

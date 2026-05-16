@@ -18,6 +18,8 @@ import org.tillerino.jagger.processor.util.InstantiatedMethod;
 import org.tillerino.jagger.processor.util.InstantiatedMethod.InstantiatedVariable;
 import org.tillerino.jagger.processor.util.RebuildingTypeVisitor;
 import org.tillerino.jagger.processor.util.Snippet;
+import org.tillerino.jagger.processor.util.Snippet.PerfectSnippet;
+import org.tillerino.jagger.processor.util.Snippet.PerfectSnippet.InstanceMethodReference;
 
 public record Generics(JaggerContext ctx) {
     public Map<TypeVar, TypeMirror> recordTypeBindings(DeclaredType d) {
@@ -187,7 +189,7 @@ public record Generics(JaggerContext ctx) {
         return false;
     }
 
-    public Optional<Snippet> getOrCreateLambda(
+    public Optional<PerfectSnippet> getOrCreateLambda(
             GeneratedClass callingClass, TypeMirror targetType, List<InstantiatedVariable> availableValues, int depth) {
         if (depth > 10) {
             // this depth is pretty arbitrary, but surely larger than anything useful and it's just important that we
@@ -198,7 +200,7 @@ public record Generics(JaggerContext ctx) {
                 .flatMap(functionalInterface -> createMethodReference(callingClass, functionalInterface));
     }
 
-    Optional<InstantiatedMethod> instantiateFunctionalInterface(TypeMirror functionalInterface) {
+    Optional<TypeMirror> instantiateFunctionalInterface(TypeMirror functionalInterface) {
         if (!(functionalInterface instanceof DeclaredType d)) {
             return Optional.empty();
         }
@@ -212,16 +214,19 @@ public record Generics(JaggerContext ctx) {
         if (methods.size() != 1) {
             return Optional.empty();
         }
-        return Optional.of(
-                ctx.generics.instantiateMethods(d, LocationKind.PROTOTYPE).get(0));
+        return Optional.of(functionalInterface);
     }
 
-    private Optional<Snippet> createMethodReference(GeneratedClass callingClass, InstantiatedMethod targetMethod) {
+    private Optional<PerfectSnippet> createMethodReference(
+            GeneratedClass callingClass, TypeMirror functionalInterface) {
+        InstantiatedMethod targetMethod = ctx.generics
+                .instantiateMethods(functionalInterface, LocationKind.PROTOTYPE)
+                .get(0);
         JaggerBlueprint blueprint = callingClass.blueprint;
         for (JaggerPrototype method : blueprint.prototypes) {
             if (method.method().hasSameSignature(targetMethod, ctx)) {
-                return Optional.of(Snippet.of(
-                        "$C::$L",
+                return Optional.of(new InstanceMethodReference(
+                        functionalInterface,
                         callingClass.getOrCreateDelegateeField(blueprint, blueprint, !method.overrides()),
                         method.method().name()));
             }
@@ -229,8 +234,8 @@ public record Generics(JaggerContext ctx) {
         for (JaggerBlueprint use : blueprint.config.reversedUses()) {
             for (JaggerPrototype method : use.prototypes) {
                 if (method.method().hasSameSignature(targetMethod, ctx)) {
-                    return Optional.of(Snippet.of(
-                            "$C::$L",
+                    return Optional.of(new InstanceMethodReference(
+                            functionalInterface,
                             callingClass.getOrCreateDelegateeField(blueprint, use, !method.overrides()),
                             method.method().name()));
                 }

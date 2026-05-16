@@ -37,7 +37,11 @@ public record References(JaggerContext ctx) {
                     "Merged " + strong.sourceLocation() + " and " + weak.sourceLocation()),
             PropagationKind.none());
 
-    public Optional<Setup> resolveSetup(AnyConfig anyConfig, JaggerPrototype prototype, TypeMirror dto) {
+    public Optional<Setup> resolveSetup(
+            AnyConfig anyConfig,
+            JaggerPrototype prototype,
+            TypeMirror dto,
+            Optional<InstantiatedVariable> contextVariable) {
         ResolvedProperty<Config> configResolvedProperty = anyConfig.resolveProperty(REFERENCES);
         Config config = configResolvedProperty.value();
         if (config == null) {
@@ -52,11 +56,8 @@ public record References(JaggerContext ctx) {
             throw Exceptions.unexpected();
         }
         TypeMirror idType = generatorTypeBindings.values().iterator().next();
-        InstantiatedVariable context = prototype
-                .contextParameter()
-                .orElseThrow(
-                        () -> new ContextedRuntimeException(
-                                "Need context to use references. Declare a SerializerContext or DeserializerContext parameter."));
+        InstantiatedVariable context = contextVariable.orElseThrow(() -> new ContextedRuntimeException(
+                "Need context to use references. Declare a SerializerContext or DeserializerContext parameter."));
 
         return Optional.of(new Setup(
                 config.property.orElse("@id"),

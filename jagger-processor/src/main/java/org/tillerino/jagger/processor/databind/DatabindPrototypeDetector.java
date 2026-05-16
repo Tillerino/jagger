@@ -113,8 +113,11 @@ public class DatabindPrototypeDetector implements PrototypeDetector {
                             jacksonJsonParser, gsonJsonReader, fastjson2JsonReader, jakartaJsonParser, jaggerReader),
                     m,
                     ctx,
-                    (externalType, externalParameter, otherParameters) ->
-                            new JsonInput(externalType, m.returnType(), otherParameters, deserializationContext));
+                    (externalType, externalParameter, otherParameters) -> new DatabindPrototypeKind(
+                            Direction.INPUT,
+                            List.of(m.returnType(), externalType),
+                            otherParameters,
+                            deserializationContext));
         }
         return Optional.empty();
     }
@@ -133,90 +136,52 @@ public class DatabindPrototypeDetector implements PrototypeDetector {
                             jaggerWriter),
                     m,
                     ctx,
-                    (externalType, externalParameter, otherParameters) -> new JsonOutput(
-                            externalType,
-                            otherParameters.get(0).type(),
+                    (externalType, externalParameter, otherParameters) -> new DatabindPrototypeKind(
+                            Direction.OUTPUT,
+                            List.of(otherParameters.get(0).type(), externalType),
                             otherParameters.subList(1, otherParameters.size()),
                             serializationContext));
         }
         return Optional.empty();
     }
 
-    record JsonInput(
-            TypeMirror externalType,
-            TypeMirror internalType,
+    record DatabindPrototypeKind(
+            Direction specialization,
+            List<TypeMirror> types,
             List<InstantiatedVariable> otherParameters,
-            TypeMirror cType)
+            TypeMirror contextType)
             implements TemplatablePrototypeKind {
         @Override
-        public TemplatablePrototypeKind withInternalType(TypeMirror newType) {
-            return new JsonInput(externalType, newType, otherParameters, cType);
-        }
-
-        @Override
-        public Direction direction() {
-            return Direction.INPUT;
+        public TemplatablePrototypeKind withTypes(List<TypeMirror> newTypes) {
+            return new DatabindPrototypeKind(specialization, newTypes, otherParameters, contextType);
         }
 
         @Override
         public String defaultMethodName() {
-            return "read" + PlainTypeName.of(internalType());
-        }
-
-        @Override
-        public Optional<TypeMirror> contextType() {
-            return Optional.of(cType);
+            return (specialization == Direction.INPUT ? "read" : "write") + PlainTypeName.of(types().get(0));
         }
 
         @Override
         public Builder generateCode(CodeGeneratorContext context) {
-            return switch (externalType().toString()) {
-                case JACKSON_JSON_PARSER -> new JacksonJsonParserReaderGenerator(context).build();
-                case GSON_JSON_READER -> new GsonJsonReaderReaderGenerator(context).build();
-                case FASTJSON_2_JSONREADER -> new Fastjson2ReaderGenerator(context).build();
-                case JAKARTA_JSON_PARSER -> new JakartaJsonParserGenerator(context).build();
-                case JAGGER_READER -> new JaggerReaderGenerator(context).build();
-                default -> throw new ContextedRuntimeException("Unknown input type: " + externalType());
-            };
-        }
-    }
+            if (specialization == Direction.INPUT) {
+                return switch (types().get(1).toString()) {
+                    case JACKSON_JSON_PARSER -> new JacksonJsonParserReaderGenerator(context).build();
+                    case GSON_JSON_READER -> new GsonJsonReaderReaderGenerator(context).build();
+                    case FASTJSON_2_JSONREADER -> new Fastjson2ReaderGenerator(context).build();
+                    case JAKARTA_JSON_PARSER -> new JakartaJsonParserGenerator(context).build();
+                    case JAGGER_READER -> new JaggerReaderGenerator(context).build();
+                    default -> throw new ContextedRuntimeException("Unknown input type: " + types().get(1));
+                };
+            }
 
-    record JsonOutput(
-            TypeMirror externalType,
-            TypeMirror internalType,
-            List<InstantiatedMethod.InstantiatedVariable> otherParameters,
-            TypeMirror cType)
-            implements TemplatablePrototypeKind {
-        @Override
-        public TemplatablePrototypeKind withInternalType(TypeMirror newType) {
-            return new JsonOutput(externalType, newType, otherParameters, cType);
-        }
-
-        @Override
-        public Direction direction() {
-            return Direction.OUTPUT;
-        }
-
-        @Override
-        public String defaultMethodName() {
-            return "write" + PlainTypeName.of(internalType());
-        }
-
-        @Override
-        public Optional<TypeMirror> contextType() {
-            return Optional.of(cType);
-        }
-
-        @Override
-        public Builder generateCode(CodeGeneratorContext context) {
-            return switch (externalType().toString()) {
+            return switch (types().get(1).toString()) {
                 case JACKSON_JSON_GENERATOR -> new JacksonJsonGeneratorWriterGenerator(context).build();
                 case GSON_JSON_WRITER -> new GsonJsonWriterWriterGenerator(context).build();
                 case FASTJSON_2_JSONWRITER -> new Fastjson2WriterGenerator(context).build();
                 case JAKARTA_JSON_GENERATOR -> new JakartaJsonGeneratorGenerator(context).build();
                 case NANOJSON_JSON_WRITER -> new NanojsonWriterGenerator(context).build();
                 case JAGGER_WRITER -> new JaggerWriterGenerator(context).build();
-                default -> throw new ContextedRuntimeException("Unknown output type: " + externalType());
+                default -> throw new ContextedRuntimeException("Unknown output type: " + types().get(1));
             };
         }
     }

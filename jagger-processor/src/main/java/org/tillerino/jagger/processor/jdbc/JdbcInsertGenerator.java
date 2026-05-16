@@ -19,7 +19,7 @@ public class JdbcInsertGenerator extends AbstractJdbcGenerator<JdbcInsertGenerat
         String sqlTemplate = config.resolveProperty(Jdbc.SQL_QUERY).value();
 
         InstantiatedVariable toInsert = kind.otherParameters().get(0);
-        TypeMirror entityType = kind.internalType();
+        TypeMirror entityType = kind.types().get(0);
 
         if (ctx.commonTypes.isIterableOrArray(entityType)) {
             entityType = ctx.commonTypes.unwrapContainer(entityType);

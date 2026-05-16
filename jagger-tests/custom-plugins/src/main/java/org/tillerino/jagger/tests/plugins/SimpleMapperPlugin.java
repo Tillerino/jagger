@@ -19,9 +19,13 @@ import org.tillerino.jagger.processor.ext.PrototypeDetector;
 import org.tillerino.jagger.processor.ext.PrototypeKind;
 import org.tillerino.jagger.processor.ext.PrototypeKind.CodeGeneratorContext;
 import org.tillerino.jagger.processor.ext.PrototypeKind.TemplatablePrototypeKind;
+import org.tillerino.jagger.processor.features.Delegation.Delegatee;
 import org.tillerino.jagger.processor.util.Accessor.ReadAccessor;
 import org.tillerino.jagger.processor.util.Accessor.WriteAccessor;
+import org.tillerino.jagger.processor.util.CollectionUtil;
 import org.tillerino.jagger.processor.util.InstantiatedMethod;
+import org.tillerino.jagger.processor.util.PlainTypeName;
+import org.tillerino.jagger.processor.util.Snippet.PerfectSnippet;
 
 /**
  * Example plugin: the simplest POJO-to-POJO mapper. It does not support delegation, containers, arrays, or anything
@@ -42,9 +46,9 @@ public class SimpleMapperPlugin implements JaggerPlugin {
                 if (m.parameters().size() != 1) {
                     return Optional.empty();
                 }
-                TypeMirror externalType = m.parameters().get(0).type();
-                TypeMirror internalType = m.returnType();
-                return Optional.of(new MapperKind(externalType, internalType));
+                TypeMirror sourceType = m.parameters().get(0).type();
+                TypeMirror targetType = m.returnType();
+                return Optional.of(new MapperKind(List.of(targetType, sourceType)));
             }
 
             @Override
@@ -62,26 +66,20 @@ public class SimpleMapperPlugin implements JaggerPlugin {
     @Target(ElementType.METHOD)
     public @interface Mapper {}
 
-    record MapperKind(TypeMirror externalType, TypeMirror internalType) implements TemplatablePrototypeKind {
-
+    record MapperKind(List<TypeMirror> types) implements TemplatablePrototypeKind {
         @Override
         public Builder generateCode(CodeGeneratorContext context) {
             return new SimpleMapperGenerator(context).build();
         }
 
         @Override
-        public Direction direction() {
-            return Direction.IRRELEVANT;
-        }
-
-        @Override
         public String defaultMethodName() {
-            return "map";
+            return "map" + PlainTypeName.of(types().get(1)) + "To" + PlainTypeName.of(types().get(0));
         }
 
         @Override
-        public TemplatablePrototypeKind withInternalType(TypeMirror newType) {
-            return new MapperKind(externalType, newType);
+        public TemplatablePrototypeKind withTypes(List<TypeMirror> newTypes) {
+            return new MapperKind(newTypes);
         }
     }
 
@@ -93,8 +91,8 @@ public class SimpleMapperPlugin implements JaggerPlugin {
 
         public CodeBlock.Builder build() {
             MapperKind kind = (MapperKind) prototype.kind();
-            TypeMirror sourceType = kind.externalType();
-            TypeMirror targetType = kind.internalType();
+            TypeMirror targetType = kind.types().get(0);
+            TypeMirror sourceType = kind.types().get(1);
 
             ScopedVar result = createVariable("result");
 
@@ -117,19 +115,23 @@ public class SimpleMapperPlugin implements JaggerPlugin {
                         .addContextValue("target", writeAccessor.name());
             }
 
+            PerfectSnippet value =
+                    readAccessor.readSnippet(prototype.method().parameters().get(0));
             if (!ctx.types.isAssignable(readAccessor.type(), writeAccessor.type())) {
-                throw new ContextedRuntimeException("Types are incompatible")
-                        .addContextValue("source", readAccessor.type())
-                        .addContextValue("target", writeAccessor.type());
+                TemplatablePrototypeKind types = ((TemplatablePrototypeKind) prototype.kind())
+                        .withTypes(List.of(writeAccessor.type(), readAccessor.type()));
+                Delegatee delegatee = ctx.delegation
+                        .findDelegatee(types, prototype, false, true, prototype.config(), generatedClass)
+                        .orElseThrow(() -> new ContextedRuntimeException("Types are incompatible")
+                                .addContextValue("source", readAccessor.type())
+                                .addContextValue("target", writeAccessor.type()));
+
+                List<PerfectSnippet> arguments = CollectionUtil.append(
+                        value, ctx.delegation.findArguments(prototype, delegatee.method(), 1, generatedClass));
+                value = delegatee.method().invokeInstance(delegatee.fieldOrParameter(), arguments);
             }
 
-            addStatement(writeAccessor.writeSnippet(
-                    result,
-                    readAccessor.readSnippet(prototype.method().parameters().get(0))));
+            addStatement(writeAccessor.writeSnippet(result, value));
         }
-    }
-
-    enum Direction {
-        IRRELEVANT
     }
 }

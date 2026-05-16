@@ -9,7 +9,10 @@ import javax.lang.model.type.DeclaredType;
 import javax.lang.model.type.TypeMirror;
 import org.apache.commons.lang3.exception.ContextedRuntimeException;
 import org.tillerino.jagger.annotations.JsonConfig;
-import org.tillerino.jagger.processor.*;
+import org.tillerino.jagger.processor.GeneratedClass;
+import org.tillerino.jagger.processor.JaggerBlueprint;
+import org.tillerino.jagger.processor.JaggerContext;
+import org.tillerino.jagger.processor.JaggerPrototype;
 import org.tillerino.jagger.processor.config.AnyConfig;
 import org.tillerino.jagger.processor.config.ConfigProperty;
 import org.tillerino.jagger.processor.config.ConfigProperty.LocationKind;
@@ -19,7 +22,8 @@ import org.tillerino.jagger.processor.ext.PrototypeKind.TemplatablePrototypeKind
 import org.tillerino.jagger.processor.util.InstantiatedMethod;
 import org.tillerino.jagger.processor.util.InstantiatedMethod.InstantiatedVariable;
 import org.tillerino.jagger.processor.util.ShortName;
-import org.tillerino.jagger.processor.util.Snippet;
+import org.tillerino.jagger.processor.util.Snippet.PerfectSnippet;
+import org.tillerino.jagger.processor.util.Snippet.PerfectSnippet.ClassExpr;
 
 public record Delegation(JaggerContext ctx) {
     public static ConfigProperty<JsonConfig.DelegateeMode> DELEGATE_TO = ConfigProperty.createConfigProperty(
@@ -104,7 +108,7 @@ public record Delegation(JaggerContext ctx) {
         return Optional.empty();
     }
 
-    public List<Snippet> findArguments(
+    public List<PerfectSnippet> findArguments(
             JaggerPrototype caller, InstantiatedMethod callee, int firstArgument, GeneratedClass generatedClass) {
         return IntStream.range(firstArgument, callee.parameters().size())
                 .mapToObj(i -> {
@@ -120,16 +124,16 @@ public record Delegation(JaggerContext ctx) {
                 .collect(Collectors.toList());
     }
 
-    private Optional<Snippet> findArgument(
+    private Optional<PerfectSnippet> findArgument(
             JaggerPrototype caller, GeneratedClass generatedClass, InstantiatedVariable targetArgument) {
         // search in caller's own parameters
         for (InstantiatedVariable instantiatedParameter : caller.parameters()) {
             if (ctx.commonTypes.isAssignable(instantiatedParameter.type(), targetArgument.type())) {
-                return Optional.of(Snippet.of("$L", instantiatedParameter.name()));
+                return Optional.of(instantiatedParameter);
             }
         }
         // see if we can instantiate an instance from our list of used blueprints
-        Snippet delegateeInField =
+        PerfectSnippet delegateeInField =
                 generatedClass.getOrCreateUsedBlueprintWithTypeField(targetArgument.type(), caller.config());
         if (delegateeInField != null) {
             return Optional.of(delegateeInField);
@@ -139,14 +143,14 @@ public record Delegation(JaggerContext ctx) {
                 && !t.getTypeArguments().isEmpty()) {
             TypeMirror typeOfClass = t.getTypeArguments().get(0);
             if (Generics.canBeClass(typeOfClass)) {
-                return Optional.of(Snippet.of("$T.class", typeOfClass));
+                return Optional.of(new ClassExpr(typeOfClass));
             }
         }
         // see if we can instantiate a lambda from our list of used blueprints
         return ctx.generics.getOrCreateLambda(generatedClass, targetArgument.type(), caller.parameters(), 0);
     }
 
-    public record Delegatee(Snippet fieldOrParameter, InstantiatedMethod method) {}
+    public record Delegatee(PerfectSnippet fieldOrParameter, InstantiatedMethod method) {}
 
     public record InstantiatedPrototype(
             JaggerBlueprint blueprint, JaggerPrototype prototype, InstantiatedMethod method) {}

@@ -65,7 +65,7 @@ public class JacksonAnnotationsPlugin implements JaggerPlugin {
                         .map(AnnotationValueWrapper::asArray)
                         .map(arr -> arr.stream()
                                 .map(AnnotationValueWrapper::asString)
-                                .collect(java.util.stream.Collectors.toUnmodifiableList())));
+                                .toList()));
 
         ctx.configProperties.addAnnotationPropertyConfigRetriever(
                 PropertyOrder.PROPERTY_ORDER_ALPHABETIC,

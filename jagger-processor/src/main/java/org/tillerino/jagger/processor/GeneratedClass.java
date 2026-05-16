@@ -18,7 +18,8 @@ import org.tillerino.jagger.processor.features.Enums.EnumValuesField;
 import org.tillerino.jagger.processor.features.Verification.ForBlueprint;
 import org.tillerino.jagger.processor.util.FullyQualifiedName.FullyQualifiedClassName.TopLevelClassName;
 import org.tillerino.jagger.processor.util.PlainTypeName;
-import org.tillerino.jagger.processor.util.Snippet;
+import org.tillerino.jagger.processor.util.Snippet.PerfectSnippet;
+import org.tillerino.jagger.processor.util.Snippet.PerfectSnippet.TypedVariable;
 
 /** Keeps track of the delegate readers/writers that are collected while processing a blueprint. */
 public class GeneratedClass {
@@ -46,9 +47,10 @@ public class GeneratedClass {
      * @param callee the blueprint which is being called from caller
      * @return the field name
      */
-    public Snippet getOrCreateDelegateeField(JaggerBlueprint caller, JaggerBlueprint callee, boolean implAsType) {
+    public PerfectSnippet getOrCreateDelegateeField(
+            JaggerBlueprint caller, JaggerBlueprint callee, boolean implAsType) {
         if (caller == callee) {
-            return Snippet.of("this");
+            return new TypedVariable(caller.typeElement.asType(), "this");
         }
         String fieldName =
                 StringUtils.uncapitalize(callee.className.className()) + "$" + delegateeFields.size() + "$delegate";
@@ -61,11 +63,11 @@ public class GeneratedClass {
                 .access;
     }
 
-    public Snippet getOrCreateUsedBlueprintWithTypeField(TypeMirror targetType, AnyConfig config) {
+    public PerfectSnippet getOrCreateUsedBlueprintWithTypeField(TypeMirror targetType, AnyConfig config) {
         return getOrCreateUsedBlueprintWithTypeField(targetType, blueprint, config);
     }
 
-    private Snippet getOrCreateUsedBlueprintWithTypeField(
+    private PerfectSnippet getOrCreateUsedBlueprintWithTypeField(
             TypeMirror targetType, JaggerBlueprint calleeBlueprint, @Nullable AnyConfig config) {
         if (ctx.commonTypes.isAssignable(calleeBlueprint.typeElement.asType(), targetType)) {
             return getOrCreateDelegateeField(this.blueprint, calleeBlueprint, false); // TODO probably wrong
@@ -74,7 +76,7 @@ public class GeneratedClass {
             return null;
         }
         for (JaggerBlueprint use : config.reversedUses()) {
-            Snippet found = getOrCreateUsedBlueprintWithTypeField(targetType, use, null);
+            PerfectSnippet found = getOrCreateUsedBlueprintWithTypeField(targetType, use, null);
             if (found != null) {
                 return found;
             }
@@ -205,7 +207,8 @@ public class GeneratedClass {
      * not want to go through method generation twice, so we generate methods with these placeholders. Once all methods
      * have been generated, we look for circles and break the circles with provider calls.
      */
-    public class PotentialProviderCall implements Snippet {
+    public static class PotentialProviderCall implements PerfectSnippet {
+        TypeMirror type;
         String literal;
         boolean providerCall;
 
@@ -221,6 +224,16 @@ public class GeneratedClass {
         @Override
         public Flattened flatten() {
             return new Flattened("$L", new Object[] {this});
+        }
+
+        @Override
+        public TypeMirror type() {
+            return type;
+        }
+
+        @Override
+        public PerfectSnippet replaceVar(String name, PerfectSnippet replacement) {
+            return this;
         }
     }
 }

@@ -36,7 +36,7 @@ public record Annotations(JaggerContext ctx) {
                                     ? ctx.elements.getElementValuesWithDefaults(mirror)
                                     : mirror.getElementValues())
                     .map(Map.Entry::getValue)
-                    .map(AnnotationValueWrapper::new);
+                    .map(v -> new AnnotationValueWrapper(v, ctx));
         }
 
         private static Optional<? extends Map.Entry<? extends ExecutableElement, ? extends AnnotationValue>>
@@ -47,7 +47,7 @@ public record Annotations(JaggerContext ctx) {
         }
     }
 
-    public record AnnotationValueWrapper(AnnotationValue value) {
+    public record AnnotationValueWrapper(AnnotationValue value, JaggerContext ctx) {
         public List<AnnotationValueWrapper> asArray() {
             return Exceptions.notNull(
                     value.accept(
@@ -56,7 +56,7 @@ public record Annotations(JaggerContext ctx) {
                                 public List<AnnotationValueWrapper> visitArray(
                                         List<? extends AnnotationValue> vals, Void o) {
                                     return vals.stream()
-                                            .map(AnnotationValueWrapper::new)
+                                            .map(v -> new AnnotationValueWrapper(v, ctx))
                                             .toList();
                                 }
                             },
@@ -78,7 +78,7 @@ public record Annotations(JaggerContext ctx) {
                                     null),
                             "not an annotation: %s",
                             value),
-                    null);
+                    ctx);
         }
 
         public String asString() {

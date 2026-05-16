@@ -2,8 +2,8 @@ package org.tillerino.jagger.processor.features;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
+import java.util.stream.Stream;
 import javax.lang.model.type.TypeMirror;
 import javax.lang.model.type.TypeVariable;
 import org.apache.commons.lang3.exception.ContextedRuntimeException;
@@ -19,6 +19,7 @@ import org.tillerino.jagger.processor.ext.PrototypeKind.TemplatablePrototypeKind
 import org.tillerino.jagger.processor.features.Generics.TypeVar;
 import org.tillerino.jagger.processor.util.Annotations.AnnotationMirrorWrapper;
 import org.tillerino.jagger.processor.util.Annotations.AnnotationValueWrapper;
+import org.tillerino.jagger.processor.util.CollectionUtil;
 import org.tillerino.jagger.processor.util.Exceptions;
 import org.tillerino.jagger.processor.util.InstantiatedMethod;
 
@@ -46,13 +47,19 @@ public record Templates(JaggerContext ctx) {
     private List<JaggerPrototype> createTemplatesFromAnnotation(
             JaggerBlueprint blueprint, AnnotationMirrorWrapper templateAnnotation) {
         List<Template> templates = findTemplates(templateAnnotation);
-        List<TypeMirror> types = findTypes(templateAnnotation);
+        List<List<TypeMirror>> typeLists = findTypes(templateAnnotation);
         List<JaggerPrototype> instantiatedPrototypes = new ArrayList<>();
-        for (TypeMirror type : types) {
+        for (List<TypeMirror> typeList : typeLists) {
             for (Template template : templates) {
-                TemplatablePrototypeKind prototypeKind = template.kind.withInternalType(type);
+                if (template.typeVars.size() != typeList.size()) {
+                    throw new ContextedRuntimeException("Mismatched number of type variables")
+                            .addContextValue("template method name", template.method.name())
+                            .addContextValue("type variables", template.typeVars)
+                            .addContextValue("provided types", typeList);
+                }
+                TemplatablePrototypeKind prototypeKind = template.kind.withTypesPrefix(typeList);
                 InstantiatedMethod instantiatedMethod = ctx.generics
-                        .applyTypeBindings(template.method, Map.of(template.typeVar, type))
+                        .applyTypeBindings(template.method, CollectionUtil.mapLists(template.typeVars, typeList))
                         .withName(prototypeKind.defaultMethodName());
 
                 instantiatedPrototypes.add(JaggerPrototype.of(
@@ -79,22 +86,39 @@ public record Templates(JaggerContext ctx) {
                     if (!(prototypeKind instanceof TemplatablePrototypeKind t)) {
                         return null;
                     }
-                    if (!(t.internalType() instanceof TypeVariable v)) {
-                        throw new ContextedRuntimeException("Template prototype must serialize a type variable")
-                                .addContextValue("prototype", template)
-                                .addContextValue("serialized", t.internalType());
+                    List<TypeVar> typeVars = t.types().stream()
+                            .filter(type -> type instanceof TypeVariable)
+                            .map(TypeVariable.class::cast)
+                            .map(TypeVar::of)
+                            .toList();
+                    if (typeVars.isEmpty()) {
+                        throw new ContextedRuntimeException("Template prototype must use at least one type variable")
+                                .addContextValue("prototype", template);
                     }
-                    return new Template(template, t, TypeVar.of(v));
+                    return new Template(template, t, typeVars);
                 })
                 .filter(Objects::nonNull)
                 .toList();
     }
 
-    private List<TypeMirror> findTypes(AnnotationMirrorWrapper templateAnnotation) {
-        return templateAnnotation.method("types", false).orElseThrow(Exceptions::unexpected).asArray().stream()
-                .map(AnnotationValueWrapper::asTypeMirror)
-                .toList();
+    private List<List<TypeMirror>> findTypes(AnnotationMirrorWrapper templateAnnotation) {
+        Stream<List<TypeMirror>> plainTypes =
+                templateAnnotation.method("types", true).orElseThrow(Exceptions::unexpected).asArray().stream()
+                        .map(AnnotationValueWrapper::asTypeMirror)
+                        .map(List::of);
+        Stream<List<TypeMirror>> typeArrays =
+                templateAnnotation.method("typeArrays", true).orElseThrow(Exceptions::unexpected).asArray().stream()
+                        .map(
+                                w -> w
+                                        .asAnnotation()
+                                        .method("value", true)
+                                        .orElseThrow(Exceptions::unexpected)
+                                        .asArray()
+                                        .stream()
+                                        .map(AnnotationValueWrapper::asTypeMirror)
+                                        .toList());
+        return Stream.concat(plainTypes, typeArrays).toList();
     }
 
-    record Template(InstantiatedMethod method, TemplatablePrototypeKind kind, TypeVar typeVar) {}
+    record Template(InstantiatedMethod method, TemplatablePrototypeKind kind, List<TypeVar> typeVars) {}
 }

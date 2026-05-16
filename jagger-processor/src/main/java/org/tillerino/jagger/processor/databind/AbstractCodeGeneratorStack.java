@@ -2,14 +2,17 @@ package org.tillerino.jagger.processor.databind;
 
 import jakarta.annotation.Nonnull;
 import jakarta.annotation.Nullable;
+import java.util.Optional;
 import javax.lang.model.type.DeclaredType;
 import javax.lang.model.type.TypeMirror;
 import org.apache.commons.lang3.exception.ContextedRuntimeException;
 import org.tillerino.jagger.processor.AbstractCodeGenerator;
 import org.tillerino.jagger.processor.config.AnyConfig;
 import org.tillerino.jagger.processor.config.ConfigProperty;
+import org.tillerino.jagger.processor.databind.DatabindPrototypeDetector.DatabindPrototypeKind;
 import org.tillerino.jagger.processor.ext.PrototypeKind.CodeGeneratorContext;
 import org.tillerino.jagger.processor.features.Polymorphism;
+import org.tillerino.jagger.processor.util.InstantiatedMethod.InstantiatedVariable;
 
 public abstract class AbstractCodeGeneratorStack<SELF extends AbstractCodeGeneratorStack<SELF>>
         extends AbstractCodeGenerator<SELF> {
@@ -36,7 +39,7 @@ public abstract class AbstractCodeGeneratorStack<SELF extends AbstractCodeGenera
         this.stackRelevantType = true;
         this.property = null;
         this.canBePolyChild =
-                prototype.contextParameter().isPresent() && stackDepth() == 1 && Polymorphism.isSomeChild(type, ctx);
+                contextParameter().isPresent() && stackDepth() == 1 && Polymorphism.isSomeChild(type, ctx);
         this.config = type instanceof DeclaredType dt && dt.asElement() != null
                 ? AnyConfig.create(dt.asElement(), ConfigProperty.LocationKind.DTO, ctx)
                         .merge(prototype.config())
@@ -57,7 +60,7 @@ public abstract class AbstractCodeGeneratorStack<SELF extends AbstractCodeGenera
         this.stackRelevantType = stackRelevantType;
         this.property = property;
         this.canBePolyChild =
-                prototype.contextParameter().isPresent() && stackDepth() == 1 && Polymorphism.isSomeChild(type, ctx);
+                contextParameter().isPresent() && stackDepth() == 1 && Polymorphism.isSomeChild(type, ctx);
         this.config = config;
     }
 
@@ -85,6 +88,16 @@ public abstract class AbstractCodeGeneratorStack<SELF extends AbstractCodeGenera
 
     protected String propertyName() {
         return property != null ? property.serializedName : parent != null ? parent.propertyName() : "root";
+    }
+
+    protected Optional<InstantiatedVariable> contextParameter() {
+        for (InstantiatedVariable parameter : prototype.parameters()) {
+            TypeMirror targetContextType = ((DatabindPrototypeKind) prototype.kind()).contextType();
+            if (ctx.commonTypes.isAssignable(parameter.type(), targetContextType)) {
+                return Optional.of(parameter);
+            }
+        }
+        return Optional.empty();
     }
 
     protected enum StringKind {

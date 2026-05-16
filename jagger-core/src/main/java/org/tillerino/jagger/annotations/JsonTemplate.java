@@ -54,12 +54,22 @@ public @interface JsonTemplate {
      */
     Class[] templates();
 
-    Class[] types();
+    Class[] types() default {};
+
+    /**
+     * If your template requires more than one type parameter, you can use this as an alternative to {@link #types()}.
+     */
+    TypeArray[] typeArrays() default {};
 
     /** Container annotation for repeatable @JsonTemplate annotations. */
     @Target(ElementType.TYPE)
     @Retention(RetentionPolicy.SOURCE)
     @interface JsonTemplates {
         JsonTemplate[] value();
+    }
+
+    @Retention(RetentionPolicy.SOURCE)
+    @interface TypeArray {
+        Class[] value();
     }
 }

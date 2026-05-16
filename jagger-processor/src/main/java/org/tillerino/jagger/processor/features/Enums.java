@@ -47,7 +47,7 @@ public class Enums {
 
     public EnumValuesField createEnumField(TypeMirror enumType, int nextIndex) {
         String valueFunction = ctx.converters
-                .findJsonValueMethod(enumType, ctx.converters.ctx().commonTypes::isString)
+                .findJsonValueMethod(enumType, ctx.commonTypes::isString)
                 .map(InstantiatedMethod::name)
                 .orElse("name");
 

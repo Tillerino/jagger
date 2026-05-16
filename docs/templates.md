@@ -41,12 +41,12 @@ The name of the generated methods is derived from the type.
 
 For example:
 ```java
-//../jagger-tests/jackson/target/generated-sources/annotations/org/tillerino/jagger/tests/base/features/TemplatesSerde$TemplatedSerdeImpl.java#L90-L97
+//../jagger-tests/jackson/target/generated-sources/annotations/org/tillerino/jagger/tests/base/features/TemplatesSerde$TemplatedSerdeImpl.java#L91-L98
 
 public void writeAnEnum(AnEnum obj, JsonGenerator gen) throws Exception {
   if (obj != null) {
-    String rootString = obj.name();
-    gen.writeString(rootString);
+    String root = obj.name();
+    gen.writeString(root);
   } else {
     gen.writeNull();
   }
@@ -70,7 +70,7 @@ public interface TemplatesSerde {
 
 `writeAnEnum` works with generics and delegates serialization of the enum itself to the specialized method:
 ```java
-//../jagger-tests/jackson/target/generated-sources/annotations/org/tillerino/jagger/tests/base/features/TemplatesSerde$TemplatedSerdeImpl.java#L157-L159
+//../jagger-tests/jackson/target/generated-sources/annotations/org/tillerino/jagger/tests/base/features/TemplatesSerde$TemplatedSerdeImpl.java#L158-L160
 
 public void writeArrayOfAnEnum(AnEnum[] obj, JsonGenerator gen) throws Exception {
   this.writeGenericArray(obj, gen, this::writeAnEnum);

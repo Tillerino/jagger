@@ -4,6 +4,7 @@ import static java.util.Arrays.asList;
 
 import com.squareup.javapoet.CodeBlock;
 import java.util.*;
+import java.util.stream.Stream;
 import javax.lang.model.type.TypeMirror;
 import org.tillerino.jagger.processor.GeneratedClass;
 import org.tillerino.jagger.processor.JaggerContext;
@@ -30,10 +31,6 @@ public interface PrototypeKind {
      * @return the body of the generated method
      */
     CodeBlock.Builder generateCode(CodeGeneratorContext context);
-
-    default Optional<TypeMirror> contextType() {
-        return Optional.empty();
-    }
 
     /**
      * By default, code is only generated for unimplemented methods. If you want to generate decorators, use this
@@ -93,26 +90,50 @@ public interface PrototypeKind {
     }
 
     interface TemplatablePrototypeKind extends PrototypeKind {
-        Enum<?> direction();
+        /**
+         * Optional. A Specialization that can be used in addition to the own class and {@link #types()} to match
+         * prototypes. For example READ vs WRITE.
+         *
+         * @return compared via null-safe equals. If your prototype has no specialization, null is fine.
+         */
+        default Object specialization() {
+            return null;
+        }
 
-        TypeMirror externalType();
+        List<TypeMirror> types();
 
-        TypeMirror internalType();
-
+        /**
+         * Used to generate method names for templated prototypes.
+         *
+         * @return a unique name within a blueprint
+         */
         String defaultMethodName();
 
-        TemplatablePrototypeKind withInternalType(TypeMirror newType);
+        /** See {@link #withTypesPrefix(List)} */
+        TemplatablePrototypeKind withTypes(List<TypeMirror> newTypes);
 
         default boolean matches(
                 TemplatablePrototypeKind other,
                 JaggerContext ctx,
                 Map<TypeVar, TypeMirror> typeBindings,
                 Set<TypeVar> freeTypeVariables) {
-            return direction() == other.direction()
-                    && ctx.generics.typeBindingsSatisfyingEquality(
-                            other.externalType(), externalType(), typeBindings, freeTypeVariables)
-                    && ctx.generics.typeBindingsSatisfyingEquality(
-                            other.internalType(), internalType(), typeBindings, freeTypeVariables);
+            if (!Objects.equals(specialization(), other.specialization()) || getClass() != other.getClass()) {
+                return false;
+            }
+            for (int i = 0; i < types().size(); i++) {
+                if (!ctx.generics.typeBindingsSatisfyingEquality(
+                        other.types().get(i), types().get(i), typeBindings, freeTypeVariables)) {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        /** This is used to find delegates or instantiate templates. */
+        default TemplatablePrototypeKind withTypesPrefix(List<TypeMirror> replacement) {
+            return withTypes(
+                    Stream.concat(replacement.stream(), types().stream().skip(replacement.size()))
+                            .toList());
         }
     }
 

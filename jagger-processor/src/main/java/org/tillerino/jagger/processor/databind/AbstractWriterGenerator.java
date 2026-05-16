@@ -55,7 +55,7 @@ public abstract class AbstractWriterGenerator<SELF extends AbstractWriterGenerat
     public CodeBlock.Builder build() {
         // delegate to any of the used blueprints
         Optional<Delegatee> delegate = ctx.delegation.findDelegatee(
-                ((TemplatablePrototypeKind) prototype.kind()).withInternalType(type),
+                ((TemplatablePrototypeKind) prototype.kind()).withTypesPrefix(List.of(type)),
                 prototype,
                 !(lhs instanceof Return),
                 stackDepth() > 1,
@@ -119,7 +119,7 @@ public abstract class AbstractWriterGenerator<SELF extends AbstractWriterGenerat
      * specializations for some types that require a dedicated null check.
      */
     protected void writeNullCheckedObject() {
-        Optional<Setup> referenceSetup = ctx.references.resolveSetup(config, prototype, type);
+        Optional<Setup> referenceSetup = ctx.references.resolveSetup(config, prototype, type, contextParameter());
         if (referenceSetup.isPresent()) {
             Setup setup = referenceSetup.get();
             Variable idVar = new Variable(createVariable("id").name(), false);
@@ -256,13 +256,12 @@ public abstract class AbstractWriterGenerator<SELF extends AbstractWriterGenerat
                     PropagationKind.SUBSTITUTE /* this is fine with the configuration options that we
                  currently have */);
             TemplatablePrototypeKind target =
-                    ((TemplatablePrototypeKind) prototype.kind()).withInternalType(child.type());
+                    ((TemplatablePrototypeKind) prototype.kind()).withTypesPrefix(List.of(child.type()));
             ctx.delegation
                     .findDelegatee(target, prototype, false, true, config, generatedClass)
                     .ifPresentOrElse(
                             delegatee -> {
-                                InstantiatedVariable callerContext = prototype
-                                        .contextParameter()
+                                InstantiatedVariable callerContext = contextParameter()
                                         .orElseThrow(() -> new ContextedRuntimeException(
                                                 "Prototype method must have a context parameter"));
                                 if (!delegatee.method().hasParameterAssignableFrom(callerContext.type(), ctx)) {
@@ -309,7 +308,7 @@ public abstract class AbstractWriterGenerator<SELF extends AbstractWriterGenerat
 
     void writeObjectPropertiesAsFields() {
         if (canBePolyChild) {
-            InstantiatedVariable context = prototype.contextParameter().orElseThrow();
+            InstantiatedVariable context = contextParameter().orElseThrow();
             beginControlFlow("if ($C.isDiscriminatorPending())", context);
             nest(
                             ctx.commonTypes.string,
@@ -323,7 +322,7 @@ public abstract class AbstractWriterGenerator<SELF extends AbstractWriterGenerat
             endControlFlow();
         }
 
-        Optional<Setup> referencesSetup = ctx.references.resolveSetup(config, prototype, type);
+        Optional<Setup> referencesSetup = ctx.references.resolveSetup(config, prototype, type, contextParameter());
         referencesSetup.ifPresent(setup -> setup.generateId(rhs)
                 .ifPresent(id -> nest(
                                 setup.idType(),

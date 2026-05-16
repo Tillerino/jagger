@@ -77,13 +77,13 @@ public abstract class AbstractReaderGenerator<SELF extends AbstractReaderGenerat
     }
 
     CodeBlock.Builder build(Branch branch, boolean nullable, boolean lastCase) {
-        Optional<Setup> resolveSetup = ctx.references.resolveSetup(config, prototype, type);
+        Optional<Setup> resolveSetup = ctx.references.resolveSetup(config, prototype, type, contextParameter());
         if (resolveSetup.isPresent()) {
             resolveId(branch, resolveSetup.get());
             branch = ELSE_IF;
         }
         Optional<Delegatee> delegate = ctx.delegation.findDelegatee(
-                ((TemplatablePrototypeKind) prototype.kind()).withInternalType(type),
+                ((TemplatablePrototypeKind) prototype.kind()).withTypesPrefix(List.of(type)),
                 prototype,
                 !(lhs instanceof Return),
                 stackDepth() > 1,
@@ -167,7 +167,7 @@ public abstract class AbstractReaderGenerator<SELF extends AbstractReaderGenerat
                 branch.controlFlow(
                         this,
                         "!$C.isObjectOpen(false) && $C",
-                        prototype.contextParameter().get(),
+                        contextParameter().get(),
                         cond);
             } else {
                 branch.controlFlow(this, cond);
@@ -497,8 +497,7 @@ public abstract class AbstractReaderGenerator<SELF extends AbstractReaderGenerat
             Branch branch, @Nullable Creator.Properties properties, TypeElement element, boolean lastCase) {
         Snippet cond = objectCaseCondition();
         if (canBePolyChild) {
-            cond = Snippet.of(
-                    "$C.isObjectOpen(true) || $C", prototype.contextParameter().get(), cond);
+            cond = Snippet.of("$C.isObjectOpen(true) || $C", contextParameter().get(), cond);
         }
         branch.controlFlow(this, cond);
 
@@ -537,7 +536,7 @@ public abstract class AbstractReaderGenerator<SELF extends AbstractReaderGenerat
                  currently have */));
             ctx.delegation
                     .findDelegatee(
-                            ((TemplatablePrototypeKind) prototype.kind()).withInternalType(child.type()),
+                            ((TemplatablePrototypeKind) prototype.kind()).withTypesPrefix(List.of(child.type())),
                             prototype,
                             false,
                             true,
@@ -545,8 +544,7 @@ public abstract class AbstractReaderGenerator<SELF extends AbstractReaderGenerat
                             generatedClass)
                     .ifPresentOrElse(
                             delegatee -> {
-                                InstantiatedVariable callerContext = prototype
-                                        .contextParameter()
+                                InstantiatedVariable callerContext = contextParameter()
                                         .orElseThrow(() -> new ContextedRuntimeException(
                                                 "Prototype method must have a context parameter"));
                                 if (!delegatee.method().hasParameterAssignableFrom(callerContext.type(), ctx)) {
@@ -555,7 +553,7 @@ public abstract class AbstractReaderGenerator<SELF extends AbstractReaderGenerat
                                 }
                                 addStatement(
                                         "$C.markObjectOpen()",
-                                        prototype.contextParameter().get());
+                                        contextParameter().get());
                                 Exceptions.runWithContext(
                                         () -> nested.invokeDelegate(delegatee.fieldOrParameter(), delegatee.method()),
                                         "instance",
@@ -629,7 +627,7 @@ public abstract class AbstractReaderGenerator<SELF extends AbstractReaderGenerat
         String args = nested.stream().map(p -> ((Variable) p.lhs).name()).collect(joining(", "));
         Snippet creatorCall = of("$C($L)", method.callSymbol(ctx), args);
         ctx.references
-                .resolveSetup(config, prototype, type)
+                .resolveSetup(config, prototype, type, contextParameter())
                 .ifPresentOrElse(
                         setup -> lhs.assignAnd(
                                 creatorCall, this, type, objectVar -> addStatement(setup.bindItem(idVar, objectVar))),
@@ -662,14 +660,14 @@ public abstract class AbstractReaderGenerator<SELF extends AbstractReaderGenerat
             nested.add(nest);
         });
         ScopedVar idVar = readProperties(nested, lastCase);
-        ctx.references.resolveSetup(config, prototype, type).ifPresent(setup -> {
+        ctx.references.resolveSetup(config, prototype, type, contextParameter()).ifPresent(setup -> {
             addStatement(setup.bindItem(idVar, objectVar));
         });
         addStatement(lhs.assign("$C", objectVar));
     }
 
     private ScopedVar readProperties(List<SELF> properties, boolean lastCase) {
-        Optional<Setup> referencesSetup = ctx.references.resolveSetup(config, prototype, type);
+        Optional<Setup> referencesSetup = ctx.references.resolveSetup(config, prototype, type, contextParameter());
         ScopedVar idVar = referencesSetup
                 .map(setup -> {
                     ScopedVar variable = createVariable("id");
@@ -799,8 +797,7 @@ public abstract class AbstractReaderGenerator<SELF extends AbstractReaderGenerat
     }
 
     private Snippet safeNonObjectCase(Snippet leCase) {
-        return prototype
-                .contextParameter()
+        return contextParameter()
                 .map(ctx -> Snippet.of("!$C.isObjectOpen(false) && $C", ctx, leCase))
                 .orElse(leCase);
     }

@@ -107,11 +107,16 @@ public class JdbcPrototypeDetector implements PrototypeDetector {
             Direction direction)
             implements TemplatablePrototypeKind {
         @Override
-        public TemplatablePrototypeKind withInternalType(TypeMirror newType) {
-            return new JdbcPrototypeKind(externalType, newType, jdbcVariable, otherParameters, direction);
+        public List<TypeMirror> types() {
+            return List.of(internalType, externalType);
         }
 
-        public Direction direction() {
+        @Override
+        public TemplatablePrototypeKind withTypes(List<TypeMirror> newTypes) {
+            return new JdbcPrototypeKind(externalType, newTypes.get(0), jdbcVariable, otherParameters, direction);
+        }
+
+        public Direction specialization() {
             return direction;
         }
 
@@ -123,7 +128,7 @@ public class JdbcPrototypeDetector implements PrototypeDetector {
                         case JDBC_INSERT -> "insert";
                         case JDBC_UPDATE -> "update";
                     };
-            return prefix + PlainTypeName.of(internalType());
+            return prefix + PlainTypeName.of(types().get(0));
         }
 
         @Override
