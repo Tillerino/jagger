@@ -5,11 +5,7 @@ import com.squareup.javapoet.CodeBlock;
 import com.squareup.javapoet.CodeBlock.Builder;
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Target;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-import javax.lang.model.element.TypeElement;
+import java.util.*;
 import javax.lang.model.type.TypeMirror;
 import org.apache.commons.lang3.exception.ContextedRuntimeException;
 import org.tillerino.jagger.processor.AbstractCodeGenerator;
@@ -22,6 +18,7 @@ import org.tillerino.jagger.processor.ext.PrototypeKind.TemplatablePrototypeKind
 import org.tillerino.jagger.processor.features.Delegation.Delegatee;
 import org.tillerino.jagger.processor.util.Accessor.ReadAccessor;
 import org.tillerino.jagger.processor.util.Accessor.WriteAccessor;
+import org.tillerino.jagger.processor.util.Annotations.AnnotationMirrorWrapper;
 import org.tillerino.jagger.processor.util.CollectionUtil;
 import org.tillerino.jagger.processor.util.InstantiatedMethod;
 import org.tillerino.jagger.processor.util.PlainTypeName;
@@ -38,11 +35,10 @@ public class SimpleMapperPlugin implements JaggerPlugin {
 
     @Override
     public void configure(JaggerContext ctx) {
-        TypeElement type = ctx.elements.getTypeElement(Mapper.class.getCanonicalName());
 
-        ctx.detectors.add(new PrototypeDetector() {
+        ctx.register(new PrototypeDetector() {
             @Override
-            public Optional<PrototypeKind> detect(InstantiatedMethod m) {
+            public Optional<PrototypeKind> detect(InstantiatedMethod m, AnnotationMirrorWrapper annotation) {
                 if (m.parameters().size() != 1) {
                     return Optional.empty();
                 }
@@ -52,8 +48,8 @@ public class SimpleMapperPlugin implements JaggerPlugin {
             }
 
             @Override
-            public List<TypeElement> supportedAnnotationTypes() {
-                return List.of(type);
+            public Collection<String> supportedAnnotationTypes() {
+                return List.of(Mapper.class.getCanonicalName());
             }
         });
     }

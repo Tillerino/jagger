@@ -311,7 +311,7 @@ public class JdbcSelectGenerator extends AbstractJdbcGenerator<JdbcSelectGenerat
             String upper = StringUtils.capitalize(type.toString());
             return Snippet.of("$C.get$L($S)", rsVar, upper, name);
         }
-        if (ctx.isBoxed(type)) {
+        if (ctx.commonTypes.isBoxed(type)) {
             return Snippet.of("$C.getObject($S, $T.class)", rsVar, name, ClassName.get(type));
         }
         if (type.getKind() == TypeKind.ARRAY) {

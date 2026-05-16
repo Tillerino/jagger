@@ -11,7 +11,7 @@ public class JaggerAnnotations {
     public static final String JSON_CONFIG = "org.tillerino.jagger.annotations.JsonConfig";
 
     public static void configureJaggerAnnotations(JaggerContext ctx) {
-        ctx.configProperties.addAnnotationPropertyConfigRetriever(
+        ctx.configProperties.addConfigAnnotation(
                 AnyConfig.USES,
                 JSON_CONFIG,
                 ann -> ann.method("uses", true)
@@ -21,15 +21,15 @@ public class JaggerAnnotations {
                                         className.asTypeMirror().toString()))
                                 .collect(Collectors.toUnmodifiableSet())));
 
-        ctx.configProperties.addRetriever(
+        ctx.configProperties.addConfig(
                 UnknownProperties.UNKNOWN_PROPERTIES,
                 jsonConfigPropertyRetriever("unknownProperties", JsonConfig.UnknownPropertiesMode.class));
 
-        ctx.configProperties.addRetriever(
+        ctx.configProperties.addConfig(
                 CodeGeneration.IMPLEMENT,
                 jsonConfigPropertyRetriever("implement", JsonConfig.ImplementationMode.class));
 
-        ctx.configProperties.addAnnotationPropertyConfigRetriever(
+        ctx.configProperties.addConfigAnnotation(
                 CodeGeneration.ON_GENERATED_CLASS,
                 JSON_CONFIG,
                 ann -> ann.method("onGeneratedClass", false)
@@ -39,7 +39,7 @@ public class JaggerAnnotations {
                                         classValue.asTypeMirror().toString()))
                                 .collect(ConfigProperty.toUnmodifiableSet())));
 
-        ctx.configProperties.addAnnotationPropertyConfigRetriever(
+        ctx.configProperties.addConfigAnnotation(
                 CodeGeneration.ON_GENERATED_CONSTRUCTOR,
                 JSON_CONFIG,
                 ann -> ann.method("onGeneratedConstructors", false)
@@ -49,24 +49,24 @@ public class JaggerAnnotations {
                                         classValue.asTypeMirror().toString()))
                                 .collect(ConfigProperty.toUnmodifiableSet())));
 
-        ctx.configProperties.addAnnotationPropertyConfigRetriever(
+        ctx.configProperties.addConfigAnnotation(
                 CodeGeneration.ADD_GENERATED_ANNOTATION_TO_CLASS,
                 JSON_CONFIG,
                 ann -> ann.method("addGeneratedAnnotationToClass", false).map(AnnotationValueWrapper::asBoolean));
 
-        ctx.configProperties.addAnnotationPropertyConfigRetriever(
+        ctx.configProperties.addConfigAnnotation(
                 CodeGeneration.ADD_GENERATED_ANNOTATION_TO_METHODS,
                 JSON_CONFIG,
                 ann -> ann.method("addGeneratedAnnotationToMethods", false).map(AnnotationValueWrapper::asBoolean));
 
-        ctx.configProperties.addRetriever(
+        ctx.configProperties.addConfig(
                 Delegation.DELEGATE_TO, jsonConfigPropertyRetriever("delegateTo", JsonConfig.DelegateeMode.class));
 
-        ctx.configProperties.addRetriever(
+        ctx.configProperties.addConfig(
                 Verification.VERIFY_SYMMETRY,
                 jsonConfigPropertyRetriever("verifySymmetry", JsonConfig.VerificationMode.class));
 
-        ctx.configProperties.addRetriever(
+        ctx.configProperties.addConfig(
                 ctx.codeGeneration.provider,
                 new AnnotationConfigPropertyRetriever<>(
                         JSON_CONFIG, ann -> ann.method("provider", false).map(AnnotationValueWrapper::asTypeMirror)));

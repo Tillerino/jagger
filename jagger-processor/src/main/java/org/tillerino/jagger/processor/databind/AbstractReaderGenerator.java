@@ -259,7 +259,7 @@ public abstract class AbstractReaderGenerator<SELF extends AbstractReaderGenerat
             } else {
                 throw Exceptions.unexpected();
             }
-        } else if (ctx.isBoxed(type)) {
+        } else if (ctx.commonTypes.isBoxed(type)) {
             nest(ctx.types.unboxedType(type), null, lhs, false, config.propagateTo(PropagationKind.SUBSTITUTE))
                     .build(branch, true, lastCase);
         } else if (ctx.commonTypes.isString(type) || ctx.commonTypes.isArrayOf(type, TypeKind.CHAR)) {

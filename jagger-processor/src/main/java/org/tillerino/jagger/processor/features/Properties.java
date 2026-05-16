@@ -17,7 +17,12 @@ import org.tillerino.jagger.processor.util.Accessor.ElementAccessor;
 import org.tillerino.jagger.processor.util.Accessor.ReadAccessor;
 import org.tillerino.jagger.processor.util.Exceptions;
 
-public record Properties(JaggerContext ctx) {
+public class Properties {
+    protected final JaggerContext ctx;
+
+    public Properties(JaggerContext ctx) {
+        this.ctx = ctx;
+    }
 
     public List<OutputProperty> outputProperties(TypeMirror type, AnyConfig config) {
         List<OutputProperty> properties = ctx.properties.listReadAccessors(type).entrySet().stream()

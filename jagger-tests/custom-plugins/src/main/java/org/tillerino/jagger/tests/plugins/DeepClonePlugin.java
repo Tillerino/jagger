@@ -5,11 +5,7 @@ import com.squareup.javapoet.CodeBlock;
 import com.squareup.javapoet.CodeBlock.Builder;
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Target;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-import javax.lang.model.element.TypeElement;
+import java.util.*;
 import javax.lang.model.type.TypeMirror;
 import org.apache.commons.lang3.exception.ContextedRuntimeException;
 import org.tillerino.jagger.processor.AbstractCodeGenerator;
@@ -22,6 +18,7 @@ import org.tillerino.jagger.processor.ext.PrototypeKind.TemplatablePrototypeKind
 import org.tillerino.jagger.processor.features.Delegation;
 import org.tillerino.jagger.processor.util.Accessor.ReadAccessor;
 import org.tillerino.jagger.processor.util.Accessor.WriteAccessor;
+import org.tillerino.jagger.processor.util.Annotations.AnnotationMirrorWrapper;
 import org.tillerino.jagger.processor.util.InstantiatedMethod;
 import org.tillerino.jagger.processor.util.PlainTypeName;
 import org.tillerino.jagger.processor.util.Snippet;
@@ -39,11 +36,10 @@ public class DeepClonePlugin implements JaggerPlugin {
 
     @Override
     public void configure(JaggerContext ctx) {
-        TypeElement type = ctx.elements.getTypeElement(Clone.class.getCanonicalName());
 
-        ctx.detectors.add(new PrototypeDetector() {
+        ctx.register(new PrototypeDetector() {
             @Override
-            public Optional<PrototypeKind> detect(InstantiatedMethod m) {
+            public Optional<PrototypeKind> detect(InstantiatedMethod m, AnnotationMirrorWrapper annotation) {
                 if (m.parameters().size() != 1) {
                     return Optional.empty();
                 }
@@ -56,8 +52,8 @@ public class DeepClonePlugin implements JaggerPlugin {
             }
 
             @Override
-            public List<TypeElement> supportedAnnotationTypes() {
-                return List.of(type);
+            public Collection<String> supportedAnnotationTypes() {
+                return List.of(Clone.class.getCanonicalName());
             }
         });
     }
@@ -126,28 +122,22 @@ public class DeepClonePlugin implements JaggerPlugin {
 
         private void cloneProperty(WriteAccessor writeAccessor, ReadAccessor readAccessor, ScopedVar result) {
             TypeMirror fieldType = writeAccessor.type();
-            Snippet sourceValue =
+            Snippet valueToWrite =
                     readAccessor.readSnippet(prototype.method().parameters().get(0));
 
-            Delegation.Delegatee delegatee = ctx.delegation
-                    .findDelegatee(
-                            ((TemplatablePrototypeKind) prototype.kind()).withTypes(List.of(fieldType)),
-                            prototype,
-                            false,
-                            true,
-                            prototype.config(),
-                            generatedClass)
-                    .orElse(null);
-
-            Snippet valueToWrite;
-            if (delegatee != null) {
-                valueToWrite = Snippet.of("this.$L($C)", delegatee.method().name(), sourceValue);
-            } else if (isDirectlyAssignable(readAccessor.type(), writeAccessor.type())) {
-                valueToWrite = sourceValue;
-            } else {
-                throw new ContextedRuntimeException("Cannot clone property")
-                        .addContextValue("property", writeAccessor.name())
-                        .addContextValue("type", fieldType);
+            if (!isDirectlyAssignable(readAccessor.type(), writeAccessor.type())) {
+                Delegation.Delegatee delegatee = ctx.delegation
+                        .findDelegatee(
+                                ((TemplatablePrototypeKind) prototype.kind()).withTypes(List.of(fieldType)),
+                                prototype,
+                                false,
+                                true,
+                                prototype.config(),
+                                generatedClass)
+                        .orElseThrow(() -> new ContextedRuntimeException("Cannot clone property")
+                                .addContextValue("property", writeAccessor.name())
+                                .addContextValue("type", fieldType));
+                valueToWrite = Snippet.of("this.$L($C)", delegatee.method().name(), valueToWrite);
             }
 
             addStatement(writeAccessor.writeSnippet(result, valueToWrite));
@@ -158,7 +148,7 @@ public class DeepClonePlugin implements JaggerPlugin {
                 return false;
             }
             return source.getKind().isPrimitive()
-                    || ctx.isBoxed(source)
+                    || ctx.commonTypes.isBoxed(source)
                     || ctx.commonTypes.isEnum(source)
                     || ctx.commonTypes.isString(source);
         }

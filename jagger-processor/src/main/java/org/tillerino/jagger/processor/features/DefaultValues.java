@@ -16,7 +16,12 @@ import org.tillerino.jagger.processor.features.Generics.TypeVar;
 import org.tillerino.jagger.processor.util.InstantiatedMethod;
 import org.tillerino.jagger.processor.util.Snippet.PerfectSnippet;
 
-public record DefaultValues(JaggerContext ctx) {
+public class DefaultValues {
+    protected final JaggerContext ctx;
+
+    public DefaultValues(JaggerContext ctx) {
+        this.ctx = ctx;
+    }
 
     public Optional<InstantiatedMethod> findInputDefaultValue(
             JaggerBlueprint blueprint, TypeMirror targetType, AnyConfig config) {

@@ -21,7 +21,13 @@ import org.tillerino.jagger.processor.util.Exceptions;
 import org.tillerino.jagger.processor.util.InstantiatedMethod.InstantiatedVariable;
 import org.tillerino.jagger.processor.util.Snippet;
 
-public record References(JaggerContext ctx) {
+public class References {
+    protected final JaggerContext ctx;
+
+    public References(JaggerContext ctx) {
+        this.ctx = ctx;
+    }
+
     public static ConfigProperty<Config> REFERENCES = ConfigProperty.createConfigProperty(
             "REFERENCES",
             List.of(LocationKind.DTO),

@@ -13,23 +13,22 @@ import org.tillerino.jagger.processor.util.Annotations.AnnotationValueWrapper;
 public class JakartaPersistenceAnnotationsPlugin implements JaggerPlugin {
     @Override
     public void configure(JaggerContext ctx) {
-        ctx.configProperties.addAnnotationPropertyConfigRetriever(
+        ctx.configProperties.addConfigAnnotation(
                 IgnoreProperty.IGNORE_PROPERTY, "jakarta.persistence.Transient", ann -> Optional.of(true));
 
-        ctx.configProperties.addAnnotationPropertyConfigRetriever(
+        ctx.configProperties.addConfigAnnotation(
                 PropertyName.PROPERTY_NAME,
                 "jakarta.persistence.Column",
                 ann -> ann.method("name", false).map(AnnotationValueWrapper::asString));
 
-        ctx.configProperties.addAnnotationPropertyConfigRetriever(
-                Jdbc.ID_PROPERTY, "jakarta.persistence.Id", ann -> Optional.of(true));
+        ctx.configProperties.addConfigAnnotation(Jdbc.ID_PROPERTY, "jakarta.persistence.Id", ann -> Optional.of(true));
 
-        ctx.configProperties.addAnnotationPropertyConfigRetriever(
+        ctx.configProperties.addConfigAnnotation(
                 Jdbc.TABLE_NAME_ON_DTO,
                 "jakarta.persistence.Table",
                 ann -> ann.method("name", false).map(AnnotationValueWrapper::asString));
 
-        ctx.configProperties.addAnnotationPropertyConfigRetriever(
+        ctx.configProperties.addConfigAnnotation(
                 Jdbc.GENERATION_TYPE,
                 "jakarta.persistence.GeneratedValue",
                 ann -> ann.method("strategy", false).map(w -> w.asEnum(Jdbc.GenerationType.class)));

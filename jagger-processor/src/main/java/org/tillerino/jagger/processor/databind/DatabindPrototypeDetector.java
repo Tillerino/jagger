@@ -2,9 +2,9 @@ package org.tillerino.jagger.processor.databind;
 
 import com.squareup.javapoet.CodeBlock.Builder;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
-import javax.lang.model.element.TypeElement;
 import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
 import org.apache.commons.lang3.exception.ContextedRuntimeException;
@@ -14,6 +14,7 @@ import org.tillerino.jagger.processor.JaggerContext;
 import org.tillerino.jagger.processor.ext.PrototypeDetector;
 import org.tillerino.jagger.processor.ext.PrototypeKind;
 import org.tillerino.jagger.processor.ext.PrototypeKind.TemplatablePrototypeKind;
+import org.tillerino.jagger.processor.util.Annotations.AnnotationMirrorWrapper;
 import org.tillerino.jagger.processor.util.InstantiatedMethod;
 import org.tillerino.jagger.processor.util.InstantiatedMethod.InstantiatedVariable;
 import org.tillerino.jagger.processor.util.PlainTypeName;
@@ -60,8 +61,6 @@ public class DatabindPrototypeDetector implements PrototypeDetector {
 
     public final TypeMirror serializationContext;
     public final TypeMirror deserializationContext;
-    private final TypeElement jsonInput;
-    private final TypeElement jsonOutput;
 
     public DatabindPrototypeDetector(JaggerContext ctx) {
         this.ctx = ctx;
@@ -89,23 +88,20 @@ public class DatabindPrototypeDetector implements PrototypeDetector {
         deserializationContext = ctx.elements
                 .getTypeElement(DeserializationContext.class.getName())
                 .asType();
-
-        jsonInput = ctx.elements.getTypeElement(JSON_INPUT);
-        jsonOutput = ctx.elements.getTypeElement(JSON_OUTPUT);
     }
 
     @Override
-    public List<TypeElement> supportedAnnotationTypes() {
-        return Arrays.asList(jsonInput, jsonOutput);
+    public Collection<String> supportedAnnotationTypes() {
+        return Arrays.asList(JSON_INPUT, JSON_OUTPUT);
     }
 
     @Override
-    public Optional<PrototypeKind> detect(InstantiatedMethod m) {
+    public Optional<PrototypeKind> detect(InstantiatedMethod m, AnnotationMirrorWrapper annotation) {
         return detectJsonInput(m).or(() -> detectJsonOutput(m));
     }
 
     private Optional<PrototypeKind> detectJsonInput(InstantiatedMethod m) {
-        if (ctx.annotations.findAnnotation(m.element(), jsonInput).isPresent()
+        if (ctx.annotations.findAnnotation(m.element(), JSON_INPUT).isPresent()
                 && m.returnType().getKind() != TypeKind.VOID
                 && !m.parameters().isEmpty()) {
             return PrototypeKind.detect(
@@ -123,7 +119,7 @@ public class DatabindPrototypeDetector implements PrototypeDetector {
     }
 
     private Optional<PrototypeKind> detectJsonOutput(InstantiatedMethod m) {
-        if (ctx.annotations.findAnnotation(m.element(), jsonOutput).isPresent()
+        if (ctx.annotations.findAnnotation(m.element(), JSON_OUTPUT).isPresent()
                 && m.returnType().getKind() == TypeKind.VOID
                 && m.parameters().size() >= 2) {
             return PrototypeKind.detect(

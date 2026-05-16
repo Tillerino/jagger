@@ -25,8 +25,8 @@ public class Verification {
             MergeFunction.notDefault(),
             PropagationKind.none());
 
-    final Map<JaggerBlueprint, ForBlueprint> st = new ConcurrentHashMap<>();
-    final JaggerContext ctx;
+    protected final Map<JaggerBlueprint, ForBlueprint> st = new ConcurrentHashMap<>();
+    protected final JaggerContext ctx;
 
     public Verification(JaggerContext ctx) {
         this.ctx = ctx;

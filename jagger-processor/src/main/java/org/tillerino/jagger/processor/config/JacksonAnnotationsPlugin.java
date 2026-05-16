@@ -15,7 +15,7 @@ public class JacksonAnnotationsPlugin implements JaggerPlugin {
 
     @Override
     public void configure(JaggerContext ctx) {
-        ctx.configProperties.addAnnotationPropertyConfigRetriever(
+        ctx.configProperties.addConfigAnnotation(
                 UnknownProperties.UNKNOWN_PROPERTIES,
                 CFJA + ".JsonIgnoreProperties",
                 ann -> ann.method("ignoreUnknown", true)
@@ -23,22 +23,22 @@ public class JacksonAnnotationsPlugin implements JaggerPlugin {
                         .map(i ->
                                 i ? JsonConfig.UnknownPropertiesMode.IGNORE : JsonConfig.UnknownPropertiesMode.THROW));
 
-        ctx.configProperties.addAnnotationPropertyConfigRetriever(
+        ctx.configProperties.addConfigAnnotation(
                 RequiredProperty.REQUIRED_PROPERTY,
                 CFJA + ".JsonProperty",
                 ann -> ann.method("required", false).map(AnnotationValueWrapper::asBoolean));
 
-        ctx.configProperties.addAnnotationPropertyConfigRetriever(
+        ctx.configProperties.addConfigAnnotation(
                 IgnoreProperty.IGNORE_PROPERTY,
                 CFJA + ".JsonIgnore",
                 ann -> ann.method("value", true).map(AnnotationValueWrapper::asBoolean));
 
-        ctx.configProperties.addAnnotationPropertyConfigRetriever(
+        ctx.configProperties.addConfigAnnotation(
                 PropertyName.PROPERTY_NAME,
                 CFJA + ".JsonProperty",
                 ann -> ann.method("value", true).map(AnnotationValueWrapper::asString));
 
-        ctx.configProperties.addAnnotationPropertyConfigRetriever(
+        ctx.configProperties.addConfigAnnotation(
                 IgnoreProperties.IGNORED_PROPERTIES,
                 CFJA + ".JsonIgnoreProperties",
                 ann -> ann.method("value", true)
@@ -47,7 +47,7 @@ public class JacksonAnnotationsPlugin implements JaggerPlugin {
                                 .map(AnnotationValueWrapper::asString)
                                 .collect(ConfigProperty.toUnmodifiableSet())));
 
-        ctx.configProperties.addAnnotationPropertyConfigRetriever(
+        ctx.configProperties.addConfigAnnotation(
                 References.REFERENCES,
                 CFJA + ".JsonIdentityInfo",
                 ann -> Optional.of(new References.Config(
@@ -58,7 +58,7 @@ public class JacksonAnnotationsPlugin implements JaggerPlugin {
                         ann.method("resolver", false).map(AnnotationValueWrapper::asTypeMirror),
                         ann.method("scope", false).map(AnnotationValueWrapper::asTypeMirror))));
 
-        ctx.configProperties.addAnnotationPropertyConfigRetriever(
+        ctx.configProperties.addConfigAnnotation(
                 PropertyOrder.PROPERTY_ORDER,
                 CFJA + ".JsonPropertyOrder",
                 ann -> ann.method("value", false)
@@ -67,12 +67,12 @@ public class JacksonAnnotationsPlugin implements JaggerPlugin {
                                 .map(AnnotationValueWrapper::asString)
                                 .toList()));
 
-        ctx.configProperties.addAnnotationPropertyConfigRetriever(
+        ctx.configProperties.addConfigAnnotation(
                 PropertyOrder.PROPERTY_ORDER_ALPHABETIC,
                 CFJA + ".JsonPropertyOrder",
                 ann -> ann.method("alphabetic", false).map(AnnotationValueWrapper::asBoolean));
 
-        ctx.configProperties.addAnnotationPropertyConfigRetriever(
+        ctx.configProperties.addConfigAnnotation(
                 Alias.ALIASES,
                 CFJA + ".JsonAlias",
                 ann -> ann.method("value", true)

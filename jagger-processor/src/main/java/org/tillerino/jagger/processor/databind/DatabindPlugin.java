@@ -18,6 +18,6 @@ public class DatabindPlugin implements JaggerPlugin {
 
     @Override
     public void configure(JaggerContext ctx) {
-        ctx.detectors.add(new DatabindPrototypeDetector(ctx));
+        ctx.register(new DatabindPrototypeDetector(ctx));
     }
 }

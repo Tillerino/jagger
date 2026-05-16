@@ -50,14 +50,11 @@ class DeepClonePluginTest {
 
     @Test
     void deepCloneCreatesEqualButIndependentCopy() {
-        Address originalAddress = new DeepClonePluginTest.Address("123 Main St", 45467, City.JAGGINSTON, true);
-
-        Person original = new Person("Alice", 30, originalAddress);
+        Person original = new Person("Alice", 30, new Address("123 Main St", 45467, City.JAGGINSTON, true));
 
         Person cloned = cloner.clonePerson(original);
 
-        Assertions.assertThat(cloned).isEqualTo(original);
-        Assertions.assertThat(cloned).isNotSameAs(original);
+        Assertions.assertThat(cloned).isEqualTo(original).isNotSameAs(original);
         Assertions.assertThat(cloned.getAddress()).isNotSameAs(original.getAddress());
     }
 }

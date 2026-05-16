@@ -8,19 +8,19 @@ import com.squareup.javapoet.TypeSpec;
 import com.squareup.javapoet.TypeSpec.Builder;
 import java.io.IOException;
 import java.util.*;
+import java.util.ServiceLoader.Provider;
 import java.util.stream.Collectors;
 import javax.annotation.processing.*;
 import javax.lang.model.SourceVersion;
 import javax.lang.model.element.*;
 import javax.lang.model.util.ElementFilter;
 import org.tillerino.jagger.annotations.JsonConfig;
-import org.tillerino.jagger.annotations.JsonTemplate;
-import org.tillerino.jagger.annotations.JsonTemplate.JsonTemplates;
 import org.tillerino.jagger.processor.config.ConfigProperty.LocationKind;
+import org.tillerino.jagger.processor.ext.BlueprintConfigurator;
 import org.tillerino.jagger.processor.ext.JaggerPlugin;
-import org.tillerino.jagger.processor.ext.PrototypeDetector;
 import org.tillerino.jagger.processor.ext.PrototypeKind.CodeGeneratorContext;
 import org.tillerino.jagger.processor.features.CodeGeneration;
+import org.tillerino.jagger.processor.util.Annotations.AnnotationMirrorWrapper;
 import org.tillerino.jagger.processor.util.InstantiatedMethod;
 
 @SupportedSourceVersion(SourceVersion.RELEASE_17)
@@ -31,25 +31,41 @@ public class JaggerProcessor extends AbstractProcessor {
 
     Set<String> generatedClasses = new LinkedHashSet<>();
 
-    private void setupUtils(ProcessingEnvironment processingEnv) {
-        if (ctx == null) {
-            ctx = new JaggerContext(processingEnv);
+    List<JaggerPlugin> plugins;
+
+    private void setupContext(ProcessingEnvironment processingEnv) {
+        if (ctx != null) {
+            return;
         }
+
+        ctx = new JaggerContext(processingEnv);
+
+        plugins.forEach(plugin -> plugin.configure(ctx));
     }
 
     @Override
     public Set<String> getSupportedAnnotationTypes() {
-        return ServiceLoader.load(JaggerPlugin.class, JaggerProcessor.class.getClassLoader()).stream()
-                .flatMap(plugin -> plugin.get().getSupportedAnnotationTypes().stream())
+        plugins = ServiceLoader.load(JaggerPlugin.class, JaggerProcessor.class.getClassLoader()).stream()
+                .map(Provider::get)
+                .peek(plugin -> {
+                    if (isJaggerDebug()) {
+                        System.out.println("Detected JaggerPlugin: " + plugin);
+                    }
+                })
+                .toList();
+
+        return plugins.stream()
+                .flatMap(plugin -> plugin.getSupportedAnnotationTypes().stream())
                 .collect(Collectors.toSet());
     }
 
     @Override
     public boolean process(Set<? extends TypeElement> annotations, RoundEnvironment roundEnv) {
-        setupUtils(processingEnv);
+        setupContext(processingEnv);
         collectJsonConfig(roundEnv);
-        collectMethodGenerators(roundEnv);
-        collectJsonTemplates(roundEnv); // collect last so that custom methods are appear first in implementations
+        collectPrototypeDetectors(roundEnv);
+        // blueprint configurators run later so they can modify results of prototype detectors
+        runBlueprintConfigurators(roundEnv);
         generateCode();
         return true;
     }
@@ -82,83 +98,46 @@ public class JaggerProcessor extends AbstractProcessor {
         });
     }
 
-    private void collectMethodGenerators(RoundEnvironment roundEnv) {
-        Set<TypeElement> types = ctx.detectors.stream()
-                .flatMap(detector -> detector.supportedAnnotationTypes().stream()
-                        .filter(Objects::nonNull)
-                        .flatMap(t -> roundEnv.getElementsAnnotatedWith(t).stream()))
+    private void collectPrototypeDetectors(RoundEnvironment roundEnv) {
+        Set<TypeElement> types = ctx.prototypeDetectors.keySet().stream()
+                .flatMap(t -> roundEnv.getElementsAnnotatedWith(ctx.elements.getTypeElement(t)).stream())
                 .filter(elem -> elem.getKind() == ElementKind.METHOD)
                 .map(el -> (TypeElement) el.getEnclosingElement())
                 .collect(Collectors.toCollection(LinkedHashSet::new));
+        // This is the point of this way of processing the annotations: the order of the methods in generated
+        // classes is supposed to be identical to the blueprint.
         for (TypeElement type : types) {
-            // This is the point of this way of processing the annotations: the order of the methods in generated
-            // classes is supposed to be identical to the blueprint.
-            for (ExecutableElement elem : ElementFilter.methodsIn(type.getEnclosedElements())) {
-                runDetectorsOnMethods(elem);
+            JaggerBlueprint blueprint = ctx.blueprint(type);
+            for (ExecutableElement exec : ElementFilter.methodsIn(type.getEnclosedElements())) {
+                try {
+                    InstantiatedMethod instantiated =
+                            ctx.generics.instantiateMethod(exec, blueprint.typeBindings, LocationKind.PROTOTYPE);
+                    ctx.detectPrototype(instantiated).ifPresent(kind -> {
+                        JaggerPrototype method =
+                                JaggerPrototype.of(blueprint, instantiated, kind, ctx, true, new Trigger(exec));
+                        blueprint.prototypes.add(method);
+                    });
+                } catch (Exception e) {
+                    logError(e, exec);
+                }
             }
         }
     }
 
-    private void runDetectorsOnMethods(ExecutableElement elem) {
-        for (PrototypeDetector detector : ctx.detectors) {
-            for (TypeElement supportedAnnotationType : detector.supportedAnnotationTypes()) {
-                if (supportedAnnotationType == null) {
+    private void runBlueprintConfigurators(RoundEnvironment roundEnv) {
+        LinkedHashSet<? extends Element> allElements = ctx.blueprintConfigurators.keySet().stream()
+                .flatMap(t -> roundEnv.getElementsAnnotatedWith(ctx.elements.getTypeElement(t)).stream())
+                .collect(Collectors.toCollection(LinkedHashSet::new));
+        for (TypeElement type : ElementFilter.typesIn(allElements)) {
+            for (AnnotationMirror annotationMirror : type.getAnnotationMirrors()) {
+                BlueprintConfigurator configurator = ctx.blueprintConfigurators.get(
+                        annotationMirror.getAnnotationType().toString());
+                if (configurator == null) {
                     continue;
                 }
-                if (ctx.annotations
-                        .findAnnotation(elem, supportedAnnotationType)
-                        .isPresent()) {
-                    try {
-                        addPrototype(
-                                elem, supportedAnnotationType.getSimpleName().toString());
-                    } catch (Exception e) {
-                        logError(e, elem);
-                    }
-                }
+                configurator.configure(ctx.blueprint(type), new AnnotationMirrorWrapper(annotationMirror, ctx));
             }
         }
-    }
-
-    private void addPrototype(ExecutableElement exec, String nick) {
-        TypeElement type = (TypeElement) exec.getEnclosingElement();
-        JaggerBlueprint blueprint = ctx.blueprint(type);
-        InstantiatedMethod instantiated =
-                ctx.generics.instantiateMethod(exec, blueprint.typeBindings, LocationKind.PROTOTYPE);
-        ctx.detectPrototype(instantiated)
-                .ifPresentOrElse(
-                        kind -> {
-                            JaggerPrototype method =
-                                    JaggerPrototype.of(blueprint, instantiated, kind, ctx, true, new Trigger(exec));
-                            blueprint.prototypes.add(method);
-                        },
-                        () -> logError("Signature unknown. Please see @" + nick + " for hints.", exec));
-    }
-
-    private void collectJsonTemplates(RoundEnvironment roundEnv) {
-        roundEnv.getElementsAnnotatedWith(JsonTemplate.class).forEach(element -> {
-            try {
-                if (!(element instanceof TypeElement type)) {
-                    return;
-                }
-                JaggerBlueprint blueprint = ctx.blueprint(type);
-                blueprint.prototypes.addAll(
-                        ctx.templates.instantiateTemplatedPrototypesFromSingleAnnotation(blueprint));
-            } catch (Exception e) {
-                logError(e, element);
-            }
-        });
-        roundEnv.getElementsAnnotatedWith(JsonTemplates.class).forEach(element -> {
-            try {
-                if (!(element instanceof TypeElement type)) {
-                    return;
-                }
-                JaggerBlueprint blueprint = ctx.blueprint(type);
-                blueprint.prototypes.addAll(
-                        ctx.templates.instantiateTemplatedPrototypesFromMultipleAnnotations(blueprint));
-            } catch (Exception e) {
-                logError(e, element);
-            }
-        });
     }
 
     private void generateCode() {
@@ -252,10 +231,14 @@ public class JaggerProcessor extends AbstractProcessor {
 
     private void logError(Exception e, Element element) {
         String msg = e != null ? e.getMessage() : null;
-        if (JaggerContext.isJaggerDebug()) {
+        if (isJaggerDebug()) {
             e.printStackTrace();
         }
         logError(msg, element);
+    }
+
+    public static boolean isJaggerDebug() {
+        return System.getenv("JAGGER_DEBUG") != null;
     }
 
     public record Trigger(Element element) {}

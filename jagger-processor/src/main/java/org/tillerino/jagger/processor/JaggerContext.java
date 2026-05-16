@@ -4,14 +4,10 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.util.*;
-import java.util.ServiceLoader.Provider;
 import java.util.function.Supplier;
 import javax.annotation.processing.Messager;
 import javax.annotation.processing.ProcessingEnvironment;
-import javax.lang.model.element.AnnotationValue;
-import javax.lang.model.element.Element;
-import javax.lang.model.element.ElementKind;
-import javax.lang.model.element.TypeElement;
+import javax.lang.model.element.*;
 import javax.lang.model.type.ArrayType;
 import javax.lang.model.type.DeclaredType;
 import javax.lang.model.type.TypeKind;
@@ -22,15 +18,17 @@ import javax.lang.model.util.Types;
 import org.apache.commons.lang3.exception.ContextedRuntimeException;
 import org.tillerino.jagger.processor.config.ConfigProperties;
 import org.tillerino.jagger.processor.config.JaggerAnnotations;
-import org.tillerino.jagger.processor.ext.JaggerPlugin;
+import org.tillerino.jagger.processor.ext.BlueprintConfigurator;
 import org.tillerino.jagger.processor.ext.PrototypeDetector;
 import org.tillerino.jagger.processor.ext.PrototypeKind;
 import org.tillerino.jagger.processor.features.*;
 import org.tillerino.jagger.processor.features.Generics.TypeVar;
 import org.tillerino.jagger.processor.features.Properties;
 import org.tillerino.jagger.processor.util.Annotations;
+import org.tillerino.jagger.processor.util.Annotations.AnnotationMirrorWrapper;
 import org.tillerino.jagger.processor.util.Exceptions;
 import org.tillerino.jagger.processor.util.InstantiatedMethod;
+import org.tillerino.jagger.processor.util.ShortName;
 import org.tillerino.jagger.processor.util.Snippet.PerfectSnippet;
 import org.tillerino.jagger.processor.util.Snippet.PerfectSnippet.Literal;
 
@@ -39,24 +37,23 @@ public class JaggerContext {
     public final Types types;
     public final Messager messager;
 
-    public final CommonTypes commonTypes;
-    public final Delegation delegation;
-    public final Generics generics;
-    public final Converters converters;
-    public final DefaultValues defaultValues;
-    public final Templates templates;
-    public final Map<String, JaggerBlueprint> blueprints = new LinkedHashMap<>();
-    public final Annotations annotations;
-    public final Verification verification;
-    public final Creators creators;
-    public final References references;
-    public final Properties properties;
+    public CommonTypes commonTypes;
+    public Delegation delegation;
+    public Generics generics;
+    public Converters converters;
+    public DefaultValues defaultValues;
+    public Annotations annotations;
+    public Verification verification;
+    public Creators creators;
+    public References references;
+    public Properties properties;
     public Enums enums;
-    public final CodeGeneration codeGeneration;
-    public final ConfigProperties configProperties;
+    public CodeGeneration codeGeneration;
+    public ConfigProperties configProperties;
 
-    public final List<PrototypeDetector> detectors = new ArrayList<>();
-    public final List<JaggerPlugin> plugins;
+    public final Map<String, JaggerBlueprint> blueprints = new LinkedHashMap<>();
+    public final Map<String, PrototypeDetector> prototypeDetectors = new LinkedHashMap<>();
+    public final Map<String, BlueprintConfigurator> blueprintConfigurators = new LinkedHashMap<>();
 
     public JaggerContext(ProcessingEnvironment processingEnv) {
         elements = processingEnv.getElementUtils();
@@ -69,7 +66,6 @@ public class JaggerContext {
         annotations = new Annotations(this);
         converters = new Converters(this);
         defaultValues = new DefaultValues(this);
-        templates = new Templates(this);
         verification = new Verification(this);
         creators = new Creators(this);
         references = new References(this);
@@ -77,21 +73,27 @@ public class JaggerContext {
         enums = new Enums(this);
         codeGeneration = new CodeGeneration(this);
         configProperties = new ConfigProperties(this);
-        JaggerAnnotations.configureJaggerAnnotations(this);
 
-        plugins = ServiceLoader.load(JaggerPlugin.class, JaggerProcessor.class.getClassLoader()).stream()
-                .map(Provider::get)
-                .toList();
-        for (JaggerPlugin plugin : plugins) {
-            if (isJaggerDebug()) {
-                System.out.println("Detected JaggerPlugin: " + plugin);
-            }
-            plugin.configure(this);
+        JaggerAnnotations.configureJaggerAnnotations(this);
+    }
+
+    /**
+     * Registers a prototype detector. For each supported annotation type, later registrations overwrite earlier ones.
+     */
+    public void register(PrototypeDetector prototypeDetector) {
+        for (String supportedAnnotationType : prototypeDetector.supportedAnnotationTypes()) {
+            prototypeDetectors.put(supportedAnnotationType, prototypeDetector);
         }
     }
 
-    public static boolean isJaggerDebug() {
-        return System.getenv("JAGGER_DEBUG") != null;
+    /**
+     * Registers a blueprint configurator. For each supported annotation type, later registrations overwrite earlier
+     * ones.
+     */
+    public void register(BlueprintConfigurator blueprintConfigurator) {
+        for (String supportedAnnotationType : blueprintConfigurator.supportedAnnotationTypes()) {
+            blueprintConfigurators.put(supportedAnnotationType, blueprintConfigurator);
+        }
     }
 
     public static class GetAnnotationValues<R, P> extends SimpleAnnotationValueVisitor14<R, P> {
@@ -100,10 +102,6 @@ public class JaggerContext {
             vals.forEach(val -> val.accept(this, o));
             return null;
         }
-    }
-
-    public boolean isBoxed(TypeMirror type) {
-        return commonTypes.boxedTypes.contains(type.toString());
     }
 
     public JaggerBlueprint blueprint(TypeElement element) {
@@ -116,15 +114,20 @@ public class JaggerContext {
     }
 
     public Optional<PrototypeKind> detectPrototype(InstantiatedMethod m) {
-        for (PrototypeDetector detector : detectors) {
-            if (detector.supportedAnnotationTypes().stream()
-                    .noneMatch(at -> annotations.findAnnotation(m.element(), at).isPresent())) {
+        for (AnnotationMirror annotationMirror : m.element().getAnnotationMirrors()) {
+            PrototypeDetector prototypeDetector =
+                    prototypeDetectors.get(annotationMirror.getAnnotationType().toString());
+            if (prototypeDetector == null) {
                 continue;
             }
-            Optional<PrototypeKind> detect = detector.detect(m);
-            if (detect.isPresent()) {
-                return detect;
+            Optional<PrototypeKind> detected =
+                    prototypeDetector.detect(m, new AnnotationMirrorWrapper(annotationMirror, this));
+            if (detected.isEmpty()) {
+                throw new ContextedRuntimeException("Signature unknown. Please see @"
+                                + ShortName.of(annotationMirror.getAnnotationType()) + " for hints.")
+                        .addContextValue("Method signature", m);
             }
+            return detected;
         }
         return Optional.empty();
     }
@@ -182,6 +185,10 @@ public class JaggerContext {
                 return null;
             }
             return typeElement.asType();
+        }
+
+        public boolean isBoxed(TypeMirror type) {
+            return boxedTypes.contains(type.toString());
         }
 
         public boolean isString(TypeMirror type) {

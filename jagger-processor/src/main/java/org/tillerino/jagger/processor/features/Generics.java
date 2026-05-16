@@ -21,7 +21,13 @@ import org.tillerino.jagger.processor.util.Snippet;
 import org.tillerino.jagger.processor.util.Snippet.PerfectSnippet;
 import org.tillerino.jagger.processor.util.Snippet.PerfectSnippet.InstanceMethodReference;
 
-public record Generics(JaggerContext ctx) {
+public class Generics {
+    protected final JaggerContext ctx;
+
+    public Generics(JaggerContext ctx) {
+        this.ctx = ctx;
+    }
+
     public Map<TypeVar, TypeMirror> recordTypeBindings(DeclaredType d) {
         Map<TypeVar, TypeMirror> map = new LinkedHashMap<>();
         for (int i = 0; i < d.getTypeArguments().size(); i++) {

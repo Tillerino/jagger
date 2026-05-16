@@ -5,10 +5,10 @@ import com.squareup.javapoet.CodeBlock;
 import com.squareup.javapoet.CodeBlock.Builder;
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Target;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
-import javax.lang.model.element.TypeElement;
 import javax.lang.model.type.TypeKind;
 import org.apache.commons.lang3.exception.ContextedRuntimeException;
 import org.tillerino.jagger.processor.AbstractCodeGenerator;
@@ -18,6 +18,7 @@ import org.tillerino.jagger.processor.ext.JaggerPlugin;
 import org.tillerino.jagger.processor.ext.PrototypeDetector;
 import org.tillerino.jagger.processor.ext.PrototypeKind;
 import org.tillerino.jagger.processor.ext.PrototypeKind.CodeGeneratorContext;
+import org.tillerino.jagger.processor.util.Annotations.AnnotationMirrorWrapper;
 import org.tillerino.jagger.processor.util.InstantiatedMethod;
 import org.tillerino.jagger.processor.util.InstantiatedMethod.InstantiatedVariable;
 import org.tillerino.jagger.processor.util.Snippet;
@@ -36,17 +37,15 @@ public class ContextedRuntimeExceptionDecoratorPlugin implements JaggerPlugin {
 
     @Override
     public void configure(JaggerContext ctx) {
-        TypeElement type = ctx.elements.getTypeElement(AddContext.class.getCanonicalName());
-
-        ctx.detectors.add(new PrototypeDetector() {
+        ctx.register(new PrototypeDetector() {
             @Override
-            public Optional<PrototypeKind> detect(InstantiatedMethod m) {
+            public Optional<PrototypeKind> detect(InstantiatedMethod m, AnnotationMirrorWrapper annotation) {
                 return Optional.of(new DecorateKind());
             }
 
             @Override
-            public List<TypeElement> supportedAnnotationTypes() {
-                return List.of(type);
+            public Collection<String> supportedAnnotationTypes() {
+                return List.of(AddContext.class.getCanonicalName());
             }
         });
     }

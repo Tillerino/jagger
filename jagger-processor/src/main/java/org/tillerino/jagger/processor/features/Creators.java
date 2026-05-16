@@ -15,7 +15,12 @@ import org.tillerino.jagger.processor.features.Generics.TypeVar;
 import org.tillerino.jagger.processor.util.Exceptions;
 import org.tillerino.jagger.processor.util.InstantiatedMethod;
 
-public record Creators(JaggerContext ctx) {
+public class Creators {
+    protected final JaggerContext ctx;
+
+    public Creators(JaggerContext ctx) {
+        this.ctx = ctx;
+    }
 
     public Optional<Creator> findJsonCreatorMethod(TypeMirror tm) {
         if (!(tm instanceof DeclaredType dt)) {

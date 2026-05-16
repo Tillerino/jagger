@@ -10,14 +10,14 @@ import org.tillerino.jagger.processor.config.ConfigProperty.AnnotationConfigProp
 import org.tillerino.jagger.processor.features.IgnoreProperty;
 
 public class ConfigProperties {
-    private final JaggerContext ctx;
+    protected final JaggerContext ctx;
 
     private final List<PropertyAndRetrievers<?>> retrievers = new ArrayList<>();
 
     public ConfigProperties(JaggerContext ctx) {
         this.ctx = ctx;
 
-        addRetriever(
+        addConfig(
                 IgnoreProperty.TRANSIENT_FIELD,
                 (element, __) -> element instanceof VariableElement ve
                                 && ve.getModifiers().contains(Modifier.TRANSIENT)
@@ -25,7 +25,7 @@ public class ConfigProperties {
                         : Optional.empty());
     }
 
-    public <T> void addRetriever(ConfigProperty<T> property, ConfigPropertyRetriever<T> retriever) {
+    public <T> void addConfig(ConfigProperty<T> property, ConfigPropertyRetriever<T> retriever) {
         PropertyAndRetrievers<T> insert = new PropertyAndRetrievers<>(property, null);
         int index = Collections.binarySearch(retrievers, insert, Comparator.comparingInt(p -> p.prop.index));
         if (index >= 0) {
@@ -35,9 +35,9 @@ public class ConfigProperties {
         }
     }
 
-    public <T> void addAnnotationPropertyConfigRetriever(
+    public <T> void addConfigAnnotation(
             ConfigProperty<T> property, String annotationClassName, AnnotationPropertyRetriever<T> retriever) {
-        addRetriever(property, new AnnotationConfigPropertyRetriever<>(annotationClassName, retriever));
+        addConfig(property, new AnnotationConfigPropertyRetriever<>(annotationClassName, retriever));
     }
 
     List<InstantiatedProperty> instantiate(Element element, LocationKind elementType) {

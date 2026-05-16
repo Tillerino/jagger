@@ -25,7 +25,13 @@ import org.tillerino.jagger.processor.util.ShortName;
 import org.tillerino.jagger.processor.util.Snippet.PerfectSnippet;
 import org.tillerino.jagger.processor.util.Snippet.PerfectSnippet.ClassExpr;
 
-public record Delegation(JaggerContext ctx) {
+public class Delegation {
+    protected final JaggerContext ctx;
+
+    public Delegation(JaggerContext ctx) {
+        this.ctx = ctx;
+    }
+
     public static ConfigProperty<JsonConfig.DelegateeMode> DELEGATE_TO = ConfigProperty.createConfigProperty(
             "DELEGATE_TO",
             List.of(LocationKind.BLUEPRINT, LocationKind.PROTOTYPE),

@@ -2,11 +2,10 @@ package org.tillerino.jagger.tests.plugins;
 
 import com.google.auto.service.AutoService;
 import com.squareup.javapoet.CodeBlock;
-import com.squareup.javapoet.CodeBlock.Builder;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
-import javax.lang.model.element.TypeElement;
 import javax.lang.model.type.TypeMirror;
 import org.tillerino.jagger.processor.GeneratedClass.RequiredField;
 import org.tillerino.jagger.processor.JaggerContext;
@@ -17,6 +16,7 @@ import org.tillerino.jagger.processor.config.ConfigProperty.MergeFunction;
 import org.tillerino.jagger.processor.ext.JaggerPlugin;
 import org.tillerino.jagger.processor.ext.PrototypeDetector;
 import org.tillerino.jagger.processor.ext.PrototypeKind;
+import org.tillerino.jagger.processor.util.Annotations.AnnotationMirrorWrapper;
 import org.tillerino.jagger.processor.util.Annotations.AnnotationValueWrapper;
 import org.tillerino.jagger.processor.util.InstantiatedMethod;
 
@@ -30,7 +30,6 @@ public class RequiredFieldPlugin implements JaggerPlugin {
 
     @Override
     public void configure(JaggerContext ctx) {
-        TypeElement type = ctx.elements.getTypeElement(RequireField.class.getCanonicalName());
 
         ConfigProperty<TypeMirror> property = new ConfigProperty<>(
                 "property",
@@ -38,31 +37,30 @@ public class RequiredFieldPlugin implements JaggerPlugin {
                 ctx.commonTypes.object,
                 MergeFunction.notDefault(),
                 List.of());
-        ctx.configProperties.addRetriever(
+        ctx.configProperties.addConfig(
                 property,
                 new AnnotationConfigPropertyRetriever<>(
                         RequireField.class.getCanonicalName(),
                         ann -> ann.method("value", false).map(AnnotationValueWrapper::asTypeMirror)));
 
-        ctx.detectors.add(new PrototypeDetector() {
+        ctx.register(new PrototypeDetector() {
             @Override
-            public Optional<PrototypeKind> detect(InstantiatedMethod m) {
-                return Optional.of(new PrototypeKind() {
-                    @Override
-                    public Builder generateCode(CodeGeneratorContext context) {
-                        context.generatedClass()
-                                .requiredField(context.prototype()
-                                        .config()
-                                        .resolveProperty(property)
-                                        .value());
-                        return CodeBlock.builder();
-                    }
+            public Optional<PrototypeKind> detect(InstantiatedMethod m, AnnotationMirrorWrapper annotation) {
+                return Optional.of(codeGeneratorContext -> {
+                    codeGeneratorContext
+                            .generatedClass()
+                            .requiredField(codeGeneratorContext
+                                    .prototype()
+                                    .config()
+                                    .resolveProperty(property)
+                                    .value());
+                    return CodeBlock.builder();
                 });
             }
 
             @Override
-            public List<TypeElement> supportedAnnotationTypes() {
-                return List.of(type);
+            public Collection<String> supportedAnnotationTypes() {
+                return List.of(RequireField.class.getCanonicalName());
             }
         });
     }

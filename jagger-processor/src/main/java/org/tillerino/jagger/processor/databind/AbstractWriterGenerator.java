@@ -143,7 +143,7 @@ public abstract class AbstractWriterGenerator<SELF extends AbstractWriterGenerat
             return;
         }
 
-        if (ctx.isBoxed(type)) {
+        if (ctx.commonTypes.isBoxed(type)) {
             nest(ctx.types.unboxedType(type), lhs, null, rhs, false, config.propagateTo(PropagationKind.SUBSTITUTE))
                     .build();
         } else if (ctx.commonTypes.isString(type) || ctx.commonTypes.isArrayOf(type, TypeKind.CHAR)) {

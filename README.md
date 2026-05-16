@@ -42,7 +42,9 @@ See [Backends](docs/backends.md).
 - [Configuration](#configuration)
   * [@JsonConfig Annotation](#jsonconfig-annotation)
   * [Jackson Annotation Compatibility](#jackson-annotation-compatibility)
-- [Exotic use cases](#exotic-use-cases)
+- [Extendability](#extendability)
+  * [Converters](#converters-1)
+  * [Plugins](#plugins)
   * [Custom implementation](#custom-implementation)
 - [Alternatives](#alternatives)
 - [Compatibility](#compatibility)
@@ -360,14 +362,32 @@ Jagger supports several Jackson annotations for configuration:
 - `@JsonIgnore`: Ignore specific properties during serialization/deserialization
 - `@JsonIgnoreProperties`: Ignore multiple properties or control unknown properties handling
 
-## Exotic use cases
+## Extendability
 
-Obviously, Jagger is not complete in any sense, and you may reach the limits of the core functionality.
-In this section, we show some ways to get your own functionality into jagger.
+Instead of aiming for feature completeness, Jagger is designed to be extended.
+If you reach the limits of the core functionality, there are several ways to customize behavior.
+
+### Converters
+
+During serialization or deserialization, Jagger automatically searches for suitable converters.
+You can implement your own converters and register them with Jagger.
+While converters are designed for switching to simpler representations like strings or maps,
+you can also use them to fill gaps in the implementation.
+
+[More](#converters)
+
+### Plugins
+
+Jagger's plugin system lets you:
+- add support for new configuration annotations,
+- add entirely new code generators,
+- or replace parts of the annotation processor itself.
+
+[More](docs/plugins.md)
 
 ### Custom implementation
 
-You can always simply implement serializers yourself:
+You can always implement serializers or deserializers yourself:
 
 ```java
 interface CustomizedSerialization {
@@ -383,7 +403,7 @@ interface CustomizedSerialization {
 }
 ```
 
-This works for output and input.
+This works for both output and input.
 
 ## Alternatives
 

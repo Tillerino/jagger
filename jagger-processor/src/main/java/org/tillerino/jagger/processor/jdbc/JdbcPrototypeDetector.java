@@ -2,15 +2,17 @@ package org.tillerino.jagger.processor.jdbc;
 
 import com.squareup.javapoet.CodeBlock.Builder;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
-import javax.lang.model.element.TypeElement;
 import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
 import org.tillerino.jagger.processor.JaggerContext;
 import org.tillerino.jagger.processor.ext.PrototypeDetector;
 import org.tillerino.jagger.processor.ext.PrototypeKind;
 import org.tillerino.jagger.processor.ext.PrototypeKind.TemplatablePrototypeKind;
+import org.tillerino.jagger.processor.util.Annotations.AnnotationMirrorWrapper;
+import org.tillerino.jagger.processor.util.Exceptions;
 import org.tillerino.jagger.processor.util.InstantiatedMethod;
 import org.tillerino.jagger.processor.util.InstantiatedMethod.InstantiatedVariable;
 import org.tillerino.jagger.processor.util.PlainTypeName;
@@ -22,81 +24,73 @@ public class JdbcPrototypeDetector implements PrototypeDetector {
 
     private final JaggerContext ctx;
 
-    private final TypeElement jdbcSelect;
-    private final TypeElement jdbcInsert;
-    private final TypeElement jdbcUpdate;
-
     public JdbcPrototypeDetector(JaggerContext ctx) {
         this.ctx = ctx;
-        jdbcSelect = ctx.elements.getTypeElement(JDBC_SELECT);
-        jdbcInsert = ctx.elements.getTypeElement(JDBC_INSERT);
-        jdbcUpdate = ctx.elements.getTypeElement(JDBC_UPDATE);
     }
 
     @Override
-    public List<TypeElement> supportedAnnotationTypes() {
-        return Arrays.asList(jdbcSelect, jdbcInsert, jdbcUpdate);
+    public Collection<String> supportedAnnotationTypes() {
+        return Arrays.asList(JDBC_SELECT, JDBC_INSERT, JDBC_UPDATE);
     }
 
     @Override
-    public Optional<PrototypeKind> detect(InstantiatedMethod m) {
-        return detectJdbcSelect(m, ctx).or(() -> detectJdbcInsert(m, ctx)).or(() -> detectJdbcUpdate(m, ctx));
+    public Optional<PrototypeKind> detect(InstantiatedMethod m, AnnotationMirrorWrapper annotation) {
+        return switch (annotation.mirror().getAnnotationType().toString()) {
+            case JDBC_SELECT -> detectJdbcSelect(m);
+            case JDBC_INSERT -> detectJdbcInsert(m);
+            case JDBC_UPDATE -> detectJdbcUpdate(m);
+            default -> throw Exceptions.unexpected();
+        };
     }
 
-    private Optional<PrototypeKind> detectJdbcSelect(InstantiatedMethod m, JaggerContext ctx) {
-        if (ctx.annotations.findAnnotation(m.element(), jdbcSelect).isPresent()
-                && m.returnType().getKind() != TypeKind.VOID
-                && !m.parameters().isEmpty()) {
-            return PrototypeKind.detect(
-                    PrototypeKind.nullableTypeList(ctx.commonTypes.connection, ctx.commonTypes.resultSet),
-                    m,
-                    ctx,
-                    (externalType, externalParameter, otherParameters) -> new JdbcPrototypeKind(
-                            externalType, m.returnType(), externalParameter, otherParameters, Direction.JDBC_SELECT));
+    private Optional<PrototypeKind> detectJdbcSelect(InstantiatedMethod m) {
+        if (m.returnType().getKind() == TypeKind.VOID || m.parameters().isEmpty()) {
+            return Optional.empty();
         }
-        return Optional.empty();
+        return PrototypeKind.detect(
+                PrototypeKind.nullableTypeList(ctx.commonTypes.connection, ctx.commonTypes.resultSet),
+                m,
+                ctx,
+                (externalType, externalParameter, otherParameters) -> new JdbcPrototypeKind(
+                        externalType, m.returnType(), externalParameter, otherParameters, Direction.JDBC_SELECT));
     }
 
-    private Optional<PrototypeKind> detectJdbcInsert(InstantiatedMethod m, JaggerContext ctx) {
-        if (ctx.annotations.findAnnotation(m.element(), jdbcInsert).isPresent()
-                && m.returnType().getKind() == TypeKind.VOID
-                && m.parameters().size() >= 2) {
-            return PrototypeKind.detect(
-                    PrototypeKind.nullableTypeList(ctx.commonTypes.connection),
-                    m,
-                    ctx,
-                    (externalType, externalParameter, otherParameters) -> new JdbcPrototypeKind(
-                            externalType,
-                            otherParameters.stream()
-                                    .map(InstantiatedVariable::type)
-                                    .findFirst()
-                                    .orElse(null),
-                            externalParameter,
-                            otherParameters,
-                            Direction.JDBC_INSERT));
+    private Optional<PrototypeKind> detectJdbcInsert(InstantiatedMethod m) {
+        if (m.returnType().getKind() != TypeKind.VOID || m.parameters().size() < 2) {
+            return Optional.empty();
         }
-        return Optional.empty();
+        return PrototypeKind.detect(
+                PrototypeKind.nullableTypeList(ctx.commonTypes.connection),
+                m,
+                ctx,
+                (externalType, externalParameter, otherParameters) -> new JdbcPrototypeKind(
+                        externalType,
+                        otherParameters.stream()
+                                .map(InstantiatedVariable::type)
+                                .findFirst()
+                                .orElse(null),
+                        externalParameter,
+                        otherParameters,
+                        Direction.JDBC_INSERT));
     }
 
-    private Optional<PrototypeKind> detectJdbcUpdate(InstantiatedMethod m, JaggerContext ctx) {
-        if (ctx.annotations.findAnnotation(m.element(), jdbcUpdate).isPresent()
-                && m.returnType().getKind() == TypeKind.VOID
-                && !m.parameters().isEmpty()) {
-            return PrototypeKind.detect(
-                    PrototypeKind.nullableTypeList(ctx.commonTypes.connection),
-                    m,
-                    ctx,
-                    (externalType, externalParameter, otherParameters) -> new JdbcPrototypeKind(
-                            externalType,
-                            otherParameters.stream()
-                                    .map(InstantiatedVariable::type)
-                                    .findFirst()
-                                    .orElse(null),
-                            externalParameter,
-                            otherParameters,
-                            Direction.JDBC_UPDATE));
+    private Optional<PrototypeKind> detectJdbcUpdate(InstantiatedMethod m) {
+        if (m.returnType().getKind() != TypeKind.VOID || m.parameters().isEmpty()) {
+            return Optional.empty();
         }
-        return Optional.empty();
+        return PrototypeKind.detect(
+                PrototypeKind.nullableTypeList(ctx.commonTypes.connection),
+                m,
+                ctx,
+                (externalType, externalParameter, otherParameters) -> new JdbcPrototypeKind(
+                        externalType,
+                        otherParameters.stream()
+                                .map(InstantiatedVariable::type)
+                                .findFirst()
+                                .orElse(null),
+                        externalParameter,
+                        otherParameters,
+                        Direction.JDBC_UPDATE));
     }
 
     public record JdbcPrototypeKind(

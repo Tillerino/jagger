@@ -9,7 +9,13 @@ import org.apache.commons.lang3.exception.ContextedRuntimeException;
 import org.tillerino.jagger.processor.JaggerContext;
 import org.tillerino.jagger.processor.JaggerContext.GetAnnotationValues;
 
-public record Annotations(JaggerContext ctx) {
+public class Annotations {
+    protected final JaggerContext ctx;
+
+    public Annotations(JaggerContext ctx) {
+        this.ctx = ctx;
+    }
+
     public Optional<AnnotationMirrorWrapper> findAnnotation(Element element, String annotationType) {
         for (AnnotationMirror annotationMirror : element.getAnnotationMirrors()) {
             if (annotationMirror.getAnnotationType().toString().equals(annotationType)) {

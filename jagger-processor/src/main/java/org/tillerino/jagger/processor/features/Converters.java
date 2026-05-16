@@ -21,7 +21,13 @@ import org.tillerino.jagger.processor.util.InstantiatedMethod;
 import org.tillerino.jagger.processor.util.Snippet;
 import org.tillerino.jagger.processor.util.Snippet.TypedSnippet;
 
-public record Converters(JaggerContext ctx) {
+public class Converters {
+    protected final JaggerContext ctx;
+
+    public Converters(JaggerContext ctx) {
+        this.ctx = ctx;
+    }
+
     public Optional<InstantiatedMethod> findInputConverter(
             JaggerBlueprint blueprint, TypeMirror targetType, AnyConfig config) {
         Map<TypeVar, TypeMirror> typeBindings = new LinkedHashMap<>();
