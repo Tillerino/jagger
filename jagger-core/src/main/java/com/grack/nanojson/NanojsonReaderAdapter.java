@@ -192,6 +192,11 @@ public class NanojsonReaderAdapter implements JaggerReader<JsonParserException> 
     }
 
     @Override
+    public JsonParserException unexpectedValue(String message) {
+        return tokener.createParseException(null, message, false);
+    }
+
+    @Override
     public JsonParserException unrecognizedProperty(String propertyName) {
         return tokener.createParseException(null, "Unrecognized field \"" + propertyName + "\"", true);
     }

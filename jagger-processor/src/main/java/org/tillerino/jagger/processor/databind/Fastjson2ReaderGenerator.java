@@ -169,6 +169,11 @@ public class Fastjson2ReaderGenerator extends AbstractReaderGenerator<Fastjson2R
                 parserVariable.getSimpleName());
     }
 
+    @Override
+    protected void throwUnexpectedValue(Snippet message) {
+        addStatement("throw new $T($C)", IOException.class, message);
+    }
+
     protected void throwUnrecognizedProperty(Snippet propertyName) {
         addStatement("throw new $T($S + $C + $S)", IOException.class, "Unrecognized field \"", propertyName, "\"");
     }

@@ -145,6 +145,11 @@ public class JaggerReaderGenerator extends AbstractReaderGenerator<JaggerReaderG
         addStatement("throw $L.unexpectedToken($S)", parserVariable.getSimpleName(), expectedToken);
     }
 
+    @Override
+    protected void throwUnexpectedValue(Snippet message) {
+        addStatement("throw $L.unexpectedValue($C)", parserVariable.getSimpleName(), message);
+    }
+
     protected void throwUnrecognizedProperty(Snippet propertyName) {
         addStatement("throw $L.unrecognizedProperty($C)", parserVariable.getSimpleName(), propertyName);
     }

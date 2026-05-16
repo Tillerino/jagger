@@ -245,6 +245,11 @@ public class JacksonJsonNodeReaderAdapter implements JaggerReader<RuntimeExcepti
     }
 
     @Override
+    public RuntimeException unexpectedValue(String message) {
+        return new RuntimeException(message);
+    }
+
+    @Override
     public RuntimeException unrecognizedProperty(String propertyName) {
         return new RuntimeException("Unrecognized field \"" + propertyName + "\"" + " at TODO LOCATION");
     }

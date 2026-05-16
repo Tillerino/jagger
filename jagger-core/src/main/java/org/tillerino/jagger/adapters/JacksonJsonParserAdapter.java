@@ -167,6 +167,11 @@ public class JacksonJsonParserAdapter implements JaggerReader<IOException> {
     }
 
     @Override
+    public IOException unexpectedValue(String message) {
+        return new IOException(message);
+    }
+
+    @Override
     public IOException unrecognizedProperty(String propertyName) {
         return new IOException("Unrecognized field \"" + propertyName + "\"" + " at " + parser.currentLocation());
     }

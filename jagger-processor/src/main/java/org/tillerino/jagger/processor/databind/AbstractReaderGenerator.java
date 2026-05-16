@@ -324,7 +324,9 @@ public abstract class AbstractReaderGenerator<SELF extends AbstractReaderGenerat
                     .readString(STRING);
             beginControlFlow("if ($L.containsKey($L))", enumValuesField, enumVar.name);
             addStatement(lhs.assign("$L.get($L)", enumValuesField, enumVar.name));
-            elseThrowUnexpected("enum value", lastCase);
+            nextControlFlow("else");
+            throwUnexpectedValue(Snippet.of("$S", "enum value"));
+            endControlFlow();
         }
         elseThrowUnexpected("string", lastCase);
     }
@@ -838,6 +840,8 @@ public abstract class AbstractReaderGenerator<SELF extends AbstractReaderGenerat
     protected abstract void afterArray();
 
     protected abstract void throwUnexpected(String expected);
+
+    protected abstract void throwUnexpectedValue(Snippet message);
 
     protected abstract void throwUnrecognizedProperty(Snippet propertyName);
 

@@ -59,6 +59,8 @@ public interface JaggerReader<E extends Exception> {
 
     E unexpectedToken(String expectedToken);
 
+    E unexpectedValue(String message);
+
     E unrecognizedProperty(String propertyName);
 
     /** Controls whether to advance while inspecting tokens or keep the token. */

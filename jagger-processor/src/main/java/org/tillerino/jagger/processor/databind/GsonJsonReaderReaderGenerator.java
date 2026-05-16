@@ -155,6 +155,11 @@ public class GsonJsonReaderReaderGenerator extends AbstractReaderGenerator<GsonJ
                 parserVariable.getSimpleName());
     }
 
+    @Override
+    protected void throwUnexpectedValue(Snippet message) {
+        addStatement("throw new $T($C)", IOException.class, message);
+    }
+
     protected void throwUnrecognizedProperty(Snippet propertyName) {
         addStatement("throw new $T($S + $C + $S)", IOException.class, "Unrecognized field \"", propertyName, "\"");
     }
