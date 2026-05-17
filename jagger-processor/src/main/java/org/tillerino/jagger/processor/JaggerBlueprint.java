@@ -68,6 +68,15 @@ public final class JaggerBlueprint {
                 || constructors.stream().anyMatch(c -> c.getParameters().isEmpty());
     }
 
+    public void addPrototypeIfAbsent(JaggerPrototype prototype) {
+        for (JaggerPrototype present : prototypes) {
+            if (present.method().element().equals(prototype.method().element())) {
+                return;
+            }
+        }
+        prototypes.add(prototype);
+    }
+
     @Override
     public String toString() {
         return className.className();

@@ -1,6 +1,7 @@
 package org.tillerino.jagger.processor.util;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import javax.lang.model.element.ElementKind;
@@ -8,9 +9,12 @@ import javax.lang.model.element.ExecutableElement;
 import javax.lang.model.element.VariableElement;
 import javax.lang.model.type.DeclaredType;
 import javax.lang.model.type.TypeMirror;
+import org.tillerino.jagger.processor.GeneratedClass;
 import org.tillerino.jagger.processor.JaggerContext;
+import org.tillerino.jagger.processor.JaggerPrototype;
 import org.tillerino.jagger.processor.config.AnyConfig;
 import org.tillerino.jagger.processor.features.Generics.TypeVar;
+import org.tillerino.jagger.processor.util.Annotations.AnnotationMirrorWrapper;
 import org.tillerino.jagger.processor.util.Snippet.PerfectSnippet;
 import org.tillerino.jagger.processor.util.Snippet.PerfectSnippet.ConstructorCall;
 import org.tillerino.jagger.processor.util.Snippet.PerfectSnippet.InstanceMethodInvocation;
@@ -27,7 +31,8 @@ public record InstantiatedMethod(
         List<InstantiatedVariable> parameters,
         ExecutableElement element,
         Set<TypeVar> freeTypeVars,
-        AnyConfig config)
+        AnyConfig config,
+        JaggerContext ctx)
         implements Named {
     public Snippet callSymbol(JaggerContext ctx) {
         TypeMirror tm = element.getEnclosingElement().asType();
@@ -39,7 +44,7 @@ public record InstantiatedMethod(
                 : Snippet.of("$T.$L", raw, name);
     }
 
-    public PerfectSnippet invokeStatic(JaggerContext ctx, List<PerfectSnippet> args) {
+    public PerfectSnippet invokeStatic(List<PerfectSnippet> args) {
         TypeMirror tm = element.getEnclosingElement().asType();
         TypeMirror raw = ctx.types.erasure(tm);
         String diamond =
@@ -49,8 +54,26 @@ public record InstantiatedMethod(
                 : new StaticMethodInvocation(returnType, raw, name, args);
     }
 
+    public PerfectSnippet invokeStaticFindingArguments(
+            JaggerPrototype caller, List<PerfectSnippet> additionalParameters, GeneratedClass generatedClass) {
+        return invokeStatic(findArguments(caller, additionalParameters, generatedClass));
+    }
+
     public PerfectSnippet invokeInstance(PerfectSnippet instance, List<PerfectSnippet> args) {
         return new InstanceMethodInvocation(returnType, instance, name, args);
+    }
+
+    public PerfectSnippet invokeInstanceFindingArguments(
+            PerfectSnippet instance,
+            JaggerPrototype caller,
+            List<PerfectSnippet> additionalParameters,
+            GeneratedClass generatedClass) {
+        return invokeInstance(instance, findArguments(caller, additionalParameters, generatedClass));
+    }
+
+    public List<PerfectSnippet> findArguments(
+            JaggerPrototype caller, List<PerfectSnippet> additionalParameters, GeneratedClass generatedClass) {
+        return ctx.delegation.findArguments(caller, this, additionalParameters, 0, generatedClass);
     }
 
     public boolean hasSameSignature(InstantiatedMethod other, JaggerContext ctx) {
@@ -73,6 +96,10 @@ public record InstantiatedMethod(
         return parameters.stream().anyMatch(p -> ctx.commonTypes.isAssignable(t, p.type));
     }
 
+    public Optional<AnnotationMirrorWrapper> findAnnotation(String annotationType) {
+        return ctx.annotations.findAnnotation(element, annotationType);
+    }
+
     @Override
     public String toString() {
         return String.format(
@@ -84,7 +111,7 @@ public record InstantiatedMethod(
     }
 
     public InstantiatedMethod withName(String name) {
-        return new InstantiatedMethod(name, returnType, parameters, element, freeTypeVars, config);
+        return new InstantiatedMethod(name, returnType, parameters, element, freeTypeVars, config, ctx);
     }
 
     public record InstantiatedVariable(VariableElement elem, TypeMirror type, String name, AnyConfig config)
@@ -102,6 +129,11 @@ public record InstantiatedMethod(
         @Override
         public PerfectSnippet replaceVar(String name, PerfectSnippet replacement) {
             return this.name.equals(name) ? replacement : this;
+        }
+
+        @Override
+        public boolean isVariable() {
+            return true;
         }
     }
 }

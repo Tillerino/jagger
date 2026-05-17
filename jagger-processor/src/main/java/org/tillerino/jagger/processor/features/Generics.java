@@ -96,7 +96,8 @@ public class Generics {
                 newParameters,
                 instantiatedMethod.element(),
                 Collections.unmodifiableSet(methodTypeVars),
-                instantiatedMethod.config());
+                instantiatedMethod.config(),
+                ctx);
     }
 
     public List<InstantiatedMethod> instantiateMethods(TypeMirror tm, @Nullable LocationKind locationKind) {
@@ -131,7 +132,8 @@ public class Generics {
                 parameters,
                 methodElement,
                 declaredTypeVars,
-                AnyConfig.create(methodElement, locationKind, ctx));
+                AnyConfig.create(methodElement, locationKind, ctx),
+                ctx);
     }
 
     /**

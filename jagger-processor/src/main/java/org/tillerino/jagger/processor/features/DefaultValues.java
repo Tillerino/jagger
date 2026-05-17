@@ -41,7 +41,7 @@ public class DefaultValues {
 
     public PerfectSnippet getDefaultValue(JaggerPrototype prototype, TypeMirror type, AnyConfig propertyConfig) {
         return findInputDefaultValue(prototype.blueprint(), type, propertyConfig)
-                .map(m -> m.invokeStatic(ctx, List.of()))
+                .map(m -> m.invokeStatic(List.of()))
                 .orElseGet(() -> ctx.commonTypes.getNullValueRaw(type));
     }
 

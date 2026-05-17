@@ -1,12 +1,13 @@
 package org.tillerino.jagger.processor.databind;
 
 import jakarta.annotation.Nonnull;
+import java.util.List;
 import javax.lang.model.element.VariableElement;
 import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
 import org.tillerino.jagger.processor.config.AnyConfig;
 import org.tillerino.jagger.processor.ext.PrototypeKind.CodeGeneratorContext;
-import org.tillerino.jagger.processor.util.InstantiatedMethod;
+import org.tillerino.jagger.processor.features.Delegation.Delegatee;
 import org.tillerino.jagger.processor.util.Snippet;
 
 public class JakartaJsonGeneratorGenerator extends AbstractWriterGenerator<JakartaJsonGeneratorGenerator> {
@@ -102,14 +103,9 @@ public class JakartaJsonGeneratorGenerator extends AbstractWriterGenerator<Jakar
     }
 
     @Override
-    protected void invokeDelegate(Snippet instance, InstantiatedMethod callee) {
+    protected void invokeDelegate(Delegatee delegatee) {
         addFieldNameIfRequired();
-        addStatement(Snippet.of(
-                "$C.$L($C$C)",
-                instance,
-                callee,
-                rhs,
-                Snippet.joinPrependingCommaToEach(ctx.delegation.findArguments(prototype, callee, 1, generatedClass))));
+        addStatement(delegatee.invoke(prototype, List.of(rhs), generatedClass));
     }
 
     @Override

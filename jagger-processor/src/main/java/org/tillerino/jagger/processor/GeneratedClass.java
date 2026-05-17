@@ -100,10 +100,10 @@ public class GeneratedClass {
         requiredFields.values().forEach(value -> value.writeField(typeBuilder));
     }
 
-    public String requiredField(TypeMirror type) {
+    public PerfectSnippet requiredField(TypeMirror type) {
         String name = StringUtils.uncapitalize(PlainTypeName.of(type));
         requiredFields.computeIfAbsent(name, __ -> new RequiredField(name, type));
-        return name;
+        return PerfectSnippet.unsafe("this").readField(type, name);
     }
 
     /**

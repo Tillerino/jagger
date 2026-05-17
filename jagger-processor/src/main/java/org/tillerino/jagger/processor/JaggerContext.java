@@ -282,5 +282,24 @@ public class JaggerContext {
             }
             return element;
         }
+
+        public PerfectSnippet stringLiteral(String s) {
+            return new PerfectSnippet() {
+                @Override
+                public PerfectSnippet replaceVar(String name, PerfectSnippet replacement) {
+                    return this;
+                }
+
+                @Override
+                public TypeMirror type() {
+                    return string;
+                }
+
+                @Override
+                public Flattened flatten() {
+                    return new Flattened("$S", new Object[] {s});
+                }
+            };
+        }
     }
 }

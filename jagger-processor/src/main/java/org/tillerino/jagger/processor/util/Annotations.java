@@ -3,6 +3,7 @@ package org.tillerino.jagger.processor.util;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.Function;
 import javax.lang.model.element.*;
 import javax.lang.model.type.TypeMirror;
 import org.apache.commons.lang3.exception.ContextedRuntimeException;
@@ -25,16 +26,14 @@ public class Annotations {
         return Optional.empty();
     }
 
-    public Optional<AnnotationMirrorWrapper> findAnnotation(Element element, TypeElement annotationType) {
-        for (AnnotationMirror annotationMirror : element.getAnnotationMirrors()) {
-            if (annotationMirror.getAnnotationType().asElement().equals(annotationType)) {
-                return Optional.of(new AnnotationMirrorWrapper(annotationMirror, ctx));
-            }
-        }
-        return Optional.empty();
-    }
-
     public record AnnotationMirrorWrapper(AnnotationMirror mirror, JaggerContext ctx) {
+        public AnnotationValueWrapper requiredMethod(String name) {
+            return method(name, false)
+                    .orElseThrow(() -> new ContextedRuntimeException("Assumed method required, but was not present")
+                            .addContextValue("Annotation", mirror.getAnnotationType())
+                            .addContextValue("Method", name));
+        }
+
         public Optional<AnnotationValueWrapper> method(String name, boolean withDefaults) {
             return filterMethod(
                             name,
@@ -69,6 +68,10 @@ public class Annotations {
                             null),
                     "not an array: %s",
                     value);
+        }
+
+        public <T> List<T> asArray(Function<AnnotationValueWrapper, T> transformer) {
+            return asArray().stream().map(transformer).toList();
         }
 
         public AnnotationMirrorWrapper asAnnotation() {

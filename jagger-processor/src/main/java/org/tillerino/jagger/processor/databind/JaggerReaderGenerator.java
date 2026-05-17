@@ -1,7 +1,6 @@
 package org.tillerino.jagger.processor.databind;
 
 import static org.tillerino.jagger.api.JaggerReader.Advance.CONSUME;
-import static org.tillerino.jagger.processor.util.Snippet.join;
 import static org.tillerino.jagger.processor.util.Snippet.of;
 
 import com.squareup.javapoet.ClassName;
@@ -12,7 +11,6 @@ import org.apache.commons.lang3.exception.ContextedRuntimeException;
 import org.tillerino.jagger.api.JaggerReader;
 import org.tillerino.jagger.processor.config.AnyConfig;
 import org.tillerino.jagger.processor.ext.PrototypeKind.CodeGeneratorContext;
-import org.tillerino.jagger.processor.util.InstantiatedMethod;
 import org.tillerino.jagger.processor.util.Snippet;
 
 public class JaggerReaderGenerator extends AbstractReaderGenerator<JaggerReaderGenerator> {
@@ -152,15 +150,6 @@ public class JaggerReaderGenerator extends AbstractReaderGenerator<JaggerReaderG
 
     protected void throwUnrecognizedProperty(Snippet propertyName) {
         addStatement("throw $L.unrecognizedProperty($C)", parserVariable.getSimpleName(), propertyName);
-    }
-
-    @Override
-    protected void invokeDelegate(Snippet instance, InstantiatedMethod callee) {
-        addStatement(lhs.assign(of(
-                "$C.$L($C)",
-                instance,
-                callee,
-                join(ctx.delegation.findArguments(prototype, callee, 0, generatedClass), ", "))));
     }
 
     @Override

@@ -33,9 +33,12 @@ public interface Snippet {
                 }
                 case 'C' -> {
                     deconstructed.add(format.substring(i, j));
+                    if (remainingArgs.isEmpty()) {
+                        throw new IllegalArgumentException("Too few snippet arguments");
+                    }
                     Object o = remainingArgs.remove();
                     if (!(o instanceof Snippet s)) {
-                        throw new IllegalArgumentException();
+                        throw new IllegalArgumentException("Not a snippet: " + o);
                     }
                     deconstructed.add(s);
                 }
@@ -119,7 +122,47 @@ public interface Snippet {
     }
 
     interface PerfectSnippet extends TypedSnippet {
+        static PerfectSnippet unsafe(String format, Object... args) {
+            return unsafe(Snippet.of(format, args));
+        }
+
+        static PerfectSnippet unsafe(Snippet snippet) {
+            return new PerfectSnippet() {
+                @Override
+                public PerfectSnippet replaceVar(String name, PerfectSnippet replacement) {
+                    return this;
+                }
+
+                @Override
+                public TypeMirror type() {
+                    return null;
+                }
+
+                @Override
+                public Flattened flatten() {
+                    return snippet.flatten();
+                }
+            };
+        }
+
         PerfectSnippet replaceVar(String name, PerfectSnippet replacement);
+
+        default FieldRead readField(TypeMirror fieldType, String fieldName) {
+            return new FieldRead(fieldType, this, fieldName);
+        }
+
+        default InstanceMethodInvocation invokeMethod(
+                TypeMirror returnType, String methodName, List<PerfectSnippet> arguments) {
+            return new InstanceMethodInvocation(returnType, this, methodName, arguments);
+        }
+
+        default InstanceMethodInvocation invokeMethod(TypeMirror returnType, String methodName) {
+            return new InstanceMethodInvocation(returnType, this, methodName, List.of());
+        }
+
+        default boolean isVariable() {
+            return false;
+        }
 
         static <T extends PerfectSnippet> List<T> modAll(List<T> os, UnaryOperator<T> op) {
             List<T> ms = null;
@@ -148,19 +191,10 @@ public interface Snippet {
             public Flattened flatten() {
                 return Flattened.of("$L", name);
             }
-        }
-
-        record ReadAccessorInvocation(TypeMirror type, PerfectSnippet object, String invocation)
-                implements PerfectSnippet {
-            @Override
-            public PerfectSnippet replaceVar(String name, PerfectSnippet replacement) {
-                PerfectSnippet replaced = object.replaceVar(name, replacement);
-                return replaced != object ? new ReadAccessorInvocation(type, replaced, invocation) : this;
-            }
 
             @Override
-            public Flattened flatten() {
-                return Snippet.of("$C.$L", object, invocation).flatten();
+            public boolean isVariable() {
+                return true;
             }
         }
 
@@ -206,7 +240,7 @@ public interface Snippet {
                 List<PerfectSnippet> replacedArgs = modAll(arguments, a -> a.replaceVar(name, replacement));
                 PerfectSnippet replacedObject = object.replaceVar(name, replacement);
                 return replacedArgs != null || replacedObject != object
-                        ? new InstanceMethodInvocation(type, replacedObject, methodName, replacedArgs)
+                        ? replacedObject.invokeMethod(type, methodName, replacedArgs)
                         : this;
             }
 
@@ -269,6 +303,19 @@ public interface Snippet {
             @Override
             public Flattened flatten() {
                 return Flattened.of("$T.class", type);
+            }
+        }
+
+        record FieldRead(TypeMirror type, PerfectSnippet instance, String fieldName) implements PerfectSnippet {
+            @Override
+            public PerfectSnippet replaceVar(String name, PerfectSnippet replacement) {
+                PerfectSnippet newInstance = instance.replaceVar(name, replacement);
+                return newInstance != instance ? new FieldRead(type, newInstance, fieldName) : this;
+            }
+
+            @Override
+            public Flattened flatten() {
+                return Snippet.of("$C.$L", instance, fieldName).flatten();
             }
         }
     }

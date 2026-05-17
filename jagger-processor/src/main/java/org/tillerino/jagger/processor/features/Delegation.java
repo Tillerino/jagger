@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+import java.util.stream.Stream;
 import javax.lang.model.type.DeclaredType;
 import javax.lang.model.type.TypeMirror;
 import org.apache.commons.lang3.exception.ContextedRuntimeException;
@@ -115,11 +116,15 @@ public class Delegation {
     }
 
     public List<PerfectSnippet> findArguments(
-            JaggerPrototype caller, InstantiatedMethod callee, int firstArgument, GeneratedClass generatedClass) {
+            JaggerPrototype caller,
+            InstantiatedMethod callee,
+            List<PerfectSnippet> additionalParameters,
+            int firstArgument,
+            GeneratedClass generatedClass) {
         return IntStream.range(firstArgument, callee.parameters().size())
                 .mapToObj(i -> {
                     InstantiatedVariable targetParameter = callee.parameters().get(i);
-                    return findArgument(caller, generatedClass, targetParameter)
+                    return findArgument(caller, generatedClass, additionalParameters, targetParameter)
                             .orElseThrow(() -> new ContextedRuntimeException(
                                             ("Could not find a value of type %s to pass in method call. Consider declaring a parameter of this type on the caller.")
                                                     .formatted(ShortName.of(targetParameter.type())))
@@ -131,13 +136,20 @@ public class Delegation {
     }
 
     private Optional<PerfectSnippet> findArgument(
-            JaggerPrototype caller, GeneratedClass generatedClass, InstantiatedVariable targetArgument) {
+            JaggerPrototype caller,
+            GeneratedClass generatedClass,
+            List<PerfectSnippet> additionalParameters,
+            InstantiatedVariable targetArgument) {
         // search in caller's own parameters
-        for (InstantiatedVariable instantiatedParameter : caller.parameters()) {
+        Iterable<PerfectSnippet> locallyAvailable =
+                () -> Stream.concat(additionalParameters.stream(), caller.parameters().stream())
+                        .iterator();
+        for (PerfectSnippet instantiatedParameter : locallyAvailable) {
             if (ctx.commonTypes.isAssignable(instantiatedParameter.type(), targetArgument.type())) {
                 return Optional.of(instantiatedParameter);
             }
         }
+
         // see if we can instantiate an instance from our list of used blueprints
         PerfectSnippet delegateeInField =
                 generatedClass.getOrCreateUsedBlueprintWithTypeField(targetArgument.type(), caller.config());
@@ -156,7 +168,13 @@ public class Delegation {
         return ctx.generics.getOrCreateLambda(generatedClass, targetArgument.type(), caller.parameters(), 0);
     }
 
-    public record Delegatee(PerfectSnippet fieldOrParameter, InstantiatedMethod method) {}
+    public record Delegatee(PerfectSnippet fieldOrParameter, InstantiatedMethod method) {
+        public PerfectSnippet invoke(
+                JaggerPrototype caller, List<PerfectSnippet> additionalParameters, GeneratedClass generatedClass) {
+            return method.invokeInstanceFindingArguments(
+                    fieldOrParameter, caller, additionalParameters, generatedClass);
+        }
+    }
 
     public record InstantiatedPrototype(
             JaggerBlueprint blueprint, JaggerPrototype prototype, InstantiatedMethod method) {}

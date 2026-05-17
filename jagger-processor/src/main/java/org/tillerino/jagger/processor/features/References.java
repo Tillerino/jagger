@@ -20,6 +20,9 @@ import org.tillerino.jagger.processor.util.Accessor.ReadAccessor;
 import org.tillerino.jagger.processor.util.Exceptions;
 import org.tillerino.jagger.processor.util.InstantiatedMethod.InstantiatedVariable;
 import org.tillerino.jagger.processor.util.Snippet;
+import org.tillerino.jagger.processor.util.Snippet.PerfectSnippet;
+import org.tillerino.jagger.processor.util.Snippet.PerfectSnippet.ClassExpr;
+import org.tillerino.jagger.processor.util.Snippet.PerfectSnippet.StaticMethodReference;
 
 public class References {
     protected final JaggerContext ctx;
@@ -89,7 +92,7 @@ public class References {
             TypeMirror idType,
             TypeMirror resolver,
             TypeMirror scope,
-            Snippet context) {
+            PerfectSnippet context) {
         public Snippet bindItem(Snippet idVar, Snippet objectVar) {
             return Snippet.of(
                     "$C.bindItem($T.class, $T.class, $T::new, $C, $C)",
@@ -109,17 +112,18 @@ public class References {
             return Snippet.of("$C.previouslyWrittenId($C)", context(), rhs);
         }
 
-        public Optional<Snippet> generateId(Snippet rhs) {
+        public Optional<PerfectSnippet> generateId(PerfectSnippet rhs) {
             if (isPropertyBased()) {
                 return Optional.empty();
             }
-            return Optional.of(Snippet.of(
-                    "$C.generateId($T.class, $T.class, $T::new, $C)",
-                    context(),
-                    generator(),
-                    scope(),
-                    generator(),
-                    rhs));
+            return Optional.of(context.invokeMethod(
+                    idType,
+                    "generateId",
+                    List.of(
+                            new ClassExpr(generator()),
+                            new ClassExpr(scope()),
+                            new StaticMethodReference(null, generator(), "new"),
+                            rhs)));
         }
 
         public Optional<Snippet> rememberId(Snippet rhs, Snippet property) {

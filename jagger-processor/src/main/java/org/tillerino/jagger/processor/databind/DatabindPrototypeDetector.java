@@ -101,7 +101,7 @@ public class DatabindPrototypeDetector implements PrototypeDetector {
     }
 
     private Optional<PrototypeKind> detectJsonInput(InstantiatedMethod m) {
-        if (ctx.annotations.findAnnotation(m.element(), JSON_INPUT).isPresent()
+        if (m.findAnnotation(JSON_INPUT).isPresent()
                 && m.returnType().getKind() != TypeKind.VOID
                 && !m.parameters().isEmpty()) {
             return PrototypeKind.detect(
@@ -119,7 +119,7 @@ public class DatabindPrototypeDetector implements PrototypeDetector {
     }
 
     private Optional<PrototypeKind> detectJsonOutput(InstantiatedMethod m) {
-        if (ctx.annotations.findAnnotation(m.element(), JSON_OUTPUT).isPresent()
+        if (m.findAnnotation(JSON_OUTPUT).isPresent()
                 && m.returnType().getKind() == TypeKind.VOID
                 && m.parameters().size() >= 2) {
             return PrototypeKind.detect(

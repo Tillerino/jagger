@@ -13,7 +13,6 @@ import static org.tillerino.jagger.processor.databind.AbstractReaderGenerator.LH
 import static org.tillerino.jagger.processor.databind.AbstractReaderGenerator.LHS.from;
 import static org.tillerino.jagger.processor.features.PropertyName.resolvePropertyName;
 import static org.tillerino.jagger.processor.util.Exceptions.runWithContext;
-import static org.tillerino.jagger.processor.util.Snippet.joinPrependingCommaToEach;
 import static org.tillerino.jagger.processor.util.Snippet.of;
 
 import com.squareup.javapoet.CodeBlock;
@@ -50,6 +49,7 @@ import org.tillerino.jagger.processor.util.Exceptions;
 import org.tillerino.jagger.processor.util.InstantiatedMethod;
 import org.tillerino.jagger.processor.util.InstantiatedMethod.InstantiatedVariable;
 import org.tillerino.jagger.processor.util.Snippet;
+import org.tillerino.jagger.processor.util.Snippet.PerfectSnippet.TypedVariable;
 
 public abstract class AbstractReaderGenerator<SELF extends AbstractReaderGenerator<SELF>>
         extends AbstractCodeGeneratorStack<SELF> {
@@ -93,7 +93,7 @@ public abstract class AbstractReaderGenerator<SELF extends AbstractReaderGenerat
             if (branch != Branch.IF) {
                 nextControlFlow("else");
             }
-            invokeDelegate(delegate.get().fieldOrParameter(), delegate.get().method());
+            addStatement(lhs.assign(delegate.get().invoke(prototype, List.of(), generatedClass)));
             if (branch != Branch.IF) {
                 endControlFlow();
             }
@@ -287,22 +287,15 @@ public abstract class AbstractReaderGenerator<SELF extends AbstractReaderGenerat
             nextControlFlow("else");
         }
         Variable creatorArg = Variable.from(createVariable("creator"));
-        addStatement(of("$T $L", method.parameters().get(0).type(), creatorArg.name));
+        TypeMirror creatorType = method.parameters().get(0).type();
+        addStatement(of("$T $L", creatorType, creatorArg.name));
         runWithContext(
-                () -> nest(
-                                method.parameters().get(0).type(),
-                                null,
-                                creatorArg,
-                                true,
-                                config.propagateTo(PropagationKind.SUBSTITUTE))
+                () -> nest(creatorType, null, creatorArg, true, config.propagateTo(PropagationKind.SUBSTITUTE))
                         .build(IF, false, lastCase),
                 "creator",
                 method);
-        addStatement(lhs.assign(of(
-                "$C($L$C)",
-                method.callSymbol(ctx),
-                creatorArg.name,
-                joinPrependingCommaToEach(ctx.delegation.findArguments(prototype, method, 1, generatedClass)))));
+        addStatement(lhs.assign(method.invokeStaticFindingArguments(
+                prototype, List.of(creatorArg.withType(creatorType)), generatedClass)));
         if (branch == ELSE_IF) {
             endControlFlow();
         }
@@ -555,7 +548,8 @@ public abstract class AbstractReaderGenerator<SELF extends AbstractReaderGenerat
                                         "$C.markObjectOpen()",
                                         contextParameter().get());
                                 Exceptions.runWithContext(
-                                        () -> nested.invokeDelegate(delegatee.fieldOrParameter(), delegatee.method()),
+                                        () -> nested.addStatement(nested.lhs.assign(
+                                                delegatee.invoke(nested.prototype, List.of(), nested.generatedClass))),
                                         "instance",
                                         child.type());
                             },
@@ -842,8 +836,6 @@ public abstract class AbstractReaderGenerator<SELF extends AbstractReaderGenerat
 
     protected abstract void throwUnrecognizedProperty(Snippet propertyName);
 
-    protected abstract void invokeDelegate(Snippet instance, InstantiatedMethod callee);
-
     protected abstract SELF nest(
             TypeMirror type, @Nullable Property property, LHS lhs, boolean stackRelevantType, AnyConfig config);
 
@@ -906,6 +898,10 @@ public abstract class AbstractReaderGenerator<SELF extends AbstractReaderGenerat
             @Override
             public Flattened flatten() {
                 return Flattened.of("$L", name);
+            }
+
+            public PerfectSnippet withType(TypeMirror type) {
+                return new TypedVariable(type, name);
             }
         }
 

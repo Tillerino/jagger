@@ -1,8 +1,5 @@
 package org.tillerino.jagger.processor.databind;
 
-import static org.tillerino.jagger.processor.util.Snippet.join;
-import static org.tillerino.jagger.processor.util.Snippet.of;
-
 import com.squareup.javapoet.ClassName;
 import jakarta.annotation.Nonnull;
 import jakarta.annotation.Nullable;
@@ -13,7 +10,6 @@ import org.apache.commons.lang3.exception.ContextedRuntimeException;
 import org.tillerino.jagger.helpers.JacksonJsonParserReaderHelper;
 import org.tillerino.jagger.processor.config.AnyConfig;
 import org.tillerino.jagger.processor.ext.PrototypeKind.CodeGeneratorContext;
-import org.tillerino.jagger.processor.util.InstantiatedMethod;
 import org.tillerino.jagger.processor.util.Snippet;
 
 public class JacksonJsonParserReaderGenerator extends AbstractReaderGenerator<JacksonJsonParserReaderGenerator> {
@@ -186,15 +182,6 @@ public class JacksonJsonParserReaderGenerator extends AbstractReaderGenerator<Ja
 
     protected void throwUnrecognizedProperty(Snippet propertyName) {
         addStatement("throw new $T($S + $C + $S)", IOException.class, "Unrecognized field \"", propertyName, "\"");
-    }
-
-    @Override
-    protected void invokeDelegate(Snippet instance, InstantiatedMethod callee) {
-        addStatement(lhs.assign(of(
-                "$C.$L($C)",
-                instance,
-                callee,
-                join(ctx.delegation.findArguments(prototype, callee, 0, generatedClass), ", "))));
     }
 
     @Override

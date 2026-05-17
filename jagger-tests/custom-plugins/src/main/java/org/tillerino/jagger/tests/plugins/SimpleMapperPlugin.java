@@ -19,7 +19,6 @@ import org.tillerino.jagger.processor.features.Delegation.Delegatee;
 import org.tillerino.jagger.processor.util.Accessor.ReadAccessor;
 import org.tillerino.jagger.processor.util.Accessor.WriteAccessor;
 import org.tillerino.jagger.processor.util.Annotations.AnnotationMirrorWrapper;
-import org.tillerino.jagger.processor.util.CollectionUtil;
 import org.tillerino.jagger.processor.util.InstantiatedMethod;
 import org.tillerino.jagger.processor.util.PlainTypeName;
 import org.tillerino.jagger.processor.util.Snippet.PerfectSnippet;
@@ -122,9 +121,10 @@ public class SimpleMapperPlugin implements JaggerPlugin {
                                 .addContextValue("source", readAccessor.type())
                                 .addContextValue("target", writeAccessor.type()));
 
-                List<PerfectSnippet> arguments = CollectionUtil.append(
-                        value, ctx.delegation.findArguments(prototype, delegatee.method(), 1, generatedClass));
-                value = delegatee.method().invokeInstance(delegatee.fieldOrParameter(), arguments);
+                value = delegatee
+                        .method()
+                        .invokeInstanceFindingArguments(
+                                delegatee.fieldOrParameter(), prototype, List.of(value), generatedClass);
             }
 
             addStatement(writeAccessor.writeSnippet(result, value));

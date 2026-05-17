@@ -279,7 +279,7 @@ public class JdbcSelectGenerator extends AbstractJdbcGenerator<JdbcSelectGenerat
             addStatement(write);
         }
 
-        return creator.invokeStatic(ctx, values);
+        return creator.invokeStatic(values);
     }
 
     private PerfectSnippet fromWriteAccessors(TypeMirror type, PerfectSnippet rsVar) {

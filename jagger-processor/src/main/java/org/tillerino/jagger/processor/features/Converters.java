@@ -1,6 +1,7 @@
 package org.tillerino.jagger.processor.features;
 
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Predicate;
@@ -9,7 +10,6 @@ import javax.lang.model.element.ExecutableElement;
 import javax.lang.model.element.Modifier;
 import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
-import javax.lang.model.util.ElementFilter;
 import org.tillerino.jagger.processor.GeneratedClass;
 import org.tillerino.jagger.processor.JaggerBlueprint;
 import org.tillerino.jagger.processor.JaggerContext;
@@ -18,8 +18,7 @@ import org.tillerino.jagger.processor.config.AnyConfig;
 import org.tillerino.jagger.processor.config.ConfigProperty.LocationKind;
 import org.tillerino.jagger.processor.features.Generics.TypeVar;
 import org.tillerino.jagger.processor.util.InstantiatedMethod;
-import org.tillerino.jagger.processor.util.Snippet;
-import org.tillerino.jagger.processor.util.Snippet.TypedSnippet;
+import org.tillerino.jagger.processor.util.Snippet.PerfectSnippet;
 
 public class Converters {
     protected final JaggerContext ctx;
@@ -44,8 +43,8 @@ public class Converters {
                 .findFirst();
     }
 
-    public Optional<TypedSnippet> findOutputConverter(
-            TypedSnippet toConvert, JaggerPrototype prototype, AnyConfig config, GeneratedClass generatedClass) {
+    public Optional<PerfectSnippet> findOutputConverter(
+            PerfectSnippet toConvert, JaggerPrototype prototype, AnyConfig config, GeneratedClass generatedClass) {
         Map<TypeVar, TypeMirror> typeBindings = new LinkedHashMap<>();
         return declaredMethodsFromSelfAndUsed(prototype.blueprint(), config)
                 .flatMap(method -> {
@@ -57,13 +56,8 @@ public class Converters {
                                     typeBindings,
                                     method.freeTypeVars())) {
                         InstantiatedMethod instantiatedMethod = ctx.generics.applyTypeBindings(method, typeBindings);
-                        return Stream.of(TypedSnippet.of(
-                                instantiatedMethod.returnType(),
-                                "$C($C$C)",
-                                method.callSymbol(ctx),
-                                toConvert,
-                                Snippet.joinPrependingCommaToEach(
-                                        ctx.delegation.findArguments(prototype, method, 1, generatedClass))));
+                        return Stream.of(instantiatedMethod.invokeStaticFindingArguments(
+                                prototype, List.of(toConvert), generatedClass));
                     }
                     return Stream.empty();
                 })
@@ -92,24 +86,21 @@ public class Converters {
                 config.reversedUses().stream().flatMap(use -> use.declaredMethods.stream()));
     }
 
-    public Optional<TypedSnippet> findJsonValueMethod(TypedSnippet toConvert) {
+    public Optional<PerfectSnippet> findJsonValueMethod(PerfectSnippet toConvert) {
         Optional<InstantiatedMethod> result = findJsonValueMethod(toConvert.type(), __ -> true);
-        return result.map(m -> TypedSnippet.of(m.returnType(), Snippet.of("$C.$L()", toConvert, m.name())));
+        return result.map(m -> m.invokeInstance(toConvert, List.of()));
     }
 
     public Optional<InstantiatedMethod> findJsonValueMethod(
             TypeMirror dtoType, Predicate<TypeMirror> returnTypeFilter) {
         return Polymorphism.typeHierarchyBfs(dtoType, ctx, type -> {
-            Map<TypeVar, TypeMirror> typeBindings = ctx.generics.recordTypeBindings(type);
-            for (ExecutableElement method :
-                    ElementFilter.methodsIn(type.asElement().getEnclosedElements())) {
-                if (ctx.annotations
-                                .findAnnotation(method, "com.fasterxml.jackson.annotation.JsonValue")
+            for (InstantiatedMethod method : ctx.generics.instantiateMethods(type, LocationKind.BLUEPRINT)) {
+                if (method.findAnnotation("com.fasterxml.jackson.annotation.JsonValue")
                                 .isPresent()
-                        && method.getParameters().isEmpty()
-                        && method.getReturnType().getKind() != TypeKind.VOID
-                        && returnTypeFilter.test(method.getReturnType())) {
-                    return Optional.of(ctx.generics.instantiateMethod(method, typeBindings, LocationKind.BLUEPRINT));
+                        && method.parameters().isEmpty()
+                        && method.returnType().getKind() != TypeKind.VOID
+                        && returnTypeFilter.test(method.returnType())) {
+                    return Optional.of(method);
                 }
             }
             return Optional.empty();
