@@ -37,8 +37,8 @@ public final class ConfigProperty<T> {
             List<LocationKind> locationKind,
             T defaultValue,
             MergeFunction<T> merger,
-            List<PropagationKind> doNotPropagateTo) {
-        return new ConfigProperty<>(name, locationKind, defaultValue, merger, doNotPropagateTo);
+            List<PropagationKind> propagateTo) {
+        return new ConfigProperty<>(name, locationKind, defaultValue, merger, propagateTo);
     }
 
     public static <T> Collector<T, ?, Set<T>> toUnmodifiableSet() {
@@ -91,10 +91,6 @@ public final class ConfigProperty<T> {
         PROTOTYPE,
         BLUEPRINT,
         ;
-
-        public static List<LocationKind> all() {
-            return List.of(values());
-        }
     }
 
     public enum PropagationKind {

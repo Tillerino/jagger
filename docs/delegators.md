@@ -114,7 +114,7 @@ public Float[] readBoxedFloatArray(JsonParser parser) throws Exception {
       if (nextIfCurrentTokenIs(parser, VALUE_NULL)) {
         array[len++] = null;
       } else if (parser.currentToken() == VALUE_STRING) {
-        String string;
+        final String string;
         string = parser.getText();
         parser.nextToken();
         if (string.equals("NaN")) {

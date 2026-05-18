@@ -1,12 +1,14 @@
 package org.tillerino.jagger.processor.features;
 
+import static org.tillerino.jagger.processor.util.Code.c;
+
 import java.util.List;
 import java.util.Set;
 import org.tillerino.jagger.processor.config.ConfigProperty;
 import org.tillerino.jagger.processor.config.ConfigProperty.LocationKind;
 import org.tillerino.jagger.processor.config.ConfigProperty.MergeFunction;
 import org.tillerino.jagger.processor.config.ConfigProperty.PropagationKind;
-import org.tillerino.jagger.processor.util.Snippet;
+import org.tillerino.jagger.processor.util.Code;
 
 public class IgnoreProperties {
     public static ConfigProperty<Set<String>> IGNORED_PROPERTIES = ConfigProperty.createConfigProperty(
@@ -16,8 +18,7 @@ public class IgnoreProperties {
             MergeFunction.mergeSets(),
             PropagationKind.none());
 
-    public static Snippet toSnippet(Set<String> ignoredProperties) {
-        return Snippet.join(
-                ignoredProperties.stream().map(prop -> Snippet.of("$S", prop)).toList(), ", ");
+    public static Code cases(Set<String> ignoredProperties) {
+        return Code.join(ignoredProperties.stream().map(prop -> c("$S", prop)).toList(), ", ");
     }
 }

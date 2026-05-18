@@ -1,5 +1,7 @@
 package org.tillerino.jagger.processor.features;
 
+import static org.tillerino.jagger.processor.util.Expr.e;
+
 import jakarta.annotation.Nullable;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -14,12 +16,11 @@ import javax.lang.model.util.Types;
 import org.tillerino.jagger.processor.*;
 import org.tillerino.jagger.processor.config.AnyConfig;
 import org.tillerino.jagger.processor.config.ConfigProperty.LocationKind;
+import org.tillerino.jagger.processor.util.Code;
+import org.tillerino.jagger.processor.util.Expr;
 import org.tillerino.jagger.processor.util.InstantiatedMethod;
 import org.tillerino.jagger.processor.util.InstantiatedMethod.InstantiatedVariable;
 import org.tillerino.jagger.processor.util.RebuildingTypeVisitor;
-import org.tillerino.jagger.processor.util.Snippet;
-import org.tillerino.jagger.processor.util.Snippet.PerfectSnippet;
-import org.tillerino.jagger.processor.util.Snippet.PerfectSnippet.InstanceMethodReference;
 
 public class Generics {
     protected final JaggerContext ctx;
@@ -197,7 +198,7 @@ public class Generics {
         return false;
     }
 
-    public Optional<PerfectSnippet> getOrCreateLambda(
+    public Optional<Expr> getOrCreateLambda(
             GeneratedClass callingClass, TypeMirror targetType, List<InstantiatedVariable> availableValues, int depth) {
         if (depth > 10) {
             // this depth is pretty arbitrary, but surely larger than anything useful and it's just important that we
@@ -225,16 +226,16 @@ public class Generics {
         return Optional.of(functionalInterface);
     }
 
-    private Optional<PerfectSnippet> createMethodReference(
-            GeneratedClass callingClass, TypeMirror functionalInterface) {
+    private Optional<Expr> createMethodReference(GeneratedClass callingClass, TypeMirror functionalInterface) {
         InstantiatedMethod targetMethod = ctx.generics
                 .instantiateMethods(functionalInterface, LocationKind.PROTOTYPE)
                 .get(0);
         JaggerBlueprint blueprint = callingClass.blueprint;
         for (JaggerPrototype method : blueprint.prototypes) {
             if (method.method().hasSameSignature(targetMethod, ctx)) {
-                return Optional.of(new InstanceMethodReference(
+                return Optional.of(e(
                         functionalInterface,
+                        "$C::$L",
                         callingClass.getOrCreateDelegateeField(blueprint, blueprint, !method.overrides()),
                         method.method().name()));
             }
@@ -242,8 +243,9 @@ public class Generics {
         for (JaggerBlueprint use : blueprint.config.reversedUses()) {
             for (JaggerPrototype method : use.prototypes) {
                 if (method.method().hasSameSignature(targetMethod, ctx)) {
-                    return Optional.of(new InstanceMethodReference(
+                    return Optional.of(e(
                             functionalInterface,
+                            "$C::$L",
                             callingClass.getOrCreateDelegateeField(blueprint, use, !method.overrides()),
                             method.method().name()));
                 }
@@ -253,7 +255,7 @@ public class Generics {
     }
 
     /** Finds a parameter of type {@code Class<T>} on the method. */
-    public Optional<Snippet> findClassParameter(InstantiatedMethod method, TypeMirror t) {
+    public Optional<Code> findClassParameter(InstantiatedMethod method, TypeMirror t) {
         DeclaredType classOfT = ctx.types.getDeclaredType(ctx.commonTypes.classElement, t);
         for (InstantiatedVariable parameter : method.parameters()) {
             if (ctx.types.isSameType(parameter.type(), classOfT)) {

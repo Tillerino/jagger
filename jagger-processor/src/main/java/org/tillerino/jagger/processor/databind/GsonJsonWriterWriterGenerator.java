@@ -1,21 +1,23 @@
 package org.tillerino.jagger.processor.databind;
 
+import static org.tillerino.jagger.processor.util.Code.c;
+
 import jakarta.annotation.Nonnull;
 import java.util.List;
-import javax.lang.model.element.VariableElement;
 import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
 import org.tillerino.jagger.processor.config.AnyConfig;
+import org.tillerino.jagger.processor.databind.AbstractWriterGenerator.LHS.Member;
 import org.tillerino.jagger.processor.ext.PrototypeKind.CodeGeneratorContext;
 import org.tillerino.jagger.processor.features.Delegation.Delegatee;
-import org.tillerino.jagger.processor.util.Snippet;
+import org.tillerino.jagger.processor.util.InstantiatedMethod.InstantiatedVariable;
 
 public class GsonJsonWriterWriterGenerator extends AbstractWriterGenerator<GsonJsonWriterWriterGenerator> {
-    private final VariableElement writerVariable;
+    private final InstantiatedVariable writerVariable;
 
     public GsonJsonWriterWriterGenerator(CodeGeneratorContext generatorContext) {
         super(generatorContext);
-        this.writerVariable = prototype.element().getParameters().get(1);
+        this.writerVariable = prototype.parameters().get(1);
     }
 
     public GsonJsonWriterWriterGenerator(
@@ -23,90 +25,89 @@ public class GsonJsonWriterWriterGenerator extends AbstractWriterGenerator<GsonJ
             @Nonnull GsonJsonWriterWriterGenerator parent,
             LHS lhs,
             RHS rhs,
-            Property property,
-            boolean stackRelevantType,
+            String potentialVariableName,
             AnyConfig config) {
-        super(parent, type, property, rhs, lhs, stackRelevantType, config);
+        super(parent, type, potentialVariableName, rhs, lhs, config);
         this.writerVariable = parent.writerVariable;
     }
 
     @Override
     protected void writeNull() {
-        addFieldNameIfNeeded();
-        addStatement("$L.nullValue()", writerVariable.getSimpleName());
+        addMemberNameIfNeeded();
+        addStatement("$C.nullValue()", writerVariable);
     }
 
     @Override
     protected void writeString(StringKind stringKind) {
-        addFieldNameIfNeeded();
+        addMemberNameIfNeeded();
         switch (stringKind) {
-            case STRING -> addStatement("$L.value($C)", writerVariable.getSimpleName(), rhs);
-            case CHAR_ARRAY -> addStatement("$L.value(new String($C))", writerVariable.getSimpleName(), rhs);
+            case STRING -> addStatement("$C.value($C)", writerVariable, rhs);
+            case CHAR_ARRAY -> addStatement("$C.value(new String($C))", writerVariable, rhs);
         }
     }
 
     @Override
     protected void writeBinary(BinaryKind binaryKind) {
-        addFieldNameIfNeeded();
+        addMemberNameIfNeeded();
         switch (binaryKind) {
-            case BYTE_ARRAY -> addStatement(Snippet.of("$L.value($C)", writerVariable, base64Encode(rhs)));
+            case BYTE_ARRAY -> addStatement(c("$C.value($C)", writerVariable, base64Encode(rhs)));
         }
     }
 
     @Override
     public void writePrimitive(TypeMirror typeMirror) {
-        addFieldNameIfNeeded();
+        addMemberNameIfNeeded();
         TypeKind kind = typeMirror.getKind();
         if (kind == TypeKind.CHAR) {
-            addStatement("$L.value(String.valueOf($C))", writerVariable.getSimpleName(), rhs);
+            addStatement("$C.value(String.valueOf($C))", writerVariable, rhs);
         } else if (kind == TypeKind.FLOAT || kind == TypeKind.DOUBLE) {
             beginControlFlow("if ($T.isFinite($C))", kind == TypeKind.FLOAT ? Float.class : Double.class, rhs);
-            addStatement("$L.value($C)", writerVariable.getSimpleName(), rhs);
+            addStatement("$C.value($C)", writerVariable, rhs);
             nextControlFlow("else");
-            addStatement("$L.value(String.valueOf($C))", writerVariable.getSimpleName(), rhs);
+            addStatement("$C.value(String.valueOf($C))", writerVariable, rhs);
             endControlFlow();
         } else {
-            addStatement("$L.value($C)", writerVariable.getSimpleName(), rhs);
+            addStatement("$C.value($C)", writerVariable, rhs);
         }
     }
 
     @Override
     protected void startArray() {
-        addFieldNameIfNeeded();
-        addStatement("$L.beginArray()", writerVariable.getSimpleName());
+        addMemberNameIfNeeded();
+        addStatement("$C.beginArray()", writerVariable);
     }
 
     @Override
     protected void endArray() {
-        addStatement("$L.endArray()", writerVariable.getSimpleName());
+        addStatement("$C.endArray()", writerVariable);
     }
 
     @Override
     protected void startObject() {
-        addFieldNameIfNeeded();
-        addStatement("$L.beginObject()", writerVariable.getSimpleName());
+        addMemberNameIfNeeded();
+        addStatement("$C.beginObject()", writerVariable);
     }
 
     @Override
     protected void endObject() {
-        addStatement("$L.endObject()", writerVariable.getSimpleName());
+        addStatement("$C.endObject()", writerVariable);
     }
 
     @Override
-    protected void invokeDelegate(Delegatee delegatee) {
-        addFieldNameIfNeeded();
-        addStatement(delegatee.invoke(prototype, List.of(rhs), generatedClass));
+    protected void callDelegate(Delegatee delegatee) {
+        addMemberNameIfNeeded();
+        addStatement(delegatee.call(prototype, List.of(rhs), generatedClass));
     }
 
     @Override
     protected GsonJsonWriterWriterGenerator nest(
-            TypeMirror type, LHS lhs, Property property, RHS rhs, boolean stackRelevantType, AnyConfig config) {
-        return new GsonJsonWriterWriterGenerator(type, this, lhs, rhs, property, stackRelevantType, config);
+            TypeMirror type, LHS lhs, String potentialVariableName, RHS rhs, AnyConfig config) {
+        return new GsonJsonWriterWriterGenerator(type, this, lhs, rhs, potentialVariableName, config);
     }
 
-    private void addFieldNameIfNeeded() {
-        if (lhs instanceof LHS.Field f) {
-            addStatement("$L.name($C)", writerVariable.getSimpleName(), f);
+    private void addMemberNameIfNeeded() {
+        if (lhs instanceof Member f) {
+            addStatement("$C.name($C)", writerVariable, f);
         }
     }
 }

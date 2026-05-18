@@ -1,13 +1,16 @@
 package org.tillerino.jagger.processor.jdbc;
 
+import static org.tillerino.jagger.processor.util.Code.c;
+
 import com.squareup.javapoet.CodeBlock;
 import javax.lang.model.type.TypeMirror;
 import org.tillerino.jagger.processor.config.AnyConfig;
 import org.tillerino.jagger.processor.config.ConfigProperty.LocationKind;
 import org.tillerino.jagger.processor.ext.PrototypeKind.CodeGeneratorContext;
+import org.tillerino.jagger.processor.util.Code;
+import org.tillerino.jagger.processor.util.Expr;
+import org.tillerino.jagger.processor.util.Expr.TypedVariable;
 import org.tillerino.jagger.processor.util.InstantiatedMethod.InstantiatedVariable;
-import org.tillerino.jagger.processor.util.Snippet;
-import org.tillerino.jagger.processor.util.Snippet.PerfectSnippet;
 
 public class JdbcInsertGenerator extends AbstractJdbcGenerator<JdbcInsertGenerator> {
 
@@ -44,13 +47,12 @@ public class JdbcInsertGenerator extends AbstractJdbcGenerator<JdbcInsertGenerat
             if (ctx.commonTypes.isIterableOrArray(toInsert.type())) {
                 TypeMirror elementType = ctx.commonTypes.unwrapContainer(toInsert.type());
 
-                ScopedVar loopVar = createVariable("item");
-                Snippet loopItems = Snippet.of("for ($T $C : $L)", elementType, loopVar, toInsert.name());
+                TypedVariable loopVar = createVariable(elementType, "item");
+                Code loopItems = c("for ($T $C : $L)", elementType, loopVar, toInsert.name());
                 beginControlFlow(loopItems).withBody(() -> {
                     int paramIndex = 1;
-                    for (PerfectSnippet param : parsed.parameters()) {
-                        Snippet setter = preparedStatementSetter(
-                                param.replaceVar(toInsert.name(), loopVar.withType(elementType)), paramIndex, psVar);
+                    for (Expr param : parsed.parameters()) {
+                        Code setter = preparedStatementSetter(param.subst(toInsert, loopVar), paramIndex, psVar);
                         addStatement(setter);
                         paramIndex++;
                     }

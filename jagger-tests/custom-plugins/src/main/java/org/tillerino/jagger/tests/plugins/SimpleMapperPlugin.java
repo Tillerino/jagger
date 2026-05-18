@@ -19,9 +19,10 @@ import org.tillerino.jagger.processor.features.Delegation.Delegatee;
 import org.tillerino.jagger.processor.util.Accessor.ReadAccessor;
 import org.tillerino.jagger.processor.util.Accessor.WriteAccessor;
 import org.tillerino.jagger.processor.util.Annotations.AnnotationMirrorWrapper;
+import org.tillerino.jagger.processor.util.Expr;
+import org.tillerino.jagger.processor.util.Expr.TypedVariable;
 import org.tillerino.jagger.processor.util.InstantiatedMethod;
 import org.tillerino.jagger.processor.util.PlainTypeName;
-import org.tillerino.jagger.processor.util.Snippet.PerfectSnippet;
 
 /**
  * Example plugin: the simplest POJO-to-POJO mapper. It does not support delegation, containers, arrays, or anything
@@ -89,7 +90,7 @@ public class SimpleMapperPlugin implements JaggerPlugin {
             TypeMirror targetType = kind.types().get(0);
             TypeMirror sourceType = kind.types().get(1);
 
-            ScopedVar result = createVariable("result");
+            TypedVariable result = createVariable(targetType, "result");
 
             addStatement("$T $C = new $T()", targetType, result, targetType);
 
@@ -104,14 +105,13 @@ public class SimpleMapperPlugin implements JaggerPlugin {
             return code;
         }
 
-        private void assignProperty(WriteAccessor writeAccessor, ReadAccessor readAccessor, ScopedVar result) {
+        private void assignProperty(WriteAccessor writeAccessor, ReadAccessor readAccessor, TypedVariable result) {
             if (readAccessor == null) {
                 throw new ContextedRuntimeException("Unmatched target property")
                         .addContextValue("target", writeAccessor.name());
             }
 
-            PerfectSnippet value =
-                    readAccessor.readSnippet(prototype.method().parameters().get(0));
+            Expr value = readAccessor.read(prototype.method().parameters().get(0));
             if (!ctx.types.isAssignable(readAccessor.type(), writeAccessor.type())) {
                 TemplatablePrototypeKind types = ((TemplatablePrototypeKind) prototype.kind())
                         .withTypes(List.of(writeAccessor.type(), readAccessor.type()));
@@ -123,11 +123,10 @@ public class SimpleMapperPlugin implements JaggerPlugin {
 
                 value = delegatee
                         .method()
-                        .invokeInstanceFindingArguments(
-                                delegatee.fieldOrParameter(), prototype, List.of(value), generatedClass);
+                        .callFindingArguments(delegatee.fieldOrParameter(), prototype, List.of(value), generatedClass);
             }
 
-            addStatement(writeAccessor.writeSnippet(result, value));
+            addStatement(writeAccessor.write(result, value));
         }
     }
 }

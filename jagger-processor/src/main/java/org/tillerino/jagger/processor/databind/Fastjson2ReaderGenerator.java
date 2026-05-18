@@ -1,9 +1,9 @@
 package org.tillerino.jagger.processor.databind;
 
+import static org.tillerino.jagger.processor.util.Code.c;
+
 import jakarta.annotation.Nonnull;
-import jakarta.annotation.Nullable;
 import java.io.IOException;
-import javax.lang.model.element.VariableElement;
 import javax.lang.model.type.ArrayType;
 import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
@@ -11,87 +11,84 @@ import org.apache.commons.lang3.exception.ContextedRuntimeException;
 import org.tillerino.jagger.helpers.Fastjson2ReaderHelper;
 import org.tillerino.jagger.processor.config.AnyConfig;
 import org.tillerino.jagger.processor.ext.PrototypeKind.CodeGeneratorContext;
-import org.tillerino.jagger.processor.util.Snippet;
+import org.tillerino.jagger.processor.util.Code;
+import org.tillerino.jagger.processor.util.InstantiatedMethod.InstantiatedVariable;
 
 public class Fastjson2ReaderGenerator extends AbstractReaderGenerator<Fastjson2ReaderGenerator> {
 
-    private final VariableElement parserVariable;
+    private final InstantiatedVariable parserVariable;
 
     public Fastjson2ReaderGenerator(CodeGeneratorContext generatorContext) {
         super(generatorContext);
-        parserVariable = prototype.element().getParameters().get(0);
+        parserVariable = prototype.parameters().get(0);
     }
 
     public Fastjson2ReaderGenerator(
-            TypeMirror type,
-            Property property,
+            String potentialVariableName,
             LHS lhs,
             @Nonnull Fastjson2ReaderGenerator parent,
-            boolean stackRelevantType,
-            AnyConfig config) {
-        super(parent, type, stackRelevantType, property, lhs, config);
+            AnyConfig config,
+            boolean exhaust) {
+        super(parent, potentialVariableName, lhs, config, exhaust);
         this.parserVariable = parent.parserVariable;
     }
 
     @Override
-    protected void readNullable(Branch branch, boolean nullable, boolean lastCase) {
+    protected void readNullable(Branch branch, boolean nullable) {
         if (type instanceof ArrayType at) {
             TypeMirror componentType = at.getComponentType();
             if (ctx.commonTypes.isString(componentType)) {
-                addStatement(lhs.assign("$L.readStringArray()", parserVariable.getSimpleName()));
+                addStatement(lhs.assign("$C.readStringArray()", parserVariable));
                 return;
             }
             if (ctx.commonTypes.isArrayOf(type, TypeKind.INT)) {
-                addStatement(lhs.assign("$L.readInt32ValueArray()", parserVariable.getSimpleName()));
+                addStatement(lhs.assign("$C.readInt32ValueArray()", parserVariable));
                 return;
             }
             if (ctx.commonTypes.isArrayOf(type, TypeKind.LONG)) {
-                addStatement(lhs.assign("$L.readInt64ValueArray()", parserVariable.getSimpleName()));
+                addStatement(lhs.assign("$C.readInt64ValueArray()", parserVariable));
                 return;
             }
         }
-        super.readNullable(branch, nullable, lastCase);
+        super.readNullable(branch, nullable);
     }
 
     @Override
-    protected Snippet stringCaseCondition() {
-        return Snippet.of("$L.isString()", parserVariable.getSimpleName());
+    protected Code stringCaseCondition() {
+        return c("$C.isString()", parserVariable);
     }
 
     @Override
-    protected Snippet numberCaseCondition() {
-        return Snippet.of("$L.isNumber()", parserVariable.getSimpleName());
+    protected Code numberCaseCondition() {
+        return c("$C.isNumber()", parserVariable);
     }
 
     @Override
-    protected Snippet objectCaseCondition() {
-        return Snippet.of("$L.nextIfObjectStart()", parserVariable.getSimpleName());
+    protected Code objectCaseCondition() {
+        return c("$C.nextIfObjectStart()", parserVariable);
     }
 
     @Override
-    protected Snippet arrayCaseCondition() {
-        return Snippet.of("$L.nextIfArrayStart()", parserVariable.getSimpleName());
+    protected Code arrayCaseCondition() {
+        return c("$C.nextIfArrayStart()", parserVariable);
     }
 
     @Override
-    protected Snippet booleanCaseCondition() {
-        return Snippet.of(
-                "$L.current() == 'f' || $L.current() == 't'",
-                parserVariable.getSimpleName(),
-                parserVariable.getSimpleName());
+    protected Code booleanCaseCondition() {
+        return c("$C.current() == 'f' || $C.current() == 't'", parserVariable, parserVariable);
     }
 
     @Override
-    protected Snippet fieldCaseCondition() {
-        return Snippet.of("$L.isString()", parserVariable.getSimpleName());
+    protected Code memberCaseCondition() {
+        return c("$C.isString()", parserVariable);
     }
 
     @Override
     protected void initializeParser() {}
 
     @Override
-    protected Snippet nullCaseCondition() {
-        return Snippet.of("$L.nextIfNull()", parserVariable.getSimpleName());
+    protected Code nullCaseCondition() {
+        return c("$C.nextIfNull()", parserVariable);
     }
 
     @Override
@@ -108,7 +105,7 @@ public class Fastjson2ReaderGenerator extends AbstractReaderGenerator<Fastjson2R
                     default ->
                         throw new ContextedRuntimeException(type.getKind().toString());
                 };
-        addStatement(lhs.assign("$L.$L()", parserVariable.getSimpleName(), readMethod));
+        addStatement(lhs.assign("$C.$L()", parserVariable, readMethod));
     }
 
     @Override
@@ -118,39 +115,36 @@ public class Fastjson2ReaderGenerator extends AbstractReaderGenerator<Fastjson2R
                     case STRING -> "";
                     case CHAR_ARRAY -> ".toCharArray()";
                 };
-        addStatement(lhs.assign("$L.readString()$L", parserVariable.getSimpleName(), conversion));
+        addStatement(lhs.assign("$C.readString()$L", parserVariable, conversion));
     }
 
     @Override
     protected void iterateOverFields() {
-        beginControlFlow("while (!$L.nextIfObjectEnd())", parserVariable.getSimpleName());
+        beginControlFlow("while (!$C.nextIfObjectEnd())", parserVariable);
     }
 
     @Override
     protected void skipValue() {
-        addStatement("$L.skipValue()", parserVariable.getSimpleName());
+        addStatement("$C.skipValue()", parserVariable);
     }
 
     @Override
     protected void afterObject() {}
 
     @Override
-    protected void readFieldNameInIteration(String variableName) {
-        addStatement("String $L = $L.readFieldName()", variableName, parserVariable.getSimpleName());
+    protected void readMemberNameInIteration(String variableName) {
+        addStatement("String $L = $C.readFieldName()", variableName, parserVariable);
     }
 
     @Override
     protected void readDiscriminator(String propertyName) {
-        addStatement(lhs.assign(
-                "$T.readDiscriminator($S, $L)",
-                Fastjson2ReaderHelper.class,
-                propertyName,
-                parserVariable.getSimpleName()));
+        addStatement(
+                lhs.assign("$T.readDiscriminator($S, $C)", Fastjson2ReaderHelper.class, propertyName, parserVariable));
     }
 
     @Override
     protected void iterateOverElements() {
-        beginControlFlow("while (!$L.nextIfArrayEnd())", parserVariable.getSimpleName());
+        beginControlFlow("while (!$C.nextIfArrayEnd())", parserVariable);
     }
 
     @Override
@@ -159,24 +153,23 @@ public class Fastjson2ReaderGenerator extends AbstractReaderGenerator<Fastjson2R
     @Override
     protected void throwUnexpected(String expected) {
         addStatement(
-                "throw new $T($S + $L.current())",
+                "throw new $T($S + $C.current())",
                 IOException.class,
                 "Expected " + expected + ", got ",
-                parserVariable.getSimpleName());
+                parserVariable);
     }
 
     @Override
-    protected void throwUnexpectedValue(Snippet message) {
+    protected void throwUnexpectedValue(Code message) {
         addStatement("throw new $T($C)", IOException.class, message);
     }
 
-    protected void throwUnrecognizedProperty(Snippet propertyName) {
+    protected void throwUnrecognizedProperty(Code propertyName) {
         addStatement("throw new $T($S + $C + $S)", IOException.class, "Unrecognized field \"", propertyName, "\"");
     }
 
     @Override
-    protected Fastjson2ReaderGenerator nest(
-            TypeMirror type, @Nullable Property property, LHS lhs, boolean stackRelevantType, AnyConfig config) {
-        return new Fastjson2ReaderGenerator(type, property, lhs, this, stackRelevantType, config);
+    protected Fastjson2ReaderGenerator nest(String potentialVariableName, LHS lhs, AnyConfig config, boolean exhaust) {
+        return new Fastjson2ReaderGenerator(potentialVariableName, lhs, this, config, exhaust);
     }
 }

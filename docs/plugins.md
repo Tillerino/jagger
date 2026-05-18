@@ -14,7 +14,7 @@ plugin's fully qualified class name.
 The easiest way to do this is with Google's `@AutoService` annotation, which generates the service file at compile time:
 
 ```java
-// ../jagger-tests/custom-plugins/src/main/java/org/tillerino/jagger/tests/plugins/DeepClonePlugin.java#L37-L38
+// ../jagger-tests/custom-plugins/src/main/java/org/tillerino/jagger/tests/plugins/DeepClonePlugin.java#L38-L39
 
 @Override
 public void configure(JaggerContext ctx) {

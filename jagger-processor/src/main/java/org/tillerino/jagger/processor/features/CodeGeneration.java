@@ -19,6 +19,7 @@ import org.tillerino.jagger.processor.config.AnyConfig;
 import org.tillerino.jagger.processor.config.ConfigProperty;
 import org.tillerino.jagger.processor.config.ConfigProperty.LocationKind;
 import org.tillerino.jagger.processor.config.ConfigProperty.MergeFunction;
+import org.tillerino.jagger.processor.config.ConfigProperty.PropagationKind;
 import org.tillerino.jagger.processor.util.InstantiatedMethod;
 
 public class CodeGeneration {
@@ -28,35 +29,35 @@ public class CodeGeneration {
             List.of(LocationKind.BLUEPRINT, LocationKind.PROTOTYPE),
             JsonConfig.ImplementationMode.DEFAULT,
             MergeFunction.notDefault(),
-            List.of());
+            PropagationKind.none());
 
     public static ConfigProperty<Set<TypeElement>> ON_GENERATED_CLASS = createConfigProperty(
             "ON_GENERATED_CLASS",
             List.of(ConfigProperty.LocationKind.BLUEPRINT),
             Set.of(),
             MergeFunction.mergeSets(),
-            ConfigProperty.PropagationKind.none());
+            PropagationKind.none());
 
     public static ConfigProperty<Set<TypeElement>> ON_GENERATED_CONSTRUCTOR = createConfigProperty(
             "ON_GENERATED_CONSTRUCTOR",
             List.of(ConfigProperty.LocationKind.BLUEPRINT),
             Set.of(),
             MergeFunction.mergeSets(),
-            ConfigProperty.PropagationKind.none());
+            PropagationKind.none());
 
     public static ConfigProperty<Boolean> ADD_GENERATED_ANNOTATION_TO_CLASS = createConfigProperty(
             "ADD_GENERATED_ANNOTATION_TO_CLASS",
             List.of(ConfigProperty.LocationKind.BLUEPRINT),
             true,
             MergeFunction.notDefault(),
-            ConfigProperty.PropagationKind.none());
+            PropagationKind.none());
 
     public static ConfigProperty<Boolean> ADD_GENERATED_ANNOTATION_TO_METHODS = createConfigProperty(
             "ADD_GENERATED_ANNOTATION_TO_METHODS",
             List.of(ConfigProperty.LocationKind.BLUEPRINT, ConfigProperty.LocationKind.PROTOTYPE),
             false,
             MergeFunction.notDefault(),
-            ConfigProperty.PropagationKind.all());
+            PropagationKind.all());
 
     public final JaggerContext ctx;
     public final ConfigProperty<TypeMirror> provider;

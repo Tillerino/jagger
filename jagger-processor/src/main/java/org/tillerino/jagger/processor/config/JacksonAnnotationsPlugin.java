@@ -73,7 +73,7 @@ public class JacksonAnnotationsPlugin implements JaggerPlugin {
                 ann -> ann.method("alphabetic", false).map(AnnotationValueWrapper::asBoolean));
 
         ctx.configProperties.addConfigAnnotation(
-                Alias.ALIASES,
+                Aliases.ALIASES,
                 CFJA + ".JsonAlias",
                 ann -> ann.method("value", true)
                         .map(AnnotationValueWrapper::asArray)

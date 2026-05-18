@@ -31,10 +31,10 @@ import org.tillerino.jagger.processor.config.ConfigProperty.PropagationKind;
 import org.tillerino.jagger.processor.features.IgnoreProperty;
 import org.tillerino.jagger.processor.features.Properties.OutputProperty;
 import org.tillerino.jagger.processor.util.Accessor.ReadAccessor;
+import org.tillerino.jagger.processor.util.Expr;
+import org.tillerino.jagger.processor.util.Expr.TypedVariable;
 import org.tillerino.jagger.processor.util.InstantiatedMethod;
 import org.tillerino.jagger.processor.util.InstantiatedMethod.InstantiatedVariable;
-import org.tillerino.jagger.processor.util.Snippet.PerfectSnippet;
-import org.tillerino.jagger.processor.util.Snippet.PerfectSnippet.TypedVariable;
 
 public record Jdbc(JaggerContext ctx) {
     public static ConfigProperty<Boolean> ID_PROPERTY = ConfigProperty.createConfigProperty(
@@ -90,7 +90,7 @@ public record Jdbc(JaggerContext ctx) {
         return tableName;
     }
 
-    public record ParsedSql(String sqlTemplate, String preprocessedSql, String sql, List<PerfectSnippet> parameters) {
+    public record ParsedSql(String sqlTemplate, String preprocessedSql, String sql, List<Expr> parameters) {
         public ParsedSql addCommentIfPreprocessed(CodeBlock.Builder code) {
             if (!sqlTemplate.equals(preprocessedSql)) {
                 code.add("// Preprocessed: $L\n", preprocessedSql);
@@ -127,7 +127,7 @@ public record Jdbc(JaggerContext ctx) {
 
         String preprocessedSql = statement.toString();
 
-        List<PerfectSnippet> paramSnippets = new ArrayList<>();
+        List<Expr> paramSnippets = new ArrayList<>();
         StringBuilder sqlBuilder = new StringBuilder();
 
         statement.accept(
@@ -270,9 +270,9 @@ public record Jdbc(JaggerContext ctx) {
 
     private class MyExpressionDeParser extends ExpressionDeParser {
         private final Map<String, InstantiatedVariable> paramMap;
-        private final List<PerfectSnippet> paramSnippets;
+        private final List<Expr> paramSnippets;
 
-        public MyExpressionDeParser(Map<String, InstantiatedVariable> paramMap, List<PerfectSnippet> paramSnippets) {
+        public MyExpressionDeParser(Map<String, InstantiatedVariable> paramMap, List<Expr> paramSnippets) {
             this.paramMap = paramMap;
             this.paramSnippets = paramSnippets;
         }
@@ -302,7 +302,7 @@ public record Jdbc(JaggerContext ctx) {
                                 throw new ContextedRuntimeException("Missing property: " + propertyName)
                                         .addContextValue("type", paramType);
                             }
-                            paramSnippets.add(accessor.readSnippet(new TypedVariable(paramType, paramName)));
+                            paramSnippets.add(accessor.read(new TypedVariable(paramType, paramName)));
                             questionMarks.add("?");
                             continue;
                         }

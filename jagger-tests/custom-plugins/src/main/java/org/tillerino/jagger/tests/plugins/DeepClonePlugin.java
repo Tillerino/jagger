@@ -19,9 +19,10 @@ import org.tillerino.jagger.processor.features.Delegation;
 import org.tillerino.jagger.processor.util.Accessor.ReadAccessor;
 import org.tillerino.jagger.processor.util.Accessor.WriteAccessor;
 import org.tillerino.jagger.processor.util.Annotations.AnnotationMirrorWrapper;
+import org.tillerino.jagger.processor.util.Expr;
+import org.tillerino.jagger.processor.util.Expr.TypedVariable;
 import org.tillerino.jagger.processor.util.InstantiatedMethod;
 import org.tillerino.jagger.processor.util.PlainTypeName;
-import org.tillerino.jagger.processor.util.Snippet;
 
 /**
  * Example plugin: the simplest POJO cloner. It does support delegation and templating by using
@@ -99,7 +100,7 @@ public class DeepClonePlugin implements JaggerPlugin {
             CloneKind kind = (CloneKind) prototype.kind();
             TypeMirror type = kind.types().get(0);
 
-            ScopedVar result = createVariable("result");
+            TypedVariable result = createVariable(type, "result");
 
             addStatement("$T $C = new $T()", type, result, type);
 
@@ -120,10 +121,10 @@ public class DeepClonePlugin implements JaggerPlugin {
             return code;
         }
 
-        private void cloneProperty(WriteAccessor writeAccessor, ReadAccessor readAccessor, ScopedVar result) {
+        private void cloneProperty(WriteAccessor writeAccessor, ReadAccessor readAccessor, TypedVariable result) {
             TypeMirror fieldType = writeAccessor.type();
-            Snippet valueToWrite =
-                    readAccessor.readSnippet(prototype.method().parameters().get(0));
+            Expr valueToWrite =
+                    readAccessor.read(prototype.method().parameters().get(0));
 
             if (!isDirectlyAssignable(readAccessor.type(), writeAccessor.type())) {
                 Delegation.Delegatee delegatee = ctx.delegation
@@ -137,10 +138,10 @@ public class DeepClonePlugin implements JaggerPlugin {
                         .orElseThrow(() -> new ContextedRuntimeException("Cannot clone property")
                                 .addContextValue("property", writeAccessor.name())
                                 .addContextValue("type", fieldType));
-                valueToWrite = Snippet.of("this.$L($C)", delegatee.method().name(), valueToWrite);
+                valueToWrite = delegatee.call(prototype, List.of(valueToWrite), generatedClass);
             }
 
-            addStatement(writeAccessor.writeSnippet(result, valueToWrite));
+            addStatement(writeAccessor.write(result, valueToWrite));
         }
 
         private boolean isDirectlyAssignable(TypeMirror source, TypeMirror target) {

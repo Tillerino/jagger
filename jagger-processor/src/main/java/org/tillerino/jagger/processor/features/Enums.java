@@ -1,5 +1,7 @@
 package org.tillerino.jagger.processor.features;
 
+import static org.tillerino.jagger.processor.util.Code.c;
+
 import com.squareup.javapoet.ClassName;
 import com.squareup.javapoet.FieldSpec;
 import com.squareup.javapoet.FieldSpec.Builder;
@@ -18,9 +20,10 @@ import org.tillerino.jagger.processor.GeneratedClass;
 import org.tillerino.jagger.processor.JaggerContext;
 import org.tillerino.jagger.processor.config.JacksonAnnotationsPlugin;
 import org.tillerino.jagger.processor.util.Annotations;
+import org.tillerino.jagger.processor.util.Code;
+import org.tillerino.jagger.processor.util.Code.Flattened;
+import org.tillerino.jagger.processor.util.Expr;
 import org.tillerino.jagger.processor.util.InstantiatedMethod;
-import org.tillerino.jagger.processor.util.Snippet;
-import org.tillerino.jagger.processor.util.Snippet.Flattened;
 
 public class Enums {
     protected JaggerContext ctx;
@@ -29,20 +32,20 @@ public class Enums {
         this.ctx = ctx;
     }
 
-    public static Snippet serializationSnippet(
-            JaggerContext ctx, GeneratedClass generatedClass, TypeMirror enumType, Snippet enumValue) {
+    public static Code serializationCode(
+            JaggerContext ctx, GeneratedClass generatedClass, TypeMirror enumType, Expr enumValue) {
         Optional<InstantiatedMethod> jsonValueMethod =
                 ctx.converters.findJsonValueMethod(enumType, ctx.commonTypes::isString);
         if (jsonValueMethod.isPresent()) {
-            return Snippet.of("$C.$L()", enumValue, jsonValueMethod.get().name());
+            return jsonValueMethod.get().call(enumValue);
         }
 
         EnumValuesField enumField = generatedClass.getOrCreateEnumField(enumType);
         if (!enumField.explicitMappings().isEmpty()) {
-            return Snippet.of("$L.get($C)", enumField.serializedFormField(), enumValue);
+            return c("$L.get($C)", enumField.serializedFormField(), enumValue);
         }
 
-        return Snippet.of("$C.name()", enumValue);
+        return c("$C.name()", enumValue);
     }
 
     public EnumValuesField createEnumField(TypeMirror enumType, int nextIndex) {
@@ -52,7 +55,7 @@ public class Enums {
                 .orElse("name");
 
         Map<String, String> explicitMappings = getEnumConstantJsonPropertyNames(enumType);
-        Map<String, List<String>> aliases = ctx.alias.getEnumConstantJsonAliases(enumType);
+        Map<String, List<String>> aliases = ctx.aliases.getEnumConstantJsonAliases(enumType);
         String enumName = StringUtils.uncapitalize(
                 ((DeclaredType) enumType).asElement().getSimpleName().toString());
 
@@ -95,11 +98,11 @@ public class Enums {
             // mechanism.
             Map<String, String> mappings = valueMethod.equals("name") ? explicitMappings : Map.of();
 
-            Snippet values = valuePairs(mappings, type);
+            Code values = valuePairs(mappings, type);
 
-            Snippet aliases = aliasPairs(aliases(), type);
+            Code aliases = aliasPairs(aliases(), type);
 
-            Flattened deserInitializer = Snippet.of(
+            Flattened deserInitializer = c(
                             "$T.deserializationMap($T.class, $T::$L, $C, $C)",
                             EnumHelper.class,
                             type,
@@ -118,7 +121,7 @@ public class Enums {
                 return List.of(deserField);
             }
 
-            Flattened serInit = Snippet.of(
+            Flattened serInit = c(
                             "$T.serializationMap($T.class, $T::$L, $C)",
                             EnumHelper.class,
                             type,
@@ -135,27 +138,24 @@ public class Enums {
             return List.of(deserField, serField);
         }
 
-        private static Snippet valuePairs(Map<String, String> explicitMappings, TypeMirror type) {
-            List<Snippet> valuePairs = explicitMappings.entrySet().stream()
-                    .map(e -> Snippet.of("\t$T.$L, $S", type, e.getKey(), e.getValue()))
+        private static Code valuePairs(Map<String, String> explicitMappings, TypeMirror type) {
+            List<Code> valuePairs = explicitMappings.entrySet().stream()
+                    .map(e -> c("\t$T.$L, $S", type, e.getKey(), e.getValue()))
                     .toList();
 
-            return Snippet.join(valuePairs, ",\n", "new Object[] {\n", "}");
+            return Code.join(valuePairs, ",\n", "new Object[] {\n", "}");
         }
 
-        private static Snippet aliasPairs(Map<String, List<String>> aliasesByConstant, TypeMirror type) {
-            List<Snippet> valuePairs = aliasesByConstant.entrySet().stream()
+        private static Code aliasPairs(Map<String, List<String>> aliasesByConstant, TypeMirror type) {
+            List<Code> valuePairs = aliasesByConstant.entrySet().stream()
                     .map(e -> {
-                        Snippet aliases = Snippet.join(
-                                e.getValue().stream()
-                                        .map(a -> Snippet.of("$S", a))
-                                        .toList(),
-                                ",");
-                        return Snippet.of("\t$T.$L, $C", type, e.getKey(), aliases);
+                        Code aliases = Code.join(
+                                e.getValue().stream().map(a -> c("$S", a)).toList(), ",");
+                        return c("\t$T.$L, $C", type, e.getKey(), aliases);
                     })
                     .toList();
 
-            return Snippet.join(valuePairs, ",\n", "new Object[] {\n", "}");
+            return Code.join(valuePairs, ",\n", "new Object[] {\n", "}");
         }
     }
 }

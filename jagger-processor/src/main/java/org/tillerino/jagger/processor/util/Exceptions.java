@@ -6,7 +6,7 @@ import java.util.function.Supplier;
 import org.apache.commons.lang3.exception.ContextedRuntimeException;
 
 public class Exceptions {
-    public static <T> T getWithContext(Supplier<T> supplier, String label, Object value) {
+    public static <T> T getWithContext(String label, Object value, Supplier<T> supplier) {
         try {
             return supplier.get();
         } catch (ContextedRuntimeException e) {
@@ -14,7 +14,7 @@ public class Exceptions {
         }
     }
 
-    public static void runWithContext(Runnable runnable, String label, Object value) {
+    public static void runWithContext(String label, Object value, Runnable runnable) {
         try {
             runnable.run();
         } catch (ContextedRuntimeException e) {

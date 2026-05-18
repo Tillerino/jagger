@@ -1,5 +1,7 @@
 package org.tillerino.jagger.processor.features;
 
+import static org.tillerino.jagger.processor.util.Code.c;
+
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -18,24 +20,23 @@ import org.tillerino.jagger.processor.config.ConfigProperty.PropagationKind;
 import org.tillerino.jagger.processor.config.JacksonAnnotationsPlugin;
 import org.tillerino.jagger.processor.databind.AbstractCodeGeneratorStack;
 import org.tillerino.jagger.processor.util.Annotations;
-import org.tillerino.jagger.processor.util.Snippet;
+import org.tillerino.jagger.processor.util.Code;
 
-public class Alias {
+public class Aliases {
     public static ConfigProperty<Set<String>> ALIASES = ConfigProperty.createConfigProperty(
             "ALIASES", List.of(LocationKind.PROPERTY), Set.of(), MergeFunction.mergeSets(), PropagationKind.none());
 
     protected final JaggerContext ctx;
 
-    public Alias(JaggerContext ctx) {
+    public Aliases(JaggerContext ctx) {
         this.ctx = ctx;
     }
 
-    public static Snippet caseSnippet(AbstractCodeGeneratorStack.Property property) {
+    public static Code cases(AbstractCodeGeneratorStack.NestedProperty property) {
         Stream<String> allValues = Stream.concat(
-                        Stream.of(property.serializedName()),
-                        property.config().resolveProperty(ALIASES).value().stream())
+                        Stream.of(property.serializedName), property.config.resolveProperty(ALIASES).value().stream())
                 .distinct();
-        return Snippet.join(allValues.map(name -> Snippet.of("case $S:", name)).toList(), "\n");
+        return Code.join(allValues.map(name -> c("$S", name)).toList(), ", ");
     }
 
     public Map<String, List<String>> getEnumConstantJsonAliases(TypeMirror enumType) {

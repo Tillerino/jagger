@@ -1,13 +1,17 @@
 package org.tillerino.jagger.processor.databind;
 
+import static org.tillerino.jagger.processor.util.Code.c;
+import static org.tillerino.jagger.processor.util.Expr.e;
+
 import com.squareup.javapoet.CodeBlock;
 import java.util.*;
 import javax.lang.model.element.TypeElement;
 import javax.lang.model.type.*;
+import lombok.Getter;
 import org.apache.commons.lang3.exception.ContextedRuntimeException;
 import org.tillerino.jagger.processor.config.AnyConfig;
 import org.tillerino.jagger.processor.config.ConfigProperty.PropagationKind;
-import org.tillerino.jagger.processor.databind.AbstractReaderGenerator.Branch;
+import org.tillerino.jagger.processor.databind.AbstractWriterGenerator.LHS.Member;
 import org.tillerino.jagger.processor.databind.AbstractWriterGenerator.LHS.Return;
 import org.tillerino.jagger.processor.ext.PrototypeKind.CodeGeneratorContext;
 import org.tillerino.jagger.processor.ext.PrototypeKind.TemplatablePrototypeKind;
@@ -18,12 +22,12 @@ import org.tillerino.jagger.processor.features.IgnoreProperty;
 import org.tillerino.jagger.processor.features.Polymorphism;
 import org.tillerino.jagger.processor.features.References.Setup;
 import org.tillerino.jagger.processor.features.Verification.ProtoAndProps;
+import org.tillerino.jagger.processor.util.Code;
 import org.tillerino.jagger.processor.util.Exceptions;
+import org.tillerino.jagger.processor.util.Expr;
+import org.tillerino.jagger.processor.util.Expr.ExprWrapper;
+import org.tillerino.jagger.processor.util.Expr.TypedVariable;
 import org.tillerino.jagger.processor.util.InstantiatedMethod.InstantiatedVariable;
-import org.tillerino.jagger.processor.util.Snippet;
-import org.tillerino.jagger.processor.util.Snippet.PerfectSnippet;
-import org.tillerino.jagger.processor.util.Snippet.PerfectSnippet.StaticMethodInvocation;
-import org.tillerino.jagger.processor.util.Snippet.TypedSnippet;
 
 public abstract class AbstractWriterGenerator<SELF extends AbstractWriterGenerator<SELF>>
         extends AbstractCodeGeneratorStack<SELF> {
@@ -32,14 +36,8 @@ public abstract class AbstractWriterGenerator<SELF extends AbstractWriterGenerat
     protected final RHS rhs;
 
     protected AbstractWriterGenerator(
-            SELF parent,
-            TypeMirror type,
-            Property property,
-            RHS rhs,
-            LHS lhs,
-            boolean isStackRelevantType,
-            AnyConfig config) {
-        super(parent, type, isStackRelevantType, property, config);
+            SELF parent, TypeMirror type, String potentialVariableName, RHS rhs, LHS lhs, AnyConfig config) {
+        super(parent, type, potentialVariableName, config);
         this.lhs = lhs;
         this.rhs = rhs;
     }
@@ -55,14 +53,14 @@ public abstract class AbstractWriterGenerator<SELF extends AbstractWriterGenerat
     public CodeBlock.Builder build() {
         // delegate to any of the used blueprints
         Optional<Delegatee> delegate = ctx.delegation.findDelegatee(
-                ((TemplatablePrototypeKind) prototype.kind()).withTypesPrefix(List.of(type)),
+                kind.withTypesPrefix(List.of(type)),
                 prototype,
                 !(lhs instanceof Return),
                 stackDepth() > 1,
                 config,
                 generatedClass);
         if (delegate.isPresent()) {
-            invokeDelegate(delegate.get());
+            callDelegate(delegate.get());
             return code;
         }
 
@@ -75,9 +73,8 @@ public abstract class AbstractWriterGenerator<SELF extends AbstractWriterGenerat
                 beginControlFlow("if ($T.isFinite($C))", boxedType, rhs);
                 writePrimitive(type);
                 nextControlFlow("else");
-                RHS asString = new RHS(
-                        new StaticMethodInvocation(ctx.commonTypes.string, boxedType, "toString", List.of(rhs)), false);
-                nest(ctx.commonTypes.string, lhs, null, asString, false, config.propagateTo(PropagationKind.SUBSTITUTE))
+                RHS asString = new RHS(e(ctx.commonTypes.string, "$T.toString($C)", boxedType, rhs), false);
+                nest(ctx.commonTypes.string, lhs, pvn, asString, config.propagateTo(PropagationKind.SUBSTITUTE))
                         .build();
                 endControlFlow();
             } else {
@@ -94,20 +91,20 @@ public abstract class AbstractWriterGenerator<SELF extends AbstractWriterGenerat
      * that work with null values.
      */
     protected void writeNullable() {
-        if (rhs.nullable()) {
-            if (rhs.isVariable()) {
+        if (rhs.isNullable()) {
+            if (rhs.isQuick()) {
                 beginControlFlow("if ($C != null)", rhs);
             } else {
-                RHS nest = new RHS(createVariable(property.canonicalName()).withType(rhs.type()), true);
+                RHS nest = new RHS(createVariable(rhs.type(), pvn), true);
                 addStatement("$T $C = $C", type, nest, rhs);
-                nest(type, lhs, null, nest, false, config).writeNullable();
+                nest(type, lhs, "nullChecked", nest, config).writeNullable();
                 return;
             }
         }
 
         writeNullCheckedObject();
 
-        if (rhs.nullable()) {
+        if (rhs.isNullable()) {
             nextControlFlow("else");
             writeNull();
             endControlFlow();
@@ -119,32 +116,32 @@ public abstract class AbstractWriterGenerator<SELF extends AbstractWriterGenerat
      * specializations for some types that require a dedicated null check.
      */
     protected void writeNullCheckedObject() {
-        Optional<Setup> referenceSetup = ctx.references.resolveSetup(config, prototype, type, contextParameter());
+        Optional<Setup> referenceSetup = ctx.references.resolveSetup(config, contextParameter());
         if (referenceSetup.isPresent()) {
             Setup setup = referenceSetup.get();
             TypeMirror idType = setup.finalIdType(type, ctx);
-            RHS idVar = new RHS(createVariable("id").withType(idType), false);
+            RHS idVar = new RHS(createVariable(idType, "id"), false);
             addStatement("$T $C = $C", idType, idVar, setup.previouslyWritten(rhs));
             beginControlFlow("if ($C != null)", idVar);
-            nest(idType, lhs, new Property("id", "id", null), idVar, true, config.propagateTo(PropagationKind.PROPERTY))
+            nest(idType, lhs, "id", idVar, config.propagateTo(PropagationKind.PROPERTY))
                     .build();
             nextControlFlow("else");
         }
 
-        Optional<PerfectSnippet> converter = ctx.converters
+        Optional<Expr> converter = ctx.converters
                 .findOutputConverter(rhs, prototype, config, generatedClass)
                 .or(() -> ctx.converters.findJsonValueMethod(rhs));
         if (converter.isPresent()) {
-            TypedSnippet converted = converter.get();
-            RHS newValue = new RHS(createVariable("converted").withType(converted.type()), true);
-            addStatement(Snippet.of("$T $C = $C", converted.type(), newValue, converted));
-            nest(converted.type(), lhs, null, newValue, true, config.propagateTo(PropagationKind.SUBSTITUTE))
+            Expr converted = converter.get();
+            RHS newValue = new RHS(createVariable(converted.type(), "converted"), true);
+            addStatement(c("$T $C = $C", converted.type(), newValue, converted));
+            nest(converted.type(), lhs, pvn, newValue, config.propagateTo(PropagationKind.SUBSTITUTE))
                     .build();
             return;
         }
 
         if (ctx.commonTypes.isBoxed(type)) {
-            nest(ctx.types.unboxedType(type), lhs, null, rhs, false, config.propagateTo(PropagationKind.SUBSTITUTE))
+            nest(ctx.types.unboxedType(type), lhs, pvn, rhs, config.propagateTo(PropagationKind.SUBSTITUTE))
                     .build();
         } else if (ctx.commonTypes.isString(type) || ctx.commonTypes.isArrayOf(type, TypeKind.CHAR)) {
             writeString(ctx.commonTypes.isString(type) ? StringKind.STRING : StringKind.CHAR_ARRAY);
@@ -173,33 +170,28 @@ public abstract class AbstractWriterGenerator<SELF extends AbstractWriterGenerat
                         .iterator()
                         .next();
 
-        RHS elemVar = new RHS(createVariable("item").withType(componentType), true);
-        SELF nested = nest(
-                componentType,
-                new LHS.Array(),
-                Property.ITEM,
-                elemVar,
-                true,
-                config.propagateTo(PropagationKind.PROPERTY));
+        RHS elemVar = new RHS(createVariable(componentType, "item"), true);
+        SELF nested =
+                nest(componentType, new LHS.Array(), "item", elemVar, config.propagateTo(PropagationKind.PROPERTY));
         startArray();
-        ScopedVar firstMarker = writeCommaMarkerIfNecessary();
+        TypedVariable firstMarker = writeCommaMarkerIfNecessary();
         beginControlFlow("for ($T $C : $C)", nested.type, elemVar, rhs);
         writeCommaIfNecessary(firstMarker);
-        Exceptions.runWithContext(nested::build, "component", componentType);
+        Exceptions.runWithContext("component", componentType, nested::build);
         endControlFlow();
         endArray();
     }
 
-    private ScopedVar writeCommaMarkerIfNecessary() {
+    private TypedVariable writeCommaMarkerIfNecessary() {
         if (needsToWriteComma()) {
-            ScopedVar variable = createVariable("first");
+            TypedVariable variable = createVariable(ctx.types.getPrimitiveType(TypeKind.BOOLEAN), "first");
             addStatement("boolean $C = true", variable);
             return variable;
         }
         return null;
     }
 
-    private void writeCommaIfNecessary(ScopedVar firstMarker) {
+    private void writeCommaIfNecessary(TypedVariable firstMarker) {
         if (firstMarker != null) {
             beginControlFlow("if (!$C)", firstMarker);
             writeComma();
@@ -216,16 +208,15 @@ public abstract class AbstractWriterGenerator<SELF extends AbstractWriterGenerat
         TypeMirror keyType = typeBindings[0];
         TypeMirror valueType = typeBindings[1];
 
-        ScopedVar entry = createVariable("entry");
+        TypedVariable entry = createVariable(null, "entry");
 
-        RHS value = new RHS(PerfectSnippet.unsafe(entry).invokeMethod(valueType, "getValue"), true);
-        LHS.Field key = new LHS.Field("$L.getKey()", new Object[] {entry.name()});
-        SELF valueNested =
-                nest(valueType, key, Property.VALUE, value, true, config.propagateTo(PropagationKind.PROPERTY));
+        RHS value = new RHS(entry.call(valueType, "getValue"), true);
+        Member key = new Member(e(ctx.commonTypes.string, "$C.getKey()", entry));
+        SELF valueNested = nest(valueType, key, "value", value, config.propagateTo(PropagationKind.PROPERTY));
 
         startObject();
         beginControlFlow("for ($T<$T, $T> $C : $C.entrySet())", Map.Entry.class, keyType, valueType, entry, rhs);
-        Exceptions.runWithContext(valueNested::build, "value", valueType);
+        Exceptions.runWithContext("value", valueType, valueNested::build);
         endControlFlow();
         endObject();
     }
@@ -246,16 +237,15 @@ public abstract class AbstractWriterGenerator<SELF extends AbstractWriterGenerat
     private void writePolymorphicObject(Polymorphism polymorphism) {
         Branch branch = Branch.IF;
         for (Polymorphism.Child child : polymorphism.children()) {
-            branch.controlFlow(this, "$C instanceof $T", rhs, child.type());
+            beginControlFlow(branch, "$C instanceof $T", rhs, child.type());
             branch = Branch.ELSE_IF;
-            RHS casted = new RHS(createVariable(propertyName() + "Cast").withType(child.type()), false);
+            RHS casted = new RHS(createVariable(child.type(), pvn + "Cast"), false);
             addStatement("$T $C = ($T) $C", child.type(), casted, child.type(), rhs);
 
             AnyConfig childConfig = config.propagateTo(
                     PropagationKind.SUBSTITUTE /* this is fine with the configuration options that we
                  currently have */);
-            TemplatablePrototypeKind target =
-                    ((TemplatablePrototypeKind) prototype.kind()).withTypesPrefix(List.of(child.type()));
+            TemplatablePrototypeKind target = kind.withTypesPrefix(List.of(child.type()));
             ctx.delegation
                     .findDelegatee(target, prototype, false, true, config, generatedClass)
                     .ifPresentOrElse(
@@ -273,27 +263,27 @@ public abstract class AbstractWriterGenerator<SELF extends AbstractWriterGenerat
                                         polymorphism.discriminator(),
                                         child.name());
                                 Exceptions.runWithContext(
-                                        () -> nest(child.type(), lhs, Property.INSTANCE, casted, true, childConfig)
-                                                .invokeDelegate(delegatee),
                                         "instance",
-                                        child.type());
+                                        child.type(),
+                                        () -> nest(child.type(), lhs, "instance", casted, childConfig)
+                                                .callDelegate(delegatee));
                             },
                             () -> {
                                 startObject();
                                 code.add("\n");
                                 nest(
                                                 ctx.commonTypes.string,
-                                                new LHS.Field("$S", new Object[] {polymorphism.discriminator()}),
-                                                new Property("discriminator", polymorphism.discriminator(), null),
+                                                new Member(
+                                                        e(ctx.commonTypes.string, "$S", polymorphism.discriminator())),
+                                                "discriminator",
                                                 new RHS(ctx.commonTypes.stringLiteral(child.name()), false),
-                                                false,
                                                 config.propagateTo(PropagationKind.PROPERTY))
                                         .build();
                                 Exceptions.runWithContext(
-                                        () -> nest(child.type(), lhs, Property.INSTANCE, casted, true, childConfig)
-                                                .writeObjectPropertiesAsFields(),
                                         "instance",
-                                        child.type());
+                                        child.type(),
+                                        () -> nest(child.type(), lhs, "instance", casted, childConfig)
+                                                .writeObjectPropertiesAsFields());
                                 endObject();
                             });
         }
@@ -311,24 +301,22 @@ public abstract class AbstractWriterGenerator<SELF extends AbstractWriterGenerat
             beginControlFlow("if ($C.isDiscriminatorPending())", context);
             nest(
                             ctx.commonTypes.string,
-                            new LHS.Field("$L.pendingDiscriminatorProperty", new Object[] {context.name()}),
-                            Property.DISCRIMINATOR,
-                            new RHS(context.readField(ctx.commonTypes.string, "pendingDiscriminatorValue"), false),
-                            false,
+                            new Member(e(ctx.commonTypes.string, "$C.pendingDiscriminatorProperty", context)),
+                            "discriminator",
+                            new RHS(context.field(ctx.commonTypes.string, "pendingDiscriminatorValue"), false),
                             config.propagateTo(PropagationKind.PROPERTY))
                     .build();
             addStatement("$C.pendingDiscriminatorProperty = null", context);
             endControlFlow();
         }
 
-        Optional<Setup> referencesSetup = ctx.references.resolveSetup(config, prototype, type, contextParameter());
+        Optional<Setup> referencesSetup = ctx.references.resolveSetup(config, contextParameter());
         referencesSetup.ifPresent(setup -> setup.generateId(rhs)
                 .ifPresent(id -> nest(
                                 setup.idType(),
-                                new LHS.Field("$S", new Object[] {setup.property()}),
-                                new Property("id", "id", null),
+                                new Member(e(ctx.commonTypes.string, "$S", setup.property())),
+                                "id",
                                 new RHS(id, false),
-                                true,
                                 config.propagateTo(PropagationKind.PROPERTY))
                         .build()));
 
@@ -344,26 +332,25 @@ public abstract class AbstractWriterGenerator<SELF extends AbstractWriterGenerat
             verificationForDto.addProperty(
                     property.externalName(), property.accessor().type(), property.config());
 
-            LHS lhs = new LHS.Field("$S", new Object[] {property.externalName()});
-            RHS accessorCall = new RHS(property.accessor().readSnippet(rhs), true);
+            LHS lhs = new Member(e(ctx.commonTypes.string, "$S", property.externalName()));
+            RHS accessorCall = new RHS(property.accessor().read(rhs), true);
             SELF nested = nest(
                     property.accessor().type(),
                     lhs,
-                    new Property(property.canonicalName(), property.externalName(), property.config()),
+                    property.canonicalName(),
                     accessorCall,
-                    true,
                     property.config().propagateTo(PropagationKind.PROPERTY));
-            Exceptions.runWithContext(nested::build, "property", property.canonicalName());
+            Exceptions.runWithContext("property", property.canonicalName(), nested::build);
             referencesSetup.flatMap(s -> s.rememberId(rhs, accessorCall)).ifPresent(this::addStatement);
             code.add("\n");
         });
     }
 
     private void writeEnum() {
-        RHS representation = new RHS(createVariable(propertyName()).withType(ctx.commonTypes.string), false);
-        Snippet reprSnippet = Enums.serializationSnippet(ctx, generatedClass, type, rhs);
-        addStatement("$T $C = $C", ctx.commonTypes.string, representation, reprSnippet);
-        nest(ctx.commonTypes.string, lhs, null, representation, false, config.propagateTo(PropagationKind.SUBSTITUTE))
+        RHS representation = new RHS(createVariable(ctx.commonTypes.string, pvn), false);
+        Code reprCode = Enums.serializationCode(ctx, generatedClass, type, rhs);
+        addStatement("$T $C = $C", ctx.commonTypes.string, representation, reprCode);
+        nest(ctx.commonTypes.string, lhs, "string", representation, config.propagateTo(PropagationKind.SUBSTITUTE))
                 .build();
     }
 
@@ -394,51 +381,40 @@ public abstract class AbstractWriterGenerator<SELF extends AbstractWriterGenerat
 
     protected void writeComma() {}
 
-    protected abstract void invokeDelegate(Delegatee delegatee);
+    protected abstract void callDelegate(Delegatee delegatee);
 
-    protected abstract SELF nest(
-            TypeMirror type, LHS lhs, Property property, RHS rhs, boolean stackRelevantType, AnyConfig config);
+    protected abstract SELF nest(TypeMirror type, LHS lhs, String potentialVariableName, RHS rhs, AnyConfig config);
 
-    Snippet base64Encode(Snippet snippet) {
-        return Snippet.of("$T.getEncoder().encodeToString($C)", Base64.class, snippet);
+    Code base64Encode(Code code) {
+        return c("$T.getEncoder().encodeToString($C)", Base64.class, code);
     }
 
-    Snippet charArrayToString(Snippet snippet) {
-        return Snippet.of("new $T($C)", String.class, snippet);
+    Code charArrayToString(Code code) {
+        return c("new $T($C)", String.class, code);
     }
 
+    /** Left-hand side of the serialization process. */
     protected sealed interface LHS {
 
         record Return() implements LHS {}
 
         record Array() implements LHS {}
 
-        record Field(String format, Object[] args) implements LHS, Snippet {
-            @Override
-            public Flattened flatten() {
-                return new Flattened(format, args);
+        final class Member extends ExprWrapper<Member> implements LHS, Code {
+            Member(Expr wrapped) {
+                super(wrapped, Member::new);
             }
         }
     }
 
-    record RHS(PerfectSnippet snippet, boolean nullable) implements PerfectSnippet {
-        public Flattened flatten() {
-            return snippet.flatten();
-        }
+    /** Right-hand side of the deserialization process. */
+    @Getter
+    protected static class RHS extends ExprWrapper<RHS> {
+        private final boolean nullable;
 
-        @Override
-        public TypeMirror type() {
-            return snippet.type();
-        }
-
-        @Override
-        public PerfectSnippet replaceVar(String name, PerfectSnippet replacement) {
-            return new RHS(snippet.replaceVar(name, replacement), nullable);
-        }
-
-        @Override
-        public boolean isVariable() {
-            return snippet.isVariable();
+        protected RHS(Expr wrapped, boolean nullable) {
+            super(wrapped, e -> new RHS(wrapped, nullable));
+            this.nullable = nullable;
         }
     }
 

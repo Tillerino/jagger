@@ -1,5 +1,7 @@
 package org.tillerino.jagger.processor;
 
+import static org.tillerino.jagger.processor.util.Expr.e;
+
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -24,13 +26,8 @@ import org.tillerino.jagger.processor.ext.PrototypeKind;
 import org.tillerino.jagger.processor.features.*;
 import org.tillerino.jagger.processor.features.Generics.TypeVar;
 import org.tillerino.jagger.processor.features.Properties;
-import org.tillerino.jagger.processor.util.Annotations;
+import org.tillerino.jagger.processor.util.*;
 import org.tillerino.jagger.processor.util.Annotations.AnnotationMirrorWrapper;
-import org.tillerino.jagger.processor.util.Exceptions;
-import org.tillerino.jagger.processor.util.InstantiatedMethod;
-import org.tillerino.jagger.processor.util.ShortName;
-import org.tillerino.jagger.processor.util.Snippet.PerfectSnippet;
-import org.tillerino.jagger.processor.util.Snippet.PerfectSnippet.Literal;
 
 public class JaggerContext {
     public final Elements elements;
@@ -47,7 +44,7 @@ public class JaggerContext {
     public Creators creators;
     public References references;
     public Properties properties;
-    public Alias alias;
+    public Aliases aliases;
     public Enums enums;
     public CodeGeneration codeGeneration;
     public ConfigProperties configProperties;
@@ -71,7 +68,7 @@ public class JaggerContext {
         creators = new Creators(this);
         references = new References(this);
         properties = new Properties(this);
-        alias = new Alias(this);
+        aliases = new Aliases(this);
         enums = new Enums(this);
         codeGeneration = new CodeGeneration(this);
         configProperties = new ConfigProperties(this);
@@ -262,14 +259,14 @@ public class JaggerContext {
             return type1.getKind() != TypeKind.ERROR && types.isAssignable(type1, type2);
         }
 
-        public PerfectSnippet getNullValueRaw(TypeMirror type) {
+        public Expr getNullValueRaw(TypeMirror type) {
             return switch (type.getKind()) {
-                case BOOLEAN -> new Literal(type, "false");
-                case BYTE, SHORT, INT, CHAR -> new Literal(type, "0");
-                case LONG -> new Literal(type, "0L");
-                case FLOAT -> new Literal(type, "0.0f");
-                case DOUBLE -> new Literal(type, "0.0d");
-                case ARRAY, DECLARED, TYPEVAR, WILDCARD, UNION, INTERSECTION -> new Literal(type, "null");
+                case BOOLEAN -> e(type, "false");
+                case BYTE, SHORT, INT, CHAR -> e(type, "0");
+                case LONG -> e(type, "0L");
+                case FLOAT -> e(type, "0.0f");
+                case DOUBLE -> e(type, "0.0d");
+                case ARRAY, DECLARED, TYPEVAR, WILDCARD, UNION, INTERSECTION -> e(type, "null");
                 default -> throw Exceptions.unexpected();
             };
         }
@@ -283,23 +280,8 @@ public class JaggerContext {
             return element;
         }
 
-        public PerfectSnippet stringLiteral(String s) {
-            return new PerfectSnippet() {
-                @Override
-                public PerfectSnippet replaceVar(String name, PerfectSnippet replacement) {
-                    return this;
-                }
-
-                @Override
-                public TypeMirror type() {
-                    return string;
-                }
-
-                @Override
-                public Flattened flatten() {
-                    return new Flattened("$S", new Object[] {s});
-                }
-            };
+        public Expr stringLiteral(String s) {
+            return e(commonTypes.string, "$S", s);
         }
     }
 }

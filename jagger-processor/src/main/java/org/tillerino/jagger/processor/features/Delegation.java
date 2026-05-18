@@ -1,5 +1,7 @@
 package org.tillerino.jagger.processor.features;
 
+import static org.tillerino.jagger.processor.util.Expr.e;
+
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Optional;
@@ -20,11 +22,10 @@ import org.tillerino.jagger.processor.config.ConfigProperty.LocationKind;
 import org.tillerino.jagger.processor.config.ConfigProperty.MergeFunction;
 import org.tillerino.jagger.processor.config.ConfigProperty.PropagationKind;
 import org.tillerino.jagger.processor.ext.PrototypeKind.TemplatablePrototypeKind;
+import org.tillerino.jagger.processor.util.Expr;
 import org.tillerino.jagger.processor.util.InstantiatedMethod;
 import org.tillerino.jagger.processor.util.InstantiatedMethod.InstantiatedVariable;
 import org.tillerino.jagger.processor.util.ShortName;
-import org.tillerino.jagger.processor.util.Snippet.PerfectSnippet;
-import org.tillerino.jagger.processor.util.Snippet.PerfectSnippet.ClassExpr;
 
 public class Delegation {
     protected final JaggerContext ctx;
@@ -38,7 +39,7 @@ public class Delegation {
             List.of(LocationKind.BLUEPRINT, LocationKind.PROTOTYPE),
             JsonConfig.DelegateeMode.DEFAULT,
             MergeFunction.notDefault(),
-            List.of());
+            PropagationKind.none());
 
     public static ConfigProperty<Boolean> DELEGATE_FROM = ConfigProperty.createConfigProperty(
             "DELEGATE_FROM", List.of(LocationKind.PROPERTY), true, (x, y) -> x, List.of(PropagationKind.SUBSTITUTE));
@@ -97,7 +98,7 @@ public class Delegation {
 
     private Optional<Delegatee> findDelegateeInMethodParameters(
             JaggerPrototype prototype, TemplatablePrototypeKind target) {
-        if (!(prototype.kind() instanceof TemplatablePrototypeKind t)) {
+        if (!(prototype.kind() instanceof TemplatablePrototypeKind)) {
             return Optional.empty();
         }
         for (InstantiatedVariable parameter : prototype.parameters()) {
@@ -115,10 +116,10 @@ public class Delegation {
         return Optional.empty();
     }
 
-    public List<PerfectSnippet> findArguments(
+    public List<Expr> findArguments(
             JaggerPrototype caller,
             InstantiatedMethod callee,
-            List<PerfectSnippet> additionalParameters,
+            List<Expr> additionalParameters,
             int firstArgument,
             GeneratedClass generatedClass) {
         return IntStream.range(firstArgument, callee.parameters().size())
@@ -135,23 +136,23 @@ public class Delegation {
                 .collect(Collectors.toList());
     }
 
-    private Optional<PerfectSnippet> findArgument(
+    private Optional<Expr> findArgument(
             JaggerPrototype caller,
             GeneratedClass generatedClass,
-            List<PerfectSnippet> additionalParameters,
+            List<Expr> additionalParameters,
             InstantiatedVariable targetArgument) {
         // search in caller's own parameters
-        Iterable<PerfectSnippet> locallyAvailable =
+        Iterable<Expr> locallyAvailable =
                 () -> Stream.concat(additionalParameters.stream(), caller.parameters().stream())
                         .iterator();
-        for (PerfectSnippet instantiatedParameter : locallyAvailable) {
+        for (Expr instantiatedParameter : locallyAvailable) {
             if (ctx.commonTypes.isAssignable(instantiatedParameter.type(), targetArgument.type())) {
                 return Optional.of(instantiatedParameter);
             }
         }
 
         // see if we can instantiate an instance from our list of used blueprints
-        PerfectSnippet delegateeInField =
+        Expr delegateeInField =
                 generatedClass.getOrCreateUsedBlueprintWithTypeField(targetArgument.type(), caller.config());
         if (delegateeInField != null) {
             return Optional.of(delegateeInField);
@@ -161,18 +162,16 @@ public class Delegation {
                 && !t.getTypeArguments().isEmpty()) {
             TypeMirror typeOfClass = t.getTypeArguments().get(0);
             if (Generics.canBeClass(typeOfClass)) {
-                return Optional.of(new ClassExpr(typeOfClass));
+                return Optional.of(e(null, "$T.class", typeOfClass));
             }
         }
         // see if we can instantiate a lambda from our list of used blueprints
         return ctx.generics.getOrCreateLambda(generatedClass, targetArgument.type(), caller.parameters(), 0);
     }
 
-    public record Delegatee(PerfectSnippet fieldOrParameter, InstantiatedMethod method) {
-        public PerfectSnippet invoke(
-                JaggerPrototype caller, List<PerfectSnippet> additionalParameters, GeneratedClass generatedClass) {
-            return method.invokeInstanceFindingArguments(
-                    fieldOrParameter, caller, additionalParameters, generatedClass);
+    public record Delegatee(Expr fieldOrParameter, InstantiatedMethod method) {
+        public Expr call(JaggerPrototype caller, List<Expr> additionalParameters, GeneratedClass generatedClass) {
+            return method.callFindingArguments(fieldOrParameter, caller, additionalParameters, generatedClass);
         }
     }
 

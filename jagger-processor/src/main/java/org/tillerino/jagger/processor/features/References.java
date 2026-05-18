@@ -1,5 +1,8 @@
 package org.tillerino.jagger.processor.features;
 
+import static org.tillerino.jagger.processor.util.Code.c;
+import static org.tillerino.jagger.processor.util.Expr.e;
+
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -8,7 +11,6 @@ import javax.lang.model.type.DeclaredType;
 import javax.lang.model.type.TypeMirror;
 import org.apache.commons.lang3.exception.ContextedRuntimeException;
 import org.tillerino.jagger.processor.JaggerContext;
-import org.tillerino.jagger.processor.JaggerPrototype;
 import org.tillerino.jagger.processor.config.AnyConfig;
 import org.tillerino.jagger.processor.config.AnyConfig.ResolvedProperty;
 import org.tillerino.jagger.processor.config.ConfigProperty;
@@ -17,12 +19,10 @@ import org.tillerino.jagger.processor.config.ConfigProperty.LocationKind;
 import org.tillerino.jagger.processor.config.ConfigProperty.PropagationKind;
 import org.tillerino.jagger.processor.features.Generics.TypeVar;
 import org.tillerino.jagger.processor.util.Accessor.ReadAccessor;
+import org.tillerino.jagger.processor.util.Code;
 import org.tillerino.jagger.processor.util.Exceptions;
+import org.tillerino.jagger.processor.util.Expr;
 import org.tillerino.jagger.processor.util.InstantiatedMethod.InstantiatedVariable;
-import org.tillerino.jagger.processor.util.Snippet;
-import org.tillerino.jagger.processor.util.Snippet.PerfectSnippet;
-import org.tillerino.jagger.processor.util.Snippet.PerfectSnippet.ClassExpr;
-import org.tillerino.jagger.processor.util.Snippet.PerfectSnippet.StaticMethodReference;
 
 public class References {
     protected final JaggerContext ctx;
@@ -46,11 +46,7 @@ public class References {
                     "Merged " + strong.sourceLocation() + " and " + weak.sourceLocation()),
             PropagationKind.none());
 
-    public Optional<Setup> resolveSetup(
-            AnyConfig anyConfig,
-            JaggerPrototype prototype,
-            TypeMirror dto,
-            Optional<InstantiatedVariable> contextVariable) {
+    public Optional<Setup> resolveSetup(AnyConfig anyConfig, Optional<InstantiatedVariable> contextVariable) {
         ResolvedProperty<Config> configResolvedProperty = anyConfig.resolveProperty(REFERENCES);
         Config config = configResolvedProperty.value();
         if (config == null) {
@@ -92,45 +88,45 @@ public class References {
             TypeMirror idType,
             TypeMirror resolver,
             TypeMirror scope,
-            PerfectSnippet context) {
-        public Snippet bindItem(Snippet idVar, Snippet objectVar) {
-            return Snippet.of(
+            Expr context) {
+        public Code bindItem(Code idVar, Code objectVar) {
+            return c(
                     "$C.bindItem($T.class, $T.class, $T::new, $C, $C)",
-                    context(),
-                    resolver(),
-                    scope(),
-                    resolver(),
+                    context,
+                    resolver,
+                    scope,
+                    resolver,
                     idVar,
                     objectVar);
         }
 
-        public Snippet resolveId(Snippet idVar) {
-            return Snippet.of("$C.resolveId($T.class, $T.class, $C)", context(), resolver(), scope(), idVar);
+        public Code resolveId(Code idVar) {
+            return c("$C.resolveId($T.class, $T.class, $C)", context, resolver, scope, idVar);
         }
 
-        public Snippet previouslyWritten(Snippet rhs) {
-            return Snippet.of("$C.previouslyWrittenId($C)", context(), rhs);
+        public Code previouslyWritten(Code rhs) {
+            return c("$C.previouslyWrittenId($C)", context, rhs);
         }
 
-        public Optional<PerfectSnippet> generateId(PerfectSnippet rhs) {
+        public Optional<Expr> generateId(Expr rhs) {
             if (isPropertyBased()) {
                 return Optional.empty();
             }
-            return Optional.of(context.invokeMethod(
+            return Optional.of(e(
                     idType,
-                    "generateId",
-                    List.of(
-                            new ClassExpr(generator()),
-                            new ClassExpr(scope()),
-                            new StaticMethodReference(null, generator(), "new"),
-                            rhs)));
+                    "$C.generateId($T.class, $T.class, $T::new, $C)",
+                    context,
+                    generator,
+                    scope,
+                    generator,
+                    rhs));
         }
 
-        public Optional<Snippet> rememberId(Snippet rhs, Snippet property) {
+        public Optional<Code> rememberId(Code rhs, Code property) {
             if (!isPropertyBased()) {
                 return Optional.empty();
             }
-            return Optional.of(Snippet.of("$C.rememberId($C, $C)", context(), rhs, property));
+            return Optional.of(c("$C.rememberId($C, $C)", context(), rhs, property));
         }
 
         public boolean isPropertyBased() {

@@ -2,6 +2,7 @@ package org.tillerino.jagger.processor.databind;
 
 import jakarta.annotation.Nonnull;
 import jakarta.annotation.Nullable;
+import java.util.Objects;
 import java.util.Optional;
 import javax.lang.model.type.DeclaredType;
 import javax.lang.model.type.TypeMirror;
@@ -12,6 +13,7 @@ import org.tillerino.jagger.processor.config.ConfigProperty;
 import org.tillerino.jagger.processor.databind.DatabindPrototypeDetector.DatabindPrototypeKind;
 import org.tillerino.jagger.processor.ext.PrototypeKind.CodeGeneratorContext;
 import org.tillerino.jagger.processor.features.Polymorphism;
+import org.tillerino.jagger.processor.util.Code;
 import org.tillerino.jagger.processor.util.InstantiatedMethod.InstantiatedVariable;
 
 public abstract class AbstractCodeGeneratorStack<SELF extends AbstractCodeGeneratorStack<SELF>>
@@ -23,12 +25,14 @@ public abstract class AbstractCodeGeneratorStack<SELF extends AbstractCodeGenera
 
     protected final boolean stackRelevantType;
 
-    @Nullable
-    protected final Property property;
+    /** potential variable name */
+    protected final String pvn;
 
     protected final boolean canBePolyChild;
 
     protected final AnyConfig config;
+
+    protected final DatabindPrototypeKind kind;
 
     // for creating the root generator
     protected AbstractCodeGeneratorStack(CodeGeneratorContext generatorContext, TypeMirror type) {
@@ -37,31 +41,28 @@ public abstract class AbstractCodeGeneratorStack<SELF extends AbstractCodeGenera
 
         this.parent = null;
         this.stackRelevantType = true;
-        this.property = null;
+        this.pvn = "root";
         this.canBePolyChild =
                 contextParameter().isPresent() && stackDepth() == 1 && Polymorphism.isSomeChild(type, ctx);
         this.config = type instanceof DeclaredType dt && dt.asElement() != null
                 ? AnyConfig.create(dt.asElement(), ConfigProperty.LocationKind.DTO, ctx)
                         .merge(prototype.config())
                 : prototype.config();
+        this.kind = (DatabindPrototypeKind) prototype.kind();
     }
 
     // for nesting generators
-    protected AbstractCodeGeneratorStack(
-            @Nonnull SELF parent,
-            TypeMirror type,
-            boolean stackRelevantType,
-            @Nullable Property property,
-            AnyConfig config) {
+    protected AbstractCodeGeneratorStack(@Nonnull SELF parent, TypeMirror type, String pvn, AnyConfig config) {
         super(parent);
         this.type = type;
 
         this.parent = parent;
-        this.stackRelevantType = stackRelevantType;
-        this.property = property;
+        this.stackRelevantType = !parent.ctx.types.isSameType(parent.type, type);
+        this.pvn = Objects.requireNonNull(pvn);
         this.canBePolyChild =
                 contextParameter().isPresent() && stackDepth() == 1 && Polymorphism.isSomeChild(type, ctx);
         this.config = config;
+        this.kind = parent.kind;
     }
 
     protected void detectSelfReferencingType() {
@@ -86,10 +87,6 @@ public abstract class AbstractCodeGeneratorStack<SELF extends AbstractCodeGenera
         return parent != null ? 1 + parent.stackDepth() : 1;
     }
 
-    protected String propertyName() {
-        return property != null ? property.serializedName : parent != null ? parent.propertyName() : "root";
-    }
-
     protected Optional<InstantiatedVariable> contextParameter() {
         for (InstantiatedVariable parameter : prototype.parameters()) {
             TypeMirror targetContextType = ((DatabindPrototypeKind) prototype.kind()).contextType();
@@ -98,6 +95,29 @@ public abstract class AbstractCodeGeneratorStack<SELF extends AbstractCodeGenera
             }
         }
         return Optional.empty();
+    }
+
+    void beginControlFlow(Branch branch, String s, Object... args) {
+        switch (branch) {
+            case IF -> beginControlFlow("if (" + s + ")", args);
+            case ELSE_IF -> nextControlFlow("else if (" + s + ")", args);
+        }
+        ;
+    }
+
+    void beginControlFlow(Branch branch, Code condition) {
+        switch (branch) {
+            case IF -> beginControlFlow("if ($C)", condition);
+            case ELSE_IF -> nextControlFlow("else if ($C)", condition);
+        }
+        ;
+    }
+
+    NullaryControlFlowScope lastBranch(Branch branch) {
+        return switch (branch) {
+            case IF -> new NullaryControlFlowScope(() -> {});
+            case ELSE_IF -> nextControlFlow("else");
+        };
     }
 
     protected enum StringKind {
@@ -109,13 +129,23 @@ public abstract class AbstractCodeGeneratorStack<SELF extends AbstractCodeGenera
         BYTE_ARRAY
     }
 
-    public record Property(
-            String canonicalName,
-            String serializedName,
-            @Nullable AnyConfig config) {
-        static Property ITEM = new Property("item", "item", null);
-        static Property VALUE = new Property("value", "value", null);
-        static Property DISCRIMINATOR = new Property("discriminator", "discriminator", null);
-        static Property INSTANCE = new Property("instance", "instance", null);
+    protected enum Branch {
+        IF,
+        ELSE_IF,
+        ;
+    }
+
+    public class NestedProperty {
+        public final String canonicalName;
+        public final String serializedName;
+        public final AnyConfig config;
+        public final SELF generator;
+
+        NestedProperty(String canonicalName, String serializedName, AnyConfig config, SELF generator) {
+            this.canonicalName = canonicalName;
+            this.serializedName = serializedName;
+            this.config = config;
+            this.generator = generator;
+        }
     }
 }

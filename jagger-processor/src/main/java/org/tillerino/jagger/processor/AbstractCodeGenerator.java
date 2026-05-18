@@ -1,5 +1,7 @@
 package org.tillerino.jagger.processor;
 
+import static org.tillerino.jagger.processor.util.Code.c;
+
 import com.squareup.javapoet.CodeBlock;
 import java.util.LinkedHashSet;
 import java.util.Objects;
@@ -8,10 +10,10 @@ import java.util.Stack;
 import java.util.function.Consumer;
 import javax.lang.model.type.TypeMirror;
 import org.tillerino.jagger.processor.ext.PrototypeKind.CodeGeneratorContext;
+import org.tillerino.jagger.processor.util.Code;
+import org.tillerino.jagger.processor.util.Code.Flattened;
+import org.tillerino.jagger.processor.util.Expr.TypedVariable;
 import org.tillerino.jagger.processor.util.InstantiatedMethod.InstantiatedVariable;
-import org.tillerino.jagger.processor.util.Snippet;
-import org.tillerino.jagger.processor.util.Snippet.Flattened;
-import org.tillerino.jagger.processor.util.Snippet.PerfectSnippet.TypedVariable;
 
 public class AbstractCodeGenerator<SELF extends AbstractCodeGenerator<SELF>> {
     protected final CodeBlock.Builder code;
@@ -41,36 +43,36 @@ public class AbstractCodeGenerator<SELF extends AbstractCodeGenerator<SELF>> {
         this.prototype = parent.prototype;
     }
 
-    public AbstractCodeGenerator<SELF> addStatement(Snippet s) {
+    public AbstractCodeGenerator<SELF> addStatement(Code s) {
         Flattened f = s.flatten();
         code.addStatement(f.format(), f.args());
         return this;
     }
 
     public AbstractCodeGenerator<SELF> addStatement(String format, Object... args) {
-        return addStatement(Snippet.of(format, args));
+        return addStatement(c(format, args));
     }
 
-    public NullaryControlFlowScope beginControlFlow(Snippet s) {
+    public NullaryControlFlowScope beginControlFlow(Code s) {
         Flattened f = s.flatten();
         code.beginControlFlow(f.format(), f.args());
         variables.push(new LinkedHashSet<>(variables.peek()));
-        return new NullaryControlFlowScope(this);
+        return new NullaryControlFlowScope(this::endControlFlow);
     }
 
     public NullaryControlFlowScope beginControlFlow(String controlFlow, Object... args) {
-        return beginControlFlow(Snippet.of(controlFlow, args));
+        return beginControlFlow(c(controlFlow, args));
     }
 
-    public NullaryControlFlowScope nextControlFlow(Snippet s) {
+    public NullaryControlFlowScope nextControlFlow(Code s) {
         Flattened f = s.flatten();
         popVariablesStack();
         pushVariablesStack(f);
-        return new NullaryControlFlowScope(this);
+        return new NullaryControlFlowScope(this::endControlFlow);
     }
 
     public NullaryControlFlowScope nextControlFlow(String controlFlow, Object... args) {
-        return nextControlFlow(Snippet.of(controlFlow, args));
+        return nextControlFlow(c(controlFlow, args));
     }
 
     public AbstractCodeGenerator<SELF> endControlFlow() {
@@ -89,15 +91,15 @@ public class AbstractCodeGenerator<SELF extends AbstractCodeGenerator<SELF>> {
         assert !variables.isEmpty();
     }
 
-    public ScopedVar createVariable(String name) {
+    public TypedVariable createVariable(TypeMirror t, String name) {
         if (variables.peek().add(name)) {
-            return new ScopedVar(name);
+            return new TypedVariable(t, name);
         }
         int suf = 2;
         while (!variables.peek().add(name + suf)) {
             suf++;
         }
-        return new ScopedVar(name + suf);
+        return new TypedVariable(t, name + suf);
     }
 
     /**
@@ -105,7 +107,7 @@ public class AbstractCodeGenerator<SELF extends AbstractCodeGenerator<SELF>> {
      * @param body body-generating code - indented with a nested variable scope
      * @param afterBody e.g. {@code ;\n}
      */
-    public void lambda(Snippet parameters, Runnable body, Snippet afterBody) {
+    public void lambda(Code parameters, Runnable body, Code afterBody) {
         Flattened f = parameters.flatten();
         code.add(f.format() + " -> {\n", f.args());
 
@@ -119,46 +121,35 @@ public class AbstractCodeGenerator<SELF extends AbstractCodeGenerator<SELF>> {
         code.add("}" + g.format(), g.args());
     }
 
-    public record ScopedVar(String name) implements Snippet {
-        @Override
-        public Flattened flatten() {
-            return Flattened.of("$L", name());
-        }
-
-        public TypedVariable withType(TypeMirror type) {
-            return new TypedVariable(type, name);
-        }
-    }
-
     public static class NullaryControlFlowScope {
-        final AbstractCodeGenerator<?> generator;
+        private final Runnable afterBody;
 
-        public NullaryControlFlowScope(AbstractCodeGenerator<?> generator) {
-            this.generator = generator;
+        public NullaryControlFlowScope(Runnable afterBody) {
+            this.afterBody = afterBody;
         }
 
         public void withBody(Runnable r) {
             r.run();
-            generator.endControlFlow();
+            afterBody.run();
         }
 
         public <T> UnaryControlFlowScope<T> withPayload(T payload) {
-            return new UnaryControlFlowScope<>(generator, payload);
+            return new UnaryControlFlowScope<>(afterBody, payload);
         }
     }
 
     public static class UnaryControlFlowScope<T> {
-        final AbstractCodeGenerator<?> generator;
+        private final Runnable afterBody;
         final T argument;
 
-        public UnaryControlFlowScope(AbstractCodeGenerator<?> generator, T argument) {
-            this.generator = generator;
+        public UnaryControlFlowScope(Runnable afterBody, T argument) {
+            this.afterBody = afterBody;
             this.argument = argument;
         }
 
         public void withBody(Consumer<T> c) {
             c.accept(argument);
-            generator.endControlFlow();
+            afterBody.run();
         }
     }
 }

@@ -17,8 +17,8 @@ import org.tillerino.jagger.processor.JaggerPrototype;
 import org.tillerino.jagger.processor.config.AnyConfig;
 import org.tillerino.jagger.processor.config.ConfigProperty.LocationKind;
 import org.tillerino.jagger.processor.features.Generics.TypeVar;
+import org.tillerino.jagger.processor.util.Expr;
 import org.tillerino.jagger.processor.util.InstantiatedMethod;
-import org.tillerino.jagger.processor.util.Snippet.PerfectSnippet;
 
 public class Converters {
     protected final JaggerContext ctx;
@@ -43,8 +43,8 @@ public class Converters {
                 .findFirst();
     }
 
-    public Optional<PerfectSnippet> findOutputConverter(
-            PerfectSnippet toConvert, JaggerPrototype prototype, AnyConfig config, GeneratedClass generatedClass) {
+    public Optional<Expr> findOutputConverter(
+            Expr toConvert, JaggerPrototype prototype, AnyConfig config, GeneratedClass generatedClass) {
         Map<TypeVar, TypeMirror> typeBindings = new LinkedHashMap<>();
         return declaredMethodsFromSelfAndUsed(prototype.blueprint(), config)
                 .flatMap(method -> {
@@ -56,7 +56,7 @@ public class Converters {
                                     typeBindings,
                                     method.freeTypeVars())) {
                         InstantiatedMethod instantiatedMethod = ctx.generics.applyTypeBindings(method, typeBindings);
-                        return Stream.of(instantiatedMethod.invokeStaticFindingArguments(
+                        return Stream.of(instantiatedMethod.callStaticFindingArguments(
                                 prototype, List.of(toConvert), generatedClass));
                     }
                     return Stream.empty();
@@ -86,9 +86,9 @@ public class Converters {
                 config.reversedUses().stream().flatMap(use -> use.declaredMethods.stream()));
     }
 
-    public Optional<PerfectSnippet> findJsonValueMethod(PerfectSnippet toConvert) {
+    public Optional<Expr> findJsonValueMethod(Expr toConvert) {
         Optional<InstantiatedMethod> result = findJsonValueMethod(toConvert.type(), __ -> true);
-        return result.map(m -> m.invokeInstance(toConvert, List.of()));
+        return result.map(m -> m.call(toConvert));
     }
 
     public Optional<InstantiatedMethod> findJsonValueMethod(

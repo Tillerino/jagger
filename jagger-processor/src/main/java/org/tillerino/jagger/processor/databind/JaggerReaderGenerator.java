@@ -1,65 +1,64 @@
 package org.tillerino.jagger.processor.databind;
 
 import static org.tillerino.jagger.api.JaggerReader.Advance.CONSUME;
-import static org.tillerino.jagger.processor.util.Snippet.of;
+import static org.tillerino.jagger.processor.util.Code.c;
 
 import com.squareup.javapoet.ClassName;
 import jakarta.annotation.Nonnull;
-import javax.lang.model.element.VariableElement;
 import javax.lang.model.type.TypeMirror;
 import org.apache.commons.lang3.exception.ContextedRuntimeException;
 import org.tillerino.jagger.api.JaggerReader;
 import org.tillerino.jagger.processor.config.AnyConfig;
 import org.tillerino.jagger.processor.ext.PrototypeKind.CodeGeneratorContext;
-import org.tillerino.jagger.processor.util.Snippet;
+import org.tillerino.jagger.processor.util.Code;
+import org.tillerino.jagger.processor.util.InstantiatedMethod.InstantiatedVariable;
 
 public class JaggerReaderGenerator extends AbstractReaderGenerator<JaggerReaderGenerator> {
-    private final VariableElement parserVariable;
+    private final InstantiatedVariable parserVariable;
 
     public JaggerReaderGenerator(CodeGeneratorContext generatorContext) {
         super(generatorContext);
-        parserVariable = prototype.element().getParameters().get(0);
+        parserVariable = prototype.parameters().get(0);
     }
 
     public JaggerReaderGenerator(
-            TypeMirror type,
-            Property property,
+            String potentialVariableName,
             LHS lhs,
             @Nonnull JaggerReaderGenerator parent,
-            boolean stackRelevantType,
-            AnyConfig config) {
-        super(parent, type, stackRelevantType, property, lhs, config);
+            AnyConfig config,
+            boolean exhaust) {
+        super(parent, potentialVariableName, lhs, config, exhaust);
         this.parserVariable = parent.parserVariable;
     }
 
     @Override
-    protected Snippet stringCaseCondition() {
-        return Snippet.of("$L.isText()", parserVariable.getSimpleName());
+    protected Code stringCaseCondition() {
+        return c("$C.isText()", parserVariable);
     }
 
     @Override
-    protected Snippet numberCaseCondition() {
-        return Snippet.of("$L.isNumber()", parserVariable.getSimpleName());
+    protected Code numberCaseCondition() {
+        return c("$C.isNumber()", parserVariable);
     }
 
     @Override
-    protected Snippet objectCaseCondition() {
-        return Snippet.of("$L.isObjectStart($L)", parserVariable.getSimpleName(), importAdvance(CONSUME));
+    protected Code objectCaseCondition() {
+        return c("$C.isObjectStart($L)", parserVariable, importAdvance(CONSUME));
     }
 
     @Override
-    protected Snippet arrayCaseCondition() {
-        return Snippet.of("$L.isArrayStart($L)", parserVariable.getSimpleName(), importAdvance(CONSUME));
+    protected Code arrayCaseCondition() {
+        return c("$C.isArrayStart($L)", parserVariable, importAdvance(CONSUME));
     }
 
     @Override
-    protected Snippet booleanCaseCondition() {
-        return Snippet.of("$L.isBoolean()", parserVariable.getSimpleName());
+    protected Code booleanCaseCondition() {
+        return c("$C.isBoolean()", parserVariable);
     }
 
     @Override
-    protected Snippet fieldCaseCondition() {
-        return Snippet.of("$L.isFieldName()", parserVariable.getSimpleName());
+    protected Code memberCaseCondition() {
+        return c("$C.isFieldName()", parserVariable);
     }
 
     @Override
@@ -68,8 +67,8 @@ public class JaggerReaderGenerator extends AbstractReaderGenerator<JaggerReaderG
     }
 
     @Override
-    protected Snippet nullCaseCondition() {
-        return Snippet.of("$L.isNull($L)", parserVariable.getSimpleName(), importAdvance(CONSUME));
+    protected Code nullCaseCondition() {
+        return c("$C.isNull($L)", parserVariable, importAdvance(CONSUME));
     }
 
     @Override
@@ -86,8 +85,8 @@ public class JaggerReaderGenerator extends AbstractReaderGenerator<JaggerReaderG
                     default ->
                         throw new ContextedRuntimeException(type.getKind().toString());
                 };
-        Snippet snippet = of("$L.$L($L)", parserVariable.getSimpleName(), method, importAdvance(CONSUME));
-        addStatement(lhs.assign(snippet));
+        Code code = c("$C.$L($L)", parserVariable, method, importAdvance(CONSUME));
+        addStatement(lhs.assign(code));
     }
 
     @Override
@@ -97,40 +96,36 @@ public class JaggerReaderGenerator extends AbstractReaderGenerator<JaggerReaderG
                     case STRING -> "";
                     case CHAR_ARRAY -> ".toCharArray()";
                 };
-        Snippet snippet = of("$L.getText($L)$L", parserVariable.getSimpleName(), importAdvance(CONSUME), conversion);
-        addStatement(lhs.assign(snippet));
+        Code code = c("$C.getText($L)$L", parserVariable, importAdvance(CONSUME), conversion);
+        addStatement(lhs.assign(code));
     }
 
     @Override
     protected void iterateOverFields() {
-        beginControlFlow("while (!$L.isObjectEnd($L))", parserVariable.getSimpleName(), importAdvance(CONSUME));
+        beginControlFlow("while (!$C.isObjectEnd($L))", parserVariable, importAdvance(CONSUME));
     }
 
     @Override
     protected void skipValue() {
-        addStatement("$L.skipChildren($L)", parserVariable.getSimpleName(), importAdvance(CONSUME));
+        addStatement("$C.skipChildren($L)", parserVariable, importAdvance(CONSUME));
     }
 
     @Override
     protected void afterObject() {}
 
     @Override
-    protected void readFieldNameInIteration(String variableName) {
-        addStatement(
-                "String $L = $L.getFieldName($L)",
-                variableName,
-                parserVariable.getSimpleName(),
-                importAdvance(CONSUME));
+    protected void readMemberNameInIteration(String variableName) {
+        addStatement("String $L = $C.getFieldName($L)", variableName, parserVariable, importAdvance(CONSUME));
     }
 
     @Override
     protected void readDiscriminator(String propertyName) {
-        addStatement(lhs.assign("$L.getDiscriminator($S, false)", parserVariable.getSimpleName(), propertyName));
+        addStatement(lhs.assign("$C.getDiscriminator($S, false)", parserVariable, propertyName));
     }
 
     @Override
     protected void iterateOverElements() {
-        beginControlFlow("while (!$L.isArrayEnd($L))", parserVariable.getSimpleName(), importAdvance(CONSUME));
+        beginControlFlow("while (!$C.isArrayEnd($L))", parserVariable, importAdvance(CONSUME));
     }
 
     @Override
@@ -140,22 +135,21 @@ public class JaggerReaderGenerator extends AbstractReaderGenerator<JaggerReaderG
 
     @Override
     protected void throwUnexpected(String expectedToken) {
-        addStatement("throw $L.unexpectedToken($S)", parserVariable.getSimpleName(), expectedToken);
+        addStatement("throw $C.unexpectedToken($S)", parserVariable, expectedToken);
     }
 
     @Override
-    protected void throwUnexpectedValue(Snippet message) {
-        addStatement("throw $L.unexpectedValue($C)", parserVariable.getSimpleName(), message);
+    protected void throwUnexpectedValue(Code message) {
+        addStatement("throw $C.unexpectedValue($C)", parserVariable, message);
     }
 
-    protected void throwUnrecognizedProperty(Snippet propertyName) {
-        addStatement("throw $L.unrecognizedProperty($C)", parserVariable.getSimpleName(), propertyName);
+    protected void throwUnrecognizedProperty(Code propertyName) {
+        addStatement("throw $C.unrecognizedProperty($C)", parserVariable, propertyName);
     }
 
     @Override
-    protected JaggerReaderGenerator nest(
-            TypeMirror type, Property property, LHS lhs, boolean stackRelevantType, AnyConfig config) {
-        return new JaggerReaderGenerator(type, property, lhs, this, stackRelevantType, config);
+    protected JaggerReaderGenerator nest(String potentialVariableName, LHS lhs, AnyConfig config, boolean exhaust) {
+        return new JaggerReaderGenerator(potentialVariableName, lhs, this, config, exhaust);
     }
 
     private String importAdvance(JaggerReader.Advance advance) {

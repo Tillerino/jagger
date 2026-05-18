@@ -1,79 +1,80 @@
 package org.tillerino.jagger.processor.databind;
 
+import static org.tillerino.jagger.processor.util.Code.c;
+
 import com.squareup.javapoet.ClassName;
 import jakarta.annotation.Nonnull;
-import jakarta.annotation.Nullable;
 import java.io.IOException;
-import javax.lang.model.element.VariableElement;
 import javax.lang.model.type.TypeMirror;
 import org.apache.commons.lang3.exception.ContextedRuntimeException;
 import org.tillerino.jagger.helpers.JacksonJsonParserReaderHelper;
 import org.tillerino.jagger.processor.config.AnyConfig;
 import org.tillerino.jagger.processor.ext.PrototypeKind.CodeGeneratorContext;
-import org.tillerino.jagger.processor.util.Snippet;
+import org.tillerino.jagger.processor.util.Code;
+import org.tillerino.jagger.processor.util.Expr.TypedVariable;
+import org.tillerino.jagger.processor.util.InstantiatedMethod.InstantiatedVariable;
 
 public class JacksonJsonParserReaderGenerator extends AbstractReaderGenerator<JacksonJsonParserReaderGenerator> {
-    private final VariableElement parserVariable;
+    private final InstantiatedVariable parserVariable;
 
     public JacksonJsonParserReaderGenerator(CodeGeneratorContext generatorContext) {
         super(generatorContext);
-        parserVariable = prototype.element().getParameters().get(0);
+        parserVariable = prototype.parameters().get(0);
     }
 
     public JacksonJsonParserReaderGenerator(
-            TypeMirror type,
-            Property property,
+            String potentialVariableName,
             LHS lhs,
             @Nonnull JacksonJsonParserReaderGenerator parent,
-            boolean stackRelevantType,
-            AnyConfig config) {
-        super(parent, type, stackRelevantType, property, lhs, config);
+            AnyConfig config,
+            boolean exhaust) {
+        super(parent, potentialVariableName, lhs, config, exhaust);
         this.parserVariable = parent.parserVariable;
     }
 
     @Override
-    protected Snippet stringCaseCondition() {
-        return Snippet.of("$L.currentToken() == $L", parserVariable.getSimpleName(), token("VALUE_STRING"));
+    protected Code stringCaseCondition() {
+        return c("$C.currentToken() == $L", parserVariable, token("VALUE_STRING"));
     }
 
     @Override
-    protected Snippet numberCaseCondition() {
-        return Snippet.of("$L.currentToken().isNumeric()", parserVariable.getSimpleName());
+    protected Code numberCaseCondition() {
+        return c("$C.currentToken().isNumeric()", parserVariable);
     }
 
     @Override
-    protected Snippet objectCaseCondition() {
+    protected Code objectCaseCondition() {
         importHelper();
-        return Snippet.of("nextIfCurrentTokenIs($L, $L)", parserVariable.getSimpleName(), token("START_OBJECT"));
+        return c("nextIfCurrentTokenIs($C, $L)", parserVariable, token("START_OBJECT"));
     }
 
     @Override
-    protected Snippet arrayCaseCondition() {
+    protected Code arrayCaseCondition() {
         importHelper();
-        return Snippet.of("nextIfCurrentTokenIs($L, $L)", parserVariable.getSimpleName(), token("START_ARRAY"));
+        return c("nextIfCurrentTokenIs($C, $L)", parserVariable, token("START_ARRAY"));
     }
 
     @Override
-    protected Snippet booleanCaseCondition() {
-        return Snippet.of("$L.currentToken().isBoolean()", parserVariable.getSimpleName());
+    protected Code booleanCaseCondition() {
+        return c("$C.currentToken().isBoolean()", parserVariable);
     }
 
     @Override
-    protected Snippet fieldCaseCondition() {
-        return Snippet.of("$L.currentToken() == $L", parserVariable.getSimpleName(), token("FIELD_NAME"));
+    protected Code memberCaseCondition() {
+        return c("$C.currentToken() == $L", parserVariable, token("FIELD_NAME"));
     }
 
     @Override
     protected void initializeParser() {
-        beginControlFlow("if (!$L.hasCurrentToken())", parserVariable.getSimpleName());
+        beginControlFlow("if (!$C.hasCurrentToken())", parserVariable);
         advance();
         endControlFlow();
     }
 
     @Override
-    protected Snippet nullCaseCondition() {
+    protected Code nullCaseCondition() {
         importHelper();
-        return Snippet.of("nextIfCurrentTokenIs($L, $L)", parserVariable.getSimpleName(), token("VALUE_NULL"));
+        return c("nextIfCurrentTokenIs($C, $L)", parserVariable, token("VALUE_NULL"));
     }
 
     @Override
@@ -91,12 +92,12 @@ public class JacksonJsonParserReaderGenerator extends AbstractReaderGenerator<Ja
                         throw new ContextedRuntimeException(type.getKind().toString());
                 };
         if (lhs instanceof LHS.Return) {
-            String tmp = createVariable("tmp").name();
-            addStatement("$T $L = $L.$L()", type, tmp, parserVariable.getSimpleName(), readMethod);
+            TypedVariable tmp = createVariable(type, "tmp");
+            addStatement("$T $C = $C.$L()", type, tmp, parserVariable, readMethod);
             advance();
-            addStatement("return $L", tmp);
+            addStatement("return $C", tmp);
         } else {
-            addStatement(lhs.assign("$L.$L()", parserVariable.getSimpleName(), readMethod));
+            addStatement(lhs.assign("$C.$L()", parserVariable, readMethod));
             advance();
         }
     }
@@ -109,17 +110,17 @@ public class JacksonJsonParserReaderGenerator extends AbstractReaderGenerator<Ja
                     case CHAR_ARRAY -> ".toCharArray()";
                 };
         if (lhs instanceof LHS.Return) {
-            String tmp = createVariable("tmp").name();
+            String tmp = createVariable(null, "tmp").name();
             addStatement(
-                    "$T $L = $L.getText()$L",
+                    "$T $L = $C.getText()$L",
                     stringKind == StringKind.STRING ? String.class : char[].class,
                     tmp,
-                    parserVariable.getSimpleName(),
+                    parserVariable,
                     conversion);
             advance();
             addStatement("return $L", tmp);
         } else {
-            addStatement(lhs.assign("$L.getText()$L", parserVariable.getSimpleName(), conversion));
+            addStatement(lhs.assign("$C.getText()$L", parserVariable, conversion));
             advance();
         }
     }
@@ -128,12 +129,12 @@ public class JacksonJsonParserReaderGenerator extends AbstractReaderGenerator<Ja
     protected void iterateOverFields() {
         importHelper();
         // we immediately skip the END_OBJECT token once we encounter it
-        beginControlFlow("while (!nextIfCurrentTokenIs($L, $L))", parserVariable.getSimpleName(), token("END_OBJECT"));
+        beginControlFlow("while (!nextIfCurrentTokenIs($C, $L))", parserVariable, token("END_OBJECT"));
     }
 
     @Override
     protected void skipValue() {
-        addStatement("$L.skipChildren()", parserVariable.getSimpleName());
+        addStatement("$C.skipChildren()", parserVariable);
         advance();
     }
 
@@ -141,22 +142,22 @@ public class JacksonJsonParserReaderGenerator extends AbstractReaderGenerator<Ja
     protected void afterObject() {}
 
     @Override
-    protected void readFieldNameInIteration(String variableName) {
-        addStatement("String $L = $L.currentName()", variableName, parserVariable.getSimpleName());
+    protected void readMemberNameInIteration(String variableName) {
+        addStatement("String $L = $C.currentName()", variableName, parserVariable);
         advance();
     }
 
     @Override
     protected void readDiscriminator(String propertyName) {
         importHelper();
-        addStatement(lhs.assign("readDiscriminator($S, $L)", propertyName, parserVariable.getSimpleName()));
+        addStatement(lhs.assign("readDiscriminator($S, $C)", propertyName, parserVariable));
     }
 
     @Override
     protected void iterateOverElements() {
         importHelper();
         // we immediately skip the END_ARRAY token once we encounter it
-        beginControlFlow("while (!nextIfCurrentTokenIs($L, $L))", parserVariable.getSimpleName(), token("END_ARRAY"));
+        beginControlFlow("while (!nextIfCurrentTokenIs($C, $L))", parserVariable, token("END_ARRAY"));
     }
 
     @Override
@@ -167,27 +168,27 @@ public class JacksonJsonParserReaderGenerator extends AbstractReaderGenerator<Ja
     @Override
     protected void throwUnexpected(String expected) {
         addStatement(
-                "throw new $T($S + $L.currentToken() + $S + $L.getCurrentLocation())",
+                "throw new $T($S + $C.currentToken() + $S + $C.getCurrentLocation())",
                 IOException.class,
                 "Expected " + expected + ", got ",
-                parserVariable.getSimpleName(),
+                parserVariable,
                 " at ",
-                parserVariable.getSimpleName());
+                parserVariable);
     }
 
     @Override
-    protected void throwUnexpectedValue(Snippet message) {
+    protected void throwUnexpectedValue(Code message) {
         addStatement("throw new $T($C)", IOException.class, message);
     }
 
-    protected void throwUnrecognizedProperty(Snippet propertyName) {
+    protected void throwUnrecognizedProperty(Code propertyName) {
         addStatement("throw new $T($S + $C + $S)", IOException.class, "Unrecognized field \"", propertyName, "\"");
     }
 
     @Override
     protected JacksonJsonParserReaderGenerator nest(
-            TypeMirror type, @Nullable Property property, LHS lhs, boolean stackRelevantType, AnyConfig config) {
-        return new JacksonJsonParserReaderGenerator(type, property, lhs, this, stackRelevantType, config);
+            String potentialVariableName, LHS lhs, AnyConfig config, boolean exhaust) {
+        return new JacksonJsonParserReaderGenerator(potentialVariableName, lhs, this, config, exhaust);
     }
 
     private Class<JacksonJsonParserReaderHelper> importHelper() {
@@ -203,6 +204,6 @@ public class JacksonJsonParserReaderGenerator extends AbstractReaderGenerator<Ja
     }
 
     private void advance() {
-        addStatement("$L.nextToken()", parserVariable.getSimpleName());
+        addStatement("$C.nextToken()", parserVariable);
     }
 }

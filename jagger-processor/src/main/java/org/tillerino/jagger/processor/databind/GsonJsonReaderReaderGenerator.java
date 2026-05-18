@@ -1,72 +1,72 @@
 package org.tillerino.jagger.processor.databind;
 
+import static org.tillerino.jagger.processor.util.Code.c;
+
 import jakarta.annotation.Nonnull;
-import jakarta.annotation.Nullable;
 import java.io.IOException;
 import javax.lang.model.element.TypeElement;
-import javax.lang.model.element.VariableElement;
 import javax.lang.model.type.TypeMirror;
 import org.apache.commons.lang3.exception.ContextedRuntimeException;
 import org.tillerino.jagger.helpers.GsonJsonReaderHelper;
 import org.tillerino.jagger.processor.config.AnyConfig;
 import org.tillerino.jagger.processor.ext.PrototypeKind.CodeGeneratorContext;
-import org.tillerino.jagger.processor.util.Snippet;
+import org.tillerino.jagger.processor.util.Code;
+import org.tillerino.jagger.processor.util.InstantiatedMethod.InstantiatedVariable;
 
 public class GsonJsonReaderReaderGenerator extends AbstractReaderGenerator<GsonJsonReaderReaderGenerator> {
-    private final VariableElement parserVariable;
+    private final InstantiatedVariable parserVariable;
 
     public GsonJsonReaderReaderGenerator(CodeGeneratorContext generatorContext) {
         super(generatorContext);
-        parserVariable = prototype.element().getParameters().get(0);
+        parserVariable = prototype.parameters().get(0);
     }
 
     public GsonJsonReaderReaderGenerator(
-            TypeMirror type,
-            Property property,
+            String potentialVariableName,
             LHS lhs,
             @Nonnull GsonJsonReaderReaderGenerator parent,
-            boolean stackRelevantType,
-            AnyConfig config) {
-        super(parent, type, stackRelevantType, property, lhs, config);
+            AnyConfig config,
+            boolean exhaust) {
+        super(parent, potentialVariableName, lhs, config, exhaust);
         this.parserVariable = parent.parserVariable;
     }
 
     @Override
-    protected Snippet stringCaseCondition() {
-        return Snippet.of("$L.peek() == $T.STRING", parserVariable.getSimpleName(), jsonToken());
+    protected Code stringCaseCondition() {
+        return c("$C.peek() == $T.STRING", parserVariable, jsonToken());
     }
 
     @Override
-    protected Snippet numberCaseCondition() {
-        return Snippet.of("$L.peek() == $T.NUMBER", parserVariable.getSimpleName(), jsonToken());
+    protected Code numberCaseCondition() {
+        return c("$C.peek() == $T.NUMBER", parserVariable, jsonToken());
     }
 
     @Override
-    protected Snippet objectCaseCondition() {
-        return Snippet.of("$T.isBeginObject($L, true)", GsonJsonReaderHelper.class, parserVariable.getSimpleName());
+    protected Code objectCaseCondition() {
+        return c("$T.isBeginObject($C, true)", GsonJsonReaderHelper.class, parserVariable);
     }
 
     @Override
-    protected Snippet arrayCaseCondition() {
-        return Snippet.of("$T.isBeginArray($L, true)", GsonJsonReaderHelper.class, parserVariable.getSimpleName());
+    protected Code arrayCaseCondition() {
+        return c("$T.isBeginArray($C, true)", GsonJsonReaderHelper.class, parserVariable);
     }
 
     @Override
-    protected Snippet booleanCaseCondition() {
-        return Snippet.of("$L.peek() == $T.BOOLEAN", parserVariable.getSimpleName(), jsonToken());
+    protected Code booleanCaseCondition() {
+        return c("$C.peek() == $T.BOOLEAN", parserVariable, jsonToken());
     }
 
     @Override
-    protected Snippet fieldCaseCondition() {
-        return Snippet.of("$L.peek() == $T.NAME", parserVariable.getSimpleName(), jsonToken());
+    protected Code memberCaseCondition() {
+        return c("$C.peek() == $T.NAME", parserVariable, jsonToken());
     }
 
     @Override
     protected void initializeParser() {}
 
     @Override
-    protected Snippet nullCaseCondition() {
-        return Snippet.of("$T.isNull($L, true)", GsonJsonReaderHelper.class, parserVariable.getSimpleName());
+    protected Code nullCaseCondition() {
+        return c("$T.isNull($C, true)", GsonJsonReaderHelper.class, parserVariable);
     }
 
     private TypeElement jsonToken() {
@@ -88,7 +88,7 @@ public class GsonJsonReaderReaderGenerator extends AbstractReaderGenerator<GsonJ
                     default ->
                         throw new ContextedRuntimeException(type.getKind().toString());
                 };
-        addStatement(lhs.assign("$L$L.$L()", readMethod.cast, parserVariable.getSimpleName(), readMethod.method));
+        addStatement(lhs.assign("$L$C.$L()", readMethod.cast, parserVariable, readMethod.method));
     }
 
     @Override
@@ -98,71 +98,68 @@ public class GsonJsonReaderReaderGenerator extends AbstractReaderGenerator<GsonJ
                     case STRING -> "";
                     case CHAR_ARRAY -> ".toCharArray()";
                 };
-        addStatement(lhs.assign("$L.nextString()$L", parserVariable.getSimpleName(), conversion));
+        addStatement(lhs.assign("$C.nextString()$L", parserVariable, conversion));
     }
 
     @Override
     protected void iterateOverFields() {
-        beginControlFlow("while ($L.peek() != $T.END_OBJECT)", parserVariable.getSimpleName(), jsonToken());
+        beginControlFlow("while ($C.peek() != $T.END_OBJECT)", parserVariable, jsonToken());
     }
 
     @Override
     protected void skipValue() {
-        addStatement("$L.skipValue()", parserVariable.getSimpleName());
+        addStatement("$C.skipValue()", parserVariable);
     }
 
     @Override
     protected void afterObject() {
-        addStatement("$L.endObject()", parserVariable.getSimpleName());
+        addStatement("$C.endObject()", parserVariable);
     }
 
     @Override
-    protected void readFieldNameInIteration(String variableName) {
-        addStatement("String $L = $L.nextName()", variableName, parserVariable.getSimpleName());
+    protected void readMemberNameInIteration(String variableName) {
+        addStatement("String $L = $C.nextName()", variableName, parserVariable);
     }
 
     @Override
     protected void readDiscriminator(String propertyName) {
-        addStatement(lhs.assign(
-                "$T.readDiscriminator($S, $L)",
-                GsonJsonReaderHelper.class,
-                propertyName,
-                parserVariable.getSimpleName()));
+        addStatement(
+                lhs.assign("$T.readDiscriminator($S, $C)", GsonJsonReaderHelper.class, propertyName, parserVariable));
     }
 
     @Override
     protected void iterateOverElements() {
-        beginControlFlow("while ($L.peek() != $T.END_ARRAY)", parserVariable.getSimpleName(), jsonToken());
+        beginControlFlow("while ($C.peek() != $T.END_ARRAY)", parserVariable, jsonToken());
     }
 
     @Override
     protected void afterArray() {
-        addStatement("$L.endArray()", parserVariable.getSimpleName());
+        addStatement("$C.endArray()", parserVariable);
     }
 
     @Override
     protected void throwUnexpected(String expected) {
         addStatement(
-                "throw new $T($S + $L.peek() + $S + $L.getPath())",
+                "throw new $T($S + $C.peek() + $S + $C.getPath())",
                 IOException.class,
                 "Expected " + expected + ", got ",
-                parserVariable.getSimpleName(),
+                parserVariable,
                 " at ",
-                parserVariable.getSimpleName());
+                parserVariable);
     }
 
     @Override
-    protected void throwUnexpectedValue(Snippet message) {
+    protected void throwUnexpectedValue(Code message) {
         addStatement("throw new $T($C)", IOException.class, message);
     }
 
-    protected void throwUnrecognizedProperty(Snippet propertyName) {
+    protected void throwUnrecognizedProperty(Code propertyName) {
         addStatement("throw new $T($S + $C + $S)", IOException.class, "Unrecognized field \"", propertyName, "\"");
     }
 
     @Override
     protected GsonJsonReaderReaderGenerator nest(
-            TypeMirror type, @Nullable Property property, LHS lhs, boolean stackRelevantType, AnyConfig config) {
-        return new GsonJsonReaderReaderGenerator(type, property, lhs, this, stackRelevantType, config);
+            String potentialVariableName, LHS lhs, AnyConfig config, boolean exhaust) {
+        return new GsonJsonReaderReaderGenerator(potentialVariableName, lhs, this, config, exhaust);
     }
 }

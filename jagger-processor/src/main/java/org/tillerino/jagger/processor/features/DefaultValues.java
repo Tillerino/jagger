@@ -13,8 +13,8 @@ import org.tillerino.jagger.processor.JaggerContext;
 import org.tillerino.jagger.processor.JaggerPrototype;
 import org.tillerino.jagger.processor.config.AnyConfig;
 import org.tillerino.jagger.processor.features.Generics.TypeVar;
+import org.tillerino.jagger.processor.util.Expr;
 import org.tillerino.jagger.processor.util.InstantiatedMethod;
-import org.tillerino.jagger.processor.util.Snippet.PerfectSnippet;
 
 public class DefaultValues {
     protected final JaggerContext ctx;
@@ -39,9 +39,9 @@ public class DefaultValues {
                 .findFirst();
     }
 
-    public PerfectSnippet getDefaultValue(JaggerPrototype prototype, TypeMirror type, AnyConfig propertyConfig) {
+    public Expr getDefaultValue(JaggerPrototype prototype, TypeMirror type, AnyConfig propertyConfig) {
         return findInputDefaultValue(prototype.blueprint(), type, propertyConfig)
-                .map(m -> m.invokeStatic(List.of()))
+                .map(m -> m.callStatic(List.of()))
                 .orElseGet(() -> ctx.commonTypes.getNullValueRaw(type));
     }
 

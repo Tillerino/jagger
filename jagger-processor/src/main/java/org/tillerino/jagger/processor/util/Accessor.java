@@ -1,8 +1,10 @@
 package org.tillerino.jagger.processor.util;
 
+import static org.tillerino.jagger.processor.util.Code.c;
+import static org.tillerino.jagger.processor.util.Expr.e;
+
 import javax.lang.model.element.Element;
 import javax.lang.model.type.TypeMirror;
-import org.tillerino.jagger.processor.util.Snippet.PerfectSnippet;
 
 public sealed interface Accessor {
     TypeMirror type();
@@ -14,27 +16,18 @@ public sealed interface Accessor {
     AccessorKind kind();
 
     sealed interface ReadAccessor extends Accessor {
-        default Snippet readSnippet(Snippet object) {
-            return Snippet.of(
-                    "$C.$L" + (kind() == AccessorKind.GETTER ? "()" : ""),
-                    object,
-                    element().getSimpleName().toString());
-        }
-
-        default PerfectSnippet readSnippet(PerfectSnippet object) {
+        default Expr read(Expr instance) {
             return kind() == AccessorKind.GETTER
-                    ? object.invokeMethod(type(), element().getSimpleName().toString())
-                    : object.readField(type(), element().getSimpleName().toString());
+                    ? e(type(), "$C.$L()", instance, name())
+                    : e(type(), "$C.$L", instance, name());
         }
     }
 
     sealed interface WriteAccessor extends Accessor {
-        default Snippet writeSnippet(Snippet object, Snippet value) {
-            return Snippet.of(
-                    "$C.$L" + (kind() == AccessorKind.SETTER ? "($C)" : " = $C"),
-                    object,
-                    element().getSimpleName().toString(),
-                    value);
+        default Code write(Expr instance, Expr value) {
+            return kind() == AccessorKind.SETTER
+                    ? c("$C.$L($C)", instance, name(), value)
+                    : c("$C.$L = $C", instance, name(), value);
         }
     }
 

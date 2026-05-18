@@ -19,9 +19,10 @@ import org.tillerino.jagger.processor.ext.PrototypeDetector;
 import org.tillerino.jagger.processor.ext.PrototypeKind;
 import org.tillerino.jagger.processor.ext.PrototypeKind.CodeGeneratorContext;
 import org.tillerino.jagger.processor.util.Annotations.AnnotationMirrorWrapper;
+import org.tillerino.jagger.processor.util.Code;
+import org.tillerino.jagger.processor.util.Expr.TypedVariable;
 import org.tillerino.jagger.processor.util.InstantiatedMethod;
 import org.tillerino.jagger.processor.util.InstantiatedMethod.InstantiatedVariable;
-import org.tillerino.jagger.processor.util.Snippet;
 
 /**
  * This is an example for a plugin that decorates methods filling the context of a {@link ContextedRuntimeException}
@@ -75,13 +76,13 @@ public class ContextedRuntimeExceptionDecoratorPlugin implements JaggerPlugin {
         }
 
         public CodeBlock.Builder build() {
-            ScopedVar e = createVariable("e");
+            TypedVariable e = createVariable(null, "e");
 
             beginControlFlow("try");
             if (prototype.returnType().getKind() != TypeKind.VOID) {
                 code.add("return ");
             }
-            addStatement("super.$L($C)", this.prototype.name(), Snippet.join(prototype.parameters(), ", "));
+            addStatement("super.$L($C)", this.prototype.name(), Code.join(prototype.parameters(), ", "));
 
             nextControlFlow("catch ($T $C)", ContextedRuntimeException.class, e);
             for (InstantiatedVariable parameter : prototype.parameters()) {

@@ -1,5 +1,7 @@
 package org.tillerino.jagger.processor.util;
 
+import static org.tillerino.jagger.processor.util.Expr.e;
+
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -15,10 +17,7 @@ import org.tillerino.jagger.processor.JaggerPrototype;
 import org.tillerino.jagger.processor.config.AnyConfig;
 import org.tillerino.jagger.processor.features.Generics.TypeVar;
 import org.tillerino.jagger.processor.util.Annotations.AnnotationMirrorWrapper;
-import org.tillerino.jagger.processor.util.Snippet.PerfectSnippet;
-import org.tillerino.jagger.processor.util.Snippet.PerfectSnippet.ConstructorCall;
-import org.tillerino.jagger.processor.util.Snippet.PerfectSnippet.InstanceMethodInvocation;
-import org.tillerino.jagger.processor.util.Snippet.PerfectSnippet.StaticMethodInvocation;
+import org.tillerino.jagger.processor.util.Code.AnyVariable;
 
 /**
  * Need this to instantiate generics.
@@ -34,45 +33,37 @@ public record InstantiatedMethod(
         AnyConfig config,
         JaggerContext ctx)
         implements Named {
-    public Snippet callSymbol(JaggerContext ctx) {
+
+    public Expr callStatic(List<Expr> args) {
         TypeMirror tm = element.getEnclosingElement().asType();
         TypeMirror raw = ctx.types.erasure(tm);
         String diamond =
                 (tm instanceof DeclaredType dt) && !dt.getTypeArguments().isEmpty() ? "<>" : "";
         return element.getKind() == ElementKind.CONSTRUCTOR
-                ? Snippet.of("new $T$L", raw, diamond)
-                : Snippet.of("$T.$L", raw, name);
+                ? e(returnType, "new $T$L($C)", raw, diamond, Code.join(args, ", "))
+                : e(returnType, "$T.$L($C)", raw, name, Code.join(args, ", "));
     }
 
-    public PerfectSnippet invokeStatic(List<PerfectSnippet> args) {
-        TypeMirror tm = element.getEnclosingElement().asType();
-        TypeMirror raw = ctx.types.erasure(tm);
-        String diamond =
-                (tm instanceof DeclaredType dt) && !dt.getTypeArguments().isEmpty() ? "<>" : "";
-        return element.getKind() == ElementKind.CONSTRUCTOR
-                ? new ConstructorCall(returnType, raw, diamond, args)
-                : new StaticMethodInvocation(returnType, raw, name, args);
+    public Expr callStaticFindingArguments(
+            JaggerPrototype caller, List<Expr> additionalParameters, GeneratedClass generatedClass) {
+        return callStatic(findArguments(caller, additionalParameters, generatedClass));
     }
 
-    public PerfectSnippet invokeStaticFindingArguments(
-            JaggerPrototype caller, List<PerfectSnippet> additionalParameters, GeneratedClass generatedClass) {
-        return invokeStatic(findArguments(caller, additionalParameters, generatedClass));
+    public Expr call(Expr instance) {
+        return instance.call(returnType, name);
     }
 
-    public PerfectSnippet invokeInstance(PerfectSnippet instance, List<PerfectSnippet> args) {
-        return new InstanceMethodInvocation(returnType, instance, name, args);
+    public Expr call(Expr instance, List<Expr> args) {
+        return instance.call(returnType, name, args);
     }
 
-    public PerfectSnippet invokeInstanceFindingArguments(
-            PerfectSnippet instance,
-            JaggerPrototype caller,
-            List<PerfectSnippet> additionalParameters,
-            GeneratedClass generatedClass) {
-        return invokeInstance(instance, findArguments(caller, additionalParameters, generatedClass));
+    public Expr callFindingArguments(
+            Expr instance, JaggerPrototype caller, List<Expr> additionalParameters, GeneratedClass generatedClass) {
+        return call(instance, findArguments(caller, additionalParameters, generatedClass));
     }
 
-    public List<PerfectSnippet> findArguments(
-            JaggerPrototype caller, List<PerfectSnippet> additionalParameters, GeneratedClass generatedClass) {
+    public List<Expr> findArguments(
+            JaggerPrototype caller, List<Expr> additionalParameters, GeneratedClass generatedClass) {
         return ctx.delegation.findArguments(caller, this, additionalParameters, 0, generatedClass);
     }
 
@@ -115,7 +106,7 @@ public record InstantiatedMethod(
     }
 
     public record InstantiatedVariable(VariableElement elem, TypeMirror type, String name, AnyConfig config)
-            implements PerfectSnippet {
+            implements AnyVariable {
         @Override
         public String toString() {
             return ShortName.of(type) + " " + name();
@@ -127,13 +118,18 @@ public record InstantiatedMethod(
         }
 
         @Override
-        public PerfectSnippet replaceVar(String name, PerfectSnippet replacement) {
-            return this.name.equals(name) ? replacement : this;
+        public Expr subst(Expr needle, Expr replacement) {
+            return needle instanceof AnyVariable v && v.variableName().equals(name) ? replacement : this;
         }
 
         @Override
-        public boolean isVariable() {
+        public boolean isQuick() {
             return true;
+        }
+
+        @Override
+        public String variableName() {
+            return name;
         }
     }
 }

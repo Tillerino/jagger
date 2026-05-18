@@ -1,22 +1,23 @@
 package org.tillerino.jagger.processor.databind;
 
-import static org.tillerino.jagger.processor.util.Snippet.of;
+import static org.tillerino.jagger.processor.util.Code.c;
 
 import java.util.List;
-import javax.lang.model.element.VariableElement;
 import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
 import org.tillerino.jagger.processor.config.AnyConfig;
+import org.tillerino.jagger.processor.databind.AbstractWriterGenerator.LHS.Member;
 import org.tillerino.jagger.processor.ext.PrototypeKind.CodeGeneratorContext;
 import org.tillerino.jagger.processor.features.Delegation.Delegatee;
-import org.tillerino.jagger.processor.util.Snippet;
+import org.tillerino.jagger.processor.util.Code;
+import org.tillerino.jagger.processor.util.InstantiatedMethod.InstantiatedVariable;
 
 public class JaggerWriterGenerator extends AbstractWriterGenerator<JaggerWriterGenerator> {
-    private final VariableElement generatorVariable;
+    private final InstantiatedVariable generatorVariable;
 
     public JaggerWriterGenerator(CodeGeneratorContext generatorContext) {
         super(generatorContext);
-        this.generatorVariable = prototype.element().getParameters().get(1);
+        this.generatorVariable = prototype.parameters().get(1);
     }
 
     protected JaggerWriterGenerator(
@@ -24,10 +25,9 @@ public class JaggerWriterGenerator extends AbstractWriterGenerator<JaggerWriterG
             JaggerWriterGenerator parent,
             LHS lhs,
             RHS rhs,
-            Property property,
-            boolean stackRelevantType,
+            String potentialVariableName,
             AnyConfig config) {
-        super(parent, type, property, rhs, lhs, stackRelevantType, config);
+        super(parent, type, potentialVariableName, rhs, lhs, config);
         this.generatorVariable = parent.generatorVariable;
     }
 
@@ -38,91 +38,91 @@ public class JaggerWriterGenerator extends AbstractWriterGenerator<JaggerWriterG
 
     @Override
     protected void writeNull() {
-        if (lhs instanceof LHS.Field f) {
-            addStatement("$L.writeNullField($C)", generatorVariable.getSimpleName(), f);
+        if (lhs instanceof Member f) {
+            addStatement("$C.writeNullField($C)", generatorVariable, f);
         } else {
-            addStatement("$L.writeNull()", generatorVariable.getSimpleName());
+            addStatement("$C.writeNull()", generatorVariable);
         }
     }
 
     @Override
     protected void writeString(StringKind stringKind) {
-        Snippet string = stringKind == StringKind.STRING ? rhs : charArrayToString(rhs);
-        if (lhs instanceof LHS.Field f) {
-            addStatement(of("$L.writeField($C, $C)", generatorVariable.getSimpleName(), f, string));
+        Code string = stringKind == StringKind.STRING ? rhs : charArrayToString(rhs);
+        if (lhs instanceof Member f) {
+            addStatement(c("$C.writeField($C, $C)", generatorVariable, f, string));
         } else {
-            addStatement(of("$L.write($C)", generatorVariable, string));
+            addStatement(c("$C.write($C)", generatorVariable, string));
         }
     }
 
     @Override
     protected void writeBinary(BinaryKind binaryKind) {
-        Snippet asString = base64Encode(rhs);
-        if (lhs instanceof LHS.Field f) {
+        Code asString = base64Encode(rhs);
+        if (lhs instanceof Member f) {
             if (binaryKind == BinaryKind.BYTE_ARRAY) {
-                addStatement(of("$L.writeField($C, $C)", generatorVariable, f, asString));
+                addStatement(c("$C.writeField($C, $C)", generatorVariable, f, asString));
                 return;
             } else {
             }
         }
         switch (binaryKind) {
-            case BYTE_ARRAY -> addStatement(of("$L.write($C)", generatorVariable, asString));
+            case BYTE_ARRAY -> addStatement(c("$C.write($C)", generatorVariable, asString));
         }
     }
 
     @Override
     public void writePrimitive(TypeMirror typeMirror) {
-        Snippet rhs_ = rhs;
+        Code rhs_ = rhs;
         if (typeMirror.getKind() == TypeKind.CHAR) {
-            rhs_ = Snippet.of("String.valueOf($C)", rhs);
+            rhs_ = c("String.valueOf($C)", rhs);
         }
-        if (lhs instanceof LHS.Field f) {
-            addStatement(of("$L.writeField($C, $C)", generatorVariable, f, rhs_));
+        if (lhs instanceof Member f) {
+            addStatement(c("$C.writeField($C, $C)", generatorVariable, f, rhs_));
         } else {
-            addStatement(of("$L.write($C)", generatorVariable, rhs_));
+            addStatement(c("$C.write($C)", generatorVariable, rhs_));
         }
     }
 
     @Override
     protected void startArray() {
-        if (lhs instanceof LHS.Field f) {
-            addStatement("$L.startArrayField($C)", generatorVariable.getSimpleName(), f);
+        if (lhs instanceof Member f) {
+            addStatement("$C.startArrayField($C)", generatorVariable, f);
         } else {
-            addStatement("$L.startArray()", generatorVariable.getSimpleName());
+            addStatement("$C.startArray()", generatorVariable);
         }
     }
 
     @Override
     protected void endArray() {
-        addStatement("$L.endArray()", generatorVariable.getSimpleName());
+        addStatement("$C.endArray()", generatorVariable);
     }
 
     @Override
     protected void startObject() {
-        if (lhs instanceof LHS.Field f) {
-            addStatement("$L.startObjectField($C)", generatorVariable.getSimpleName(), f);
+        if (lhs instanceof Member f) {
+            addStatement("$C.startObjectField($C)", generatorVariable, f);
         } else {
-            addStatement("$L.startObject()", generatorVariable.getSimpleName());
+            addStatement("$C.startObject()", generatorVariable);
         }
     }
 
     @Override
     protected void endObject() {
-        addStatement("$L.endObject()", generatorVariable.getSimpleName());
+        addStatement("$C.endObject()", generatorVariable);
     }
 
     @Override
-    protected void invokeDelegate(Delegatee delegatee) {
-        if (lhs instanceof LHS.Field f) {
-            addStatement(of("$L.writeFieldName($C)", generatorVariable, f));
+    protected void callDelegate(Delegatee delegatee) {
+        if (lhs instanceof Member f) {
+            addStatement(c("$C.writeFieldName($C)", generatorVariable, f));
         }
 
-        addStatement(delegatee.invoke(prototype, List.of(rhs), generatedClass));
+        addStatement(delegatee.call(prototype, List.of(rhs), generatedClass));
     }
 
     @Override
     protected JaggerWriterGenerator nest(
-            TypeMirror type, LHS lhs, Property property, RHS rhs, boolean stackRelevantType, AnyConfig config) {
-        return new JaggerWriterGenerator(type, this, lhs, rhs, property, stackRelevantType, config);
+            TypeMirror type, LHS lhs, String potentialVariableName, RHS rhs, AnyConfig config) {
+        return new JaggerWriterGenerator(type, this, lhs, rhs, potentialVariableName, config);
     }
 }

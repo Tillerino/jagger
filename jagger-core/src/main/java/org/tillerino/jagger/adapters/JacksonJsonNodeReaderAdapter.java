@@ -30,9 +30,9 @@ public class JacksonJsonNodeReaderAdapter implements JaggerReader<RuntimeExcepti
         State current = node.peek();
         JsonNode jsonNode = ((NodeState) current).node;
         if (advance == Advance.CONSUME) {
-            FieldIterator fieldIterator = new FieldIterator(jsonNode.fields(), (NodeState) current);
-            node.push(fieldIterator);
-            Field next = fieldIterator.next();
+            MemberIterator memberIterator = new MemberIterator(jsonNode.fields(), (NodeState) current);
+            node.push(memberIterator);
+            Member next = memberIterator.next();
             if (next != null) {
                 node.push(next);
             }
@@ -195,10 +195,10 @@ public class JacksonJsonNodeReaderAdapter implements JaggerReader<RuntimeExcepti
     @Override
     public String getFieldName(Advance advance) throws RuntimeException {
         State current = node.peek();
-        if (current instanceof Field) {
-            String fieldName = ((Field) current).fieldName;
+        if (current instanceof Member) {
+            String fieldName = ((Member) current).name;
             if (advance == Advance.CONSUME) {
-                node.push(new NodeState(((Field) current).fieldValue));
+                node.push(new NodeState(((Member) current).value));
             }
             return fieldName;
         }
@@ -208,8 +208,8 @@ public class JacksonJsonNodeReaderAdapter implements JaggerReader<RuntimeExcepti
     @Override
     public String getDiscriminator(String expectedName, boolean visible) throws RuntimeException {
         State current = node.peek();
-        if (current instanceof Field) {
-            NodeState parent = ((Field) current).parent;
+        if (current instanceof Member) {
+            NodeState parent = ((Member) current).parent;
             ObjectNode parentNode = (ObjectNode) parent.node;
             if (!parentNode.has(expectedName)) {
                 throw new RuntimeException("Expected discriminator " + expectedName + " not found at TODO LOCATION");
@@ -234,7 +234,7 @@ public class JacksonJsonNodeReaderAdapter implements JaggerReader<RuntimeExcepti
         if (isArrayStart(Advance.KEEP)) {
             node.push(new ArrayIterator(Collections.emptyIterator()));
         } else if (isObjectEnd(Advance.KEEP)) {
-            node.push(new FieldIterator(Collections.emptyIterator(), null));
+            node.push(new MemberIterator(Collections.emptyIterator(), null));
         }
         advance(advance);
     }
@@ -265,19 +265,19 @@ public class JacksonJsonNodeReaderAdapter implements JaggerReader<RuntimeExcepti
         if (advance == Advance.KEEP) {
             return;
         }
-        if (node.peek() instanceof ArrayIterator || node.peek() instanceof FieldIterator) {
+        if (node.peek() instanceof ArrayIterator || node.peek() instanceof MemberIterator) {
             node.pop();
         }
         node.pop();
-        if (!node.isEmpty() && node.peek() instanceof Field) {
+        if (!node.isEmpty() && node.peek() instanceof Member) {
             node.pop();
         }
         if (node.isEmpty()) {
             return;
         }
         State parent = node.peek();
-        if (parent instanceof FieldIterator) {
-            Field next = ((FieldIterator) parent).next();
+        if (parent instanceof MemberIterator) {
+            Member next = ((MemberIterator) parent).next();
             if (next != null) {
                 node.push(next);
             }
@@ -327,23 +327,23 @@ public class JacksonJsonNodeReaderAdapter implements JaggerReader<RuntimeExcepti
     }
 
     /** If this is the top state, we are at object end. */
-    protected static class FieldIterator implements State {
-        protected Iterator<Map.Entry<String, JsonNode>> fieldIterator;
+    protected static class MemberIterator implements State {
+        protected Iterator<Map.Entry<String, JsonNode>> memberIterator;
         protected NodeState parent;
 
-        protected FieldIterator(Iterator<Map.Entry<String, JsonNode>> fieldIterator, NodeState parent) {
-            this.fieldIterator = fieldIterator;
+        protected MemberIterator(Iterator<Map.Entry<String, JsonNode>> memberIterator, NodeState parent) {
+            this.memberIterator = memberIterator;
             this.parent = parent;
         }
 
         /** @return can be null if there are no more fields */
-        protected Field next() {
-            while (fieldIterator.hasNext()) {
-                Map.Entry<String, JsonNode> next = fieldIterator.next();
+        protected Member next() {
+            while (memberIterator.hasNext()) {
+                Map.Entry<String, JsonNode> next = memberIterator.next();
                 if (next.getKey().equals(parent.hideField)) {
                     continue;
                 }
-                return new Field(next.getKey(), next.getValue(), parent);
+                return new Member(next.getKey(), next.getValue(), parent);
             }
             return null;
         }
@@ -355,14 +355,14 @@ public class JacksonJsonNodeReaderAdapter implements JaggerReader<RuntimeExcepti
     }
 
     /** If this is the top state, we are at field name. */
-    protected static class Field implements State {
-        protected String fieldName;
-        protected JsonNode fieldValue;
+    protected static class Member implements State {
+        protected String name;
+        protected JsonNode value;
         protected NodeState parent;
 
-        protected Field(String fieldName, JsonNode fieldValue, NodeState parent) {
-            this.fieldName = fieldName;
-            this.fieldValue = fieldValue;
+        protected Member(String name, JsonNode value, NodeState parent) {
+            this.name = name;
+            this.value = value;
             this.parent = parent;
         }
 

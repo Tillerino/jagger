@@ -26,6 +26,11 @@
             </exclusions>
         </dependency>
         <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
             <groupId>com.google.auto.service</groupId>
             <artifactId>auto-service-annotations</artifactId>
             <scope>provided</scope>
@@ -67,6 +72,10 @@
                         <annotationProcessorPath>
                             <groupId>com.google.auto.service</groupId>
                             <artifactId>auto-service</artifactId>
+                        </annotationProcessorPath>
+                        <annotationProcessorPath>
+                            <groupId>org.projectlombok</groupId>
+                            <artifactId>lombok</artifactId>
                         </annotationProcessorPath>
                     </annotationProcessorPaths>
                 </configuration>

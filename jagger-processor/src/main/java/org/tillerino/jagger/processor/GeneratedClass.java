@@ -1,5 +1,7 @@
 package org.tillerino.jagger.processor;
 
+import static org.tillerino.jagger.processor.util.Expr.e;
+
 import com.squareup.javapoet.*;
 import com.squareup.javapoet.FieldSpec.Builder;
 import jakarta.annotation.Nullable;
@@ -16,10 +18,10 @@ import org.apache.commons.lang3.StringUtils;
 import org.tillerino.jagger.processor.config.AnyConfig;
 import org.tillerino.jagger.processor.features.Enums.EnumValuesField;
 import org.tillerino.jagger.processor.features.Verification.ForBlueprint;
+import org.tillerino.jagger.processor.util.Expr;
+import org.tillerino.jagger.processor.util.Expr.TypedVariable;
 import org.tillerino.jagger.processor.util.FullyQualifiedName.FullyQualifiedClassName.TopLevelClassName;
 import org.tillerino.jagger.processor.util.PlainTypeName;
-import org.tillerino.jagger.processor.util.Snippet.PerfectSnippet;
-import org.tillerino.jagger.processor.util.Snippet.PerfectSnippet.TypedVariable;
 
 /** Keeps track of the delegate readers/writers that are collected while processing a blueprint. */
 public class GeneratedClass {
@@ -47,8 +49,7 @@ public class GeneratedClass {
      * @param callee the blueprint which is being called from caller
      * @return the field name
      */
-    public PerfectSnippet getOrCreateDelegateeField(
-            JaggerBlueprint caller, JaggerBlueprint callee, boolean implAsType) {
+    public Expr getOrCreateDelegateeField(JaggerBlueprint caller, JaggerBlueprint callee, boolean implAsType) {
         if (caller == callee) {
             return new TypedVariable(caller.typeElement.asType(), "this");
         }
@@ -63,11 +64,11 @@ public class GeneratedClass {
                 .access;
     }
 
-    public PerfectSnippet getOrCreateUsedBlueprintWithTypeField(TypeMirror targetType, AnyConfig config) {
+    public Expr getOrCreateUsedBlueprintWithTypeField(TypeMirror targetType, AnyConfig config) {
         return getOrCreateUsedBlueprintWithTypeField(targetType, blueprint, config);
     }
 
-    private PerfectSnippet getOrCreateUsedBlueprintWithTypeField(
+    private Expr getOrCreateUsedBlueprintWithTypeField(
             TypeMirror targetType, JaggerBlueprint calleeBlueprint, @Nullable AnyConfig config) {
         if (ctx.commonTypes.isAssignable(calleeBlueprint.typeElement.asType(), targetType)) {
             return getOrCreateDelegateeField(this.blueprint, calleeBlueprint, false); // TODO probably wrong
@@ -76,7 +77,7 @@ public class GeneratedClass {
             return null;
         }
         for (JaggerBlueprint use : config.reversedUses()) {
-            PerfectSnippet found = getOrCreateUsedBlueprintWithTypeField(targetType, use, null);
+            Expr found = getOrCreateUsedBlueprintWithTypeField(targetType, use, null);
             if (found != null) {
                 return found;
             }
@@ -100,10 +101,10 @@ public class GeneratedClass {
         requiredFields.values().forEach(value -> value.writeField(typeBuilder));
     }
 
-    public PerfectSnippet requiredField(TypeMirror type) {
+    public Expr requiredField(TypeMirror type) {
         String name = StringUtils.uncapitalize(PlainTypeName.of(type));
         requiredFields.computeIfAbsent(name, __ -> new RequiredField(name, type));
-        return PerfectSnippet.unsafe("this").readField(type, name);
+        return e(null, "this").field(type, name);
     }
 
     /**
@@ -207,7 +208,7 @@ public class GeneratedClass {
      * not want to go through method generation twice, so we generate methods with these placeholders. Once all methods
      * have been generated, we look for circles and break the circles with provider calls.
      */
-    public static class PotentialProviderCall implements PerfectSnippet {
+    public static class PotentialProviderCall implements Expr {
         TypeMirror type;
         String literal;
         boolean providerCall;
@@ -232,7 +233,7 @@ public class GeneratedClass {
         }
 
         @Override
-        public PerfectSnippet replaceVar(String name, PerfectSnippet replacement) {
+        public Expr subst(Expr needle, Expr replacement) {
             return this;
         }
     }
