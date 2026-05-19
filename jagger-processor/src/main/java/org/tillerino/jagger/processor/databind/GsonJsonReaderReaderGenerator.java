@@ -18,7 +18,7 @@ public class GsonJsonReaderReaderGenerator extends AbstractReaderGenerator<GsonJ
 
     public GsonJsonReaderReaderGenerator(CodeGeneratorContext generatorContext) {
         super(generatorContext);
-        parserVariable = prototype.parameters().get(0);
+        parserVariable = prototype.method().parameterOfType(kind.types().get(1));
     }
 
     public GsonJsonReaderReaderGenerator(

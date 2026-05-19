@@ -17,7 +17,7 @@ public class GsonJsonWriterWriterGenerator extends AbstractWriterGenerator<GsonJ
 
     public GsonJsonWriterWriterGenerator(CodeGeneratorContext generatorContext) {
         super(generatorContext);
-        this.writerVariable = prototype.parameters().get(1);
+        this.writerVariable = prototype.method().parameterOfType(kind.types().get(1));
     }
 
     public GsonJsonWriterWriterGenerator(

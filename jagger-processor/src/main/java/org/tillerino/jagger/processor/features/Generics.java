@@ -200,6 +200,7 @@ public class Generics {
 
     public Optional<Expr> getOrCreateLambda(
             GeneratedClass callingClass, TypeMirror targetType, List<InstantiatedVariable> availableValues, int depth) {
+        // TODO availableValues is not being used, depth == 0. There was a plan here to instantiate recursively.
         if (depth > 10) {
             // this depth is pretty arbitrary, but surely larger than anything useful and it's just important that we
             // do not explode here.

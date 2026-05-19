@@ -28,7 +28,7 @@ class ReflectionBridgeTest extends ReferenceTest {
                 reflectionBridge.findDeserializer(type, JsonParser.class);
 
         assertThat(deserializerMaybe).isNotEmpty();
-        inputUtils.withJsonParser("{}", parser -> {
+        inputUtils.withReader("{}", parser -> {
             assertThat(deserializerMaybe.get().invoke(parser)).isInstanceOf(ScalarFieldsRecord.class);
             return null;
         });
@@ -43,7 +43,7 @@ class ReflectionBridgeTest extends ReferenceTest {
                 reflectionBridge.findSerializer(type, JsonGenerator.class);
 
         assertThat(serializerMaybe).isNotEmpty();
-        assertThat(outputUtils.withJsonGenerator(generator -> {
+        assertThat(outputUtils.withWriter(generator -> {
                     ScalarFieldsRecord value = new ScalarFieldsRecord(
                             false,
                             (byte) 1,

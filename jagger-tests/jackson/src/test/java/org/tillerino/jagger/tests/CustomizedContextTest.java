@@ -12,14 +12,14 @@ class CustomizedContextTest extends ReferenceTest {
 
     @Test
     void testCustomizedContextSerialization() throws Exception {
-        String json = outputUtils.withJsonGenerator(generator ->
+        String json = outputUtils.withWriter(generator ->
                 serde.writeMyObj(List.of(new MyObj(10), new MyObj(20)), generator, new CustomSerializationContext()));
         Assertions.assertThat(json).isEqualTo("[{\"i\":10},{\"i\":21}]");
     }
 
     @Test
     void testCustomizedContextDeserialization() throws Exception {
-        List<MyObj> myObjs = inputUtils.withJsonParser(
+        List<MyObj> myObjs = inputUtils.withReader(
                 "[{\"i\":10},{\"i\":20}]", parser -> serde.readMyObj(parser, new CustomDeserializationContext()));
         Assertions.assertThat(myObjs).containsExactly(new MyObj(10), new MyObj(21));
     }

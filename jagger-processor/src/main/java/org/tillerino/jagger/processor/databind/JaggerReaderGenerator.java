@@ -18,7 +18,7 @@ public class JaggerReaderGenerator extends AbstractReaderGenerator<JaggerReaderG
 
     public JaggerReaderGenerator(CodeGeneratorContext generatorContext) {
         super(generatorContext);
-        parserVariable = prototype.parameters().get(0);
+        parserVariable = prototype.method().parameterOfType(kind.types().get(1));
     }
 
     public JaggerReaderGenerator(

@@ -21,7 +21,7 @@ public class InputUtils {
             .registerModule(new Jdk8Module())
             .disable(SerializationFeature.FAIL_ON_EMPTY_BEANS);
 
-    public <T> T withJsonParser(String json, FailableFunction<JacksonJsonNodeReaderAdapter, T, Exception> consumer)
+    public <T> T withReader(String json, FailableFunction<JacksonJsonNodeReaderAdapter, T, Exception> consumer)
             throws Exception {
         return consumer.apply(new JacksonJsonNodeReaderAdapter(ToShadeHelper.readNode(json)));
     }
@@ -49,13 +49,13 @@ public class InputUtils {
 
     public <T> T deserialize(String json, FailableFunction<JacksonJsonNodeReaderAdapter, T, Exception> consumer)
             throws Exception {
-        return withJsonParser(json, consumer);
+        return withReader(json, consumer);
     }
 
     public <T, U> T deserialize2(
             String json, U obj2, FailableBiFunction<JacksonJsonNodeReaderAdapter, U, T, Exception> consumer)
             throws Exception {
-        return withJsonParser(json, parser -> consumer.apply(parser, obj2));
+        return withReader(json, parser -> consumer.apply(parser, obj2));
     }
 
     public <T> T assertIsEqualToDatabind(
@@ -63,7 +63,7 @@ public class InputUtils {
             FailableBiFunction<JacksonJsonNodeReaderAdapter, DeserializationContext, T, Exception> consumer,
             TypeReference<T> typeRef)
             throws Exception {
-        return withJsonParser(json, parser -> {
+        return withReader(json, parser -> {
             T ours = consumer.apply(parser, new DeserializationContext());
             T databind = objectMapper.readValue(json, typeRef);
             assertThat(ours).isEqualTo(databind);
@@ -88,7 +88,7 @@ public class InputUtils {
             FailableFunction<JacksonJsonNodeReaderAdapter, T, Exception> consumer,
             TypeReference<T> typeRef)
             throws Exception {
-        return withJsonParser(json, parser -> {
+        return withReader(json, parser -> {
             T ours = consumer.apply(parser);
             T databind = objectMapper.readValue(json, typeRef);
             assertEqualsComparingRecursively(ours, databind);

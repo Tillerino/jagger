@@ -17,7 +17,7 @@ public class JaggerWriterGenerator extends AbstractWriterGenerator<JaggerWriterG
 
     public JaggerWriterGenerator(CodeGeneratorContext generatorContext) {
         super(generatorContext);
-        this.generatorVariable = prototype.parameters().get(1);
+        this.generatorVariable = prototype.method().parameterOfType(kind.types().get(1));
     }
 
     protected JaggerWriterGenerator(

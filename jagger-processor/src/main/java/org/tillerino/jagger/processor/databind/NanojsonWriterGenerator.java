@@ -18,7 +18,7 @@ public class NanojsonWriterGenerator extends AbstractWriterGenerator<NanojsonWri
 
     public NanojsonWriterGenerator(CodeGeneratorContext generatorContext) {
         super(generatorContext);
-        this.generatorVariable = prototype.parameters().get(1);
+        this.generatorVariable = prototype.method().parameterOfType(kind.types().get(1));
     }
 
     protected NanojsonWriterGenerator(

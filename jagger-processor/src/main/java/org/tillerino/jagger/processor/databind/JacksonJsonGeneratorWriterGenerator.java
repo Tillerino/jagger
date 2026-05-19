@@ -14,7 +14,7 @@ public class JacksonJsonGeneratorWriterGenerator extends AbstractWriterGenerator
 
     public JacksonJsonGeneratorWriterGenerator(CodeGeneratorContext generatorContext) {
         super(generatorContext);
-        this.generatorVariable = prototype.parameters().get(1);
+        this.generatorVariable = prototype.method().parameterOfType(kind.types().get(1));
     }
 
     protected JacksonJsonGeneratorWriterGenerator(

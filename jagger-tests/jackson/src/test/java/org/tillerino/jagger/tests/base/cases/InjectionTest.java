@@ -37,7 +37,7 @@ class InjectionTest extends ReferenceTest {
      */
     @Test
     void testInjectionInput() throws Exception {
-        List<SelfReferencingRecord> records = inputUtils.withJsonParser(
+        List<SelfReferencingRecord> records = inputUtils.withReader(
                 json, parser -> serde.readList(parser, new InjectionSerde.InjectionDeserializationContext()));
         assertThat(records).isEqualTo(list);
         assertThat(records.get(1).self()).isSameAs(records.get(0));

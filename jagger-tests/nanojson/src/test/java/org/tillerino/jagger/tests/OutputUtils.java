@@ -15,7 +15,7 @@ import org.apache.commons.lang3.function.FailableFunction;
 import org.tillerino.jagger.api.SerializationContext;
 
 public record OutputUtils(InputUtils inputUtils) {
-    public String withJsonGenerator(FailableConsumer<JsonAppendableWriter, Exception> output) throws Exception {
+    public String withWriter(FailableConsumer<JsonAppendableWriter, Exception> output) throws Exception {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         JsonAppendableWriter generator = JsonWriter.on(out);
         output.accept(generator);
@@ -24,12 +24,12 @@ public record OutputUtils(InputUtils inputUtils) {
     }
 
     public <T> String serialize(T obj, FailableBiConsumer<T, JsonAppendableWriter, Exception> output) throws Exception {
-        return withJsonGenerator(generator -> output.accept(obj, generator));
+        return withWriter(generator -> output.accept(obj, generator));
     }
 
     public <T, U> String serialize2(T obj, U obj2, FailableTriConsumer<T, JsonAppendableWriter, U, Exception> output)
             throws Exception {
-        return withJsonGenerator(generator -> output.accept(obj, generator, obj2));
+        return withWriter(generator -> output.accept(obj, generator, obj2));
     }
 
     public <T> String assertIsEqualToDatabind(T obj, FailableBiConsumer<T, JsonAppendableWriter, Exception> output)

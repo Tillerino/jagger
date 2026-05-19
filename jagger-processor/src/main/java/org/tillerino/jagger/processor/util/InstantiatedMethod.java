@@ -83,6 +83,30 @@ public record InstantiatedMethod(
         return true;
     }
 
+    public boolean parametersContain(TypeMirror fullyQualified) {
+        for (InstantiatedVariable variable : parameters) {
+            if (ctx.types.isAssignable(variable.type(), fullyQualified)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public InstantiatedVariable parameterOfType(TypeMirror fullyQualified) {
+        for (InstantiatedVariable variable : parameters) {
+            if (ctx.types.isAssignable(variable.type(), fullyQualified)) {
+                return variable;
+            }
+        }
+        throw Exceptions.unexpected();
+    }
+
+    public List<InstantiatedVariable> parametersExcept(TypeMirror excludeFullyQualified) {
+        return parameters.stream()
+                .filter(v -> !ctx.types.isAssignable(v.type(), excludeFullyQualified))
+                .toList();
+    }
+
     public boolean hasParameterAssignableFrom(TypeMirror t, JaggerContext ctx) {
         return parameters.stream().anyMatch(p -> ctx.commonTypes.isAssignable(t, p.type));
     }

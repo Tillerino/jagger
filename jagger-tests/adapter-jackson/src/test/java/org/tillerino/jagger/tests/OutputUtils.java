@@ -17,7 +17,7 @@ import org.tillerino.jagger.adapters.JacksonJsonParserAdapter;
 import org.tillerino.jagger.api.SerializationContext;
 
 public record OutputUtils(InputUtils inputUtils) {
-    public String withJsonGenerator(FailableConsumer<JacksonJsonGeneratorAdapter, Exception> output) throws Exception {
+    public String withWriter(FailableConsumer<JacksonJsonGeneratorAdapter, Exception> output) throws Exception {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         JsonGenerator generator = new JsonFactory().createGenerator(out, JsonEncoding.UTF8);
         output.accept(new JacksonJsonGeneratorAdapter(generator));
@@ -27,12 +27,12 @@ public record OutputUtils(InputUtils inputUtils) {
 
     public <T> String serialize(T obj, FailableBiConsumer<T, JacksonJsonGeneratorAdapter, Exception> output)
             throws Exception {
-        return withJsonGenerator(generator -> output.accept(obj, generator));
+        return withWriter(generator -> output.accept(obj, generator));
     }
 
     public <T, U> String serialize2(
             T obj, U obj2, FailableTriConsumer<T, JacksonJsonGeneratorAdapter, U, Exception> output) throws Exception {
-        return withJsonGenerator(generator -> output.accept(obj, generator, obj2));
+        return withWriter(generator -> output.accept(obj, generator, obj2));
     }
 
     public <T> String assertIsEqualToDatabind(

@@ -14,7 +14,7 @@ import org.tillerino.jagger.api.SerializationContext;
 
 public record OutputUtils(InputUtils inputUtils) {
 
-    public String withGsonJsonWriter(FailableConsumer<JsonWriter, Exception> output) throws Exception {
+    public String withWriter(FailableConsumer<JsonWriter, Exception> output) throws Exception {
         StringWriter out = new StringWriter();
         JsonWriter generator = new JsonWriter(out);
         output.accept(generator);
@@ -36,18 +36,18 @@ public record OutputUtils(InputUtils inputUtils) {
     }
 
     public <T> String serialize(T obj, FailableBiConsumer<T, JsonWriter, Exception> output) throws Exception {
-        return withGsonJsonWriter(generator -> output.accept(obj, generator));
+        return withWriter(generator -> output.accept(obj, generator));
     }
 
     public <T, U> String serialize2(T obj, U obj2, FailableTriConsumer<T, JsonWriter, U, Exception> output)
             throws Exception {
-        return withGsonJsonWriter(generator -> output.accept(obj, generator, obj2));
+        return withWriter(generator -> output.accept(obj, generator, obj2));
     }
 
     public <T> String assertIsEqualToDatabind(
             T obj, FailableTriConsumer<T, JsonWriter, SerializationContext, Exception> output) throws Exception {
         String databind = inputUtils.objectMapper.writeValueAsString(obj);
-        String ours = withGsonJsonWriter(generator -> output.accept(obj, generator, new SerializationContext()));
+        String ours = withWriter(generator -> output.accept(obj, generator, new SerializationContext()));
         assertThatJson(ours).isEqualTo(databind);
         return ours;
     }

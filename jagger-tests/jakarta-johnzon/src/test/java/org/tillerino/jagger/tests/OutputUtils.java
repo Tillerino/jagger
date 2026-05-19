@@ -6,11 +6,16 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import jakarta.json.stream.JsonGenerator;
 import org.apache.commons.lang3.function.FailableBiConsumer;
 import org.apache.commons.lang3.function.FailableBiFunction;
+import org.apache.commons.lang3.function.FailableConsumer;
 import org.apache.commons.lang3.function.FailableFunction;
 import org.tillerino.jagger.api.SerializationContext;
 import org.tillerino.jagger.helpers.JakartaJsonParserHelper;
 
 public record OutputUtils(InputUtils inputUtils) {
+
+    public String withWriter(FailableConsumer<JsonGenerator, Exception> output) throws Exception {
+        return ToShadeUtils.withGsonJsonWriter(output);
+    }
 
     public <T> String assertIsEqualToDatabind(T obj, FailableBiConsumer<T, JsonGenerator, Exception> output)
             throws Exception {

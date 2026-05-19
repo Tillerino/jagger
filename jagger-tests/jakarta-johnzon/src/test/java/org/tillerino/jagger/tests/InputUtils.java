@@ -20,6 +20,10 @@ public class InputUtils {
             .registerModule(new Jdk8Module())
             .disable(SerializationFeature.FAIL_ON_EMPTY_BEANS);
 
+    public <T> T withReader(String json, FailableFunction<JsonParserWrapper, T, Exception> consumer) throws Exception {
+        return ToShadeUtils.withJsonReader(json, consumer);
+    }
+
     public <T> T assertIsEqualToDatabind(
             String json, FailableFunction<JsonParserWrapper, T, Exception> consumer, TypeReference<T> typeRef)
             throws Exception {

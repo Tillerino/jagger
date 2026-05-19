@@ -43,10 +43,12 @@ public abstract class AbstractWriterGenerator<SELF extends AbstractWriterGenerat
     }
 
     protected AbstractWriterGenerator(CodeGeneratorContext generatorContext) {
-        super(generatorContext, generatorContext.prototype().parameters().get(0).type());
-        this.rhs = new RHS(
-                // TODO does this clash with the flexible detection?
-                prototype.method().parameters().get(0), true);
+        super(
+                generatorContext,
+                ((TemplatablePrototypeKind) generatorContext.prototype().kind())
+                        .types()
+                        .get(0));
+        this.rhs = new RHS(prototype.method().parameterOfType(type), true);
         this.lhs = new LHS.Return();
     }
 

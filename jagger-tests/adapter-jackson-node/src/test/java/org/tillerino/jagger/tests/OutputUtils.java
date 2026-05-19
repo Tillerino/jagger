@@ -12,7 +12,7 @@ import org.tillerino.jagger.adapters.JacksonJsonNodeWriterAdapter;
 import org.tillerino.jagger.api.SerializationContext;
 
 public record OutputUtils(InputUtils inputUtils) {
-    public String withJsonGenerator(FailableConsumer<JacksonJsonNodeWriterAdapter, Exception> output) throws Exception {
+    public String withWriter(FailableConsumer<JacksonJsonNodeWriterAdapter, Exception> output) throws Exception {
         JacksonJsonNodeWriterAdapter adapter = new JacksonJsonNodeWriterAdapter(ToShadeHelper.jsonNodeFactory());
         output.accept(adapter);
         return adapter.getResult().toString();
@@ -20,12 +20,12 @@ public record OutputUtils(InputUtils inputUtils) {
 
     public <T> String serialize(T obj, FailableBiConsumer<T, JacksonJsonNodeWriterAdapter, Exception> output)
             throws Exception {
-        return withJsonGenerator(generator -> output.accept(obj, generator));
+        return withWriter(generator -> output.accept(obj, generator));
     }
 
     public <T, U> String serialize2(
             T obj, U obj2, FailableTriConsumer<T, JacksonJsonNodeWriterAdapter, U, Exception> output) throws Exception {
-        return withJsonGenerator(generator -> output.accept(obj, generator, obj2));
+        return withWriter(generator -> output.accept(obj, generator, obj2));
     }
 
     public <T> String assertIsEqualToDatabind(

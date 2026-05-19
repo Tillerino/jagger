@@ -19,7 +19,7 @@ public class JacksonJsonParserReaderGenerator extends AbstractReaderGenerator<Ja
 
     public JacksonJsonParserReaderGenerator(CodeGeneratorContext generatorContext) {
         super(generatorContext);
-        parserVariable = prototype.parameters().get(0);
+        parserVariable = prototype.method().parameterOfType(kind.types().get(1));
     }
 
     public JacksonJsonParserReaderGenerator(

@@ -8,6 +8,10 @@ public interface VariableNaming {
 
     record Inner(String sameName) {}
 
+    /**
+     * In this serde, all variables are named the same. We're testing if we evade that issue by renaming our local
+     * variables.
+     */
     interface Serde {
         @JsonInput
         Outer read(JsonParser sameName) throws Exception;

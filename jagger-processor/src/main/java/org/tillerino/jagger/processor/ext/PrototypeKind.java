@@ -11,7 +11,6 @@ import org.tillerino.jagger.processor.JaggerContext;
 import org.tillerino.jagger.processor.JaggerPrototype;
 import org.tillerino.jagger.processor.config.AnyConfig;
 import org.tillerino.jagger.processor.features.Generics.TypeVar;
-import org.tillerino.jagger.processor.util.Exceptions;
 import org.tillerino.jagger.processor.util.InstantiatedMethod;
 import org.tillerino.jagger.processor.util.InstantiatedMethod.InstantiatedVariable;
 
@@ -49,40 +48,13 @@ public interface PrototypeKind {
                 continue;
             }
             externalType = ctx.types.erasure(externalType);
-            if (variablesContain(m.parameters(), externalType, ctx)) {
-                InstantiatedVariable externalParameter = variableOfType(m.parameters(), externalType, ctx);
-                List<InstantiatedVariable> otherParameters = variablesExcept(m.parameters(), externalType, ctx);
+            if (m.parametersContain(externalType)) {
+                InstantiatedVariable externalParameter = m.parameterOfType(externalType);
+                List<InstantiatedVariable> otherParameters = m.parametersExcept(externalType);
                 return Optional.of(c.instantiate(externalType, externalParameter, otherParameters));
             }
         }
         return Optional.empty();
-    }
-
-    static boolean variablesContain(
-            List<InstantiatedVariable> variables, TypeMirror fullyQualified, JaggerContext ctx) {
-        for (InstantiatedVariable variable : variables) {
-            if (ctx.types.isAssignable(variable.type(), fullyQualified)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    static InstantiatedVariable variableOfType(
-            List<InstantiatedVariable> variables, TypeMirror fullyQualified, JaggerContext ctx) {
-        for (InstantiatedVariable variable : variables) {
-            if (ctx.types.isAssignable(variable.type(), fullyQualified)) {
-                return variable;
-            }
-        }
-        throw Exceptions.unexpected();
-    }
-
-    static List<InstantiatedVariable> variablesExcept(
-            List<InstantiatedVariable> variables, TypeMirror excludeFullyQualified, JaggerContext ctx) {
-        return variables.stream()
-                .filter(v -> !ctx.types.isAssignable(v.type(), excludeFullyQualified))
-                .toList();
     }
 
     static List<TypeMirror> nullableTypeList(TypeMirror... nullableTypes) {

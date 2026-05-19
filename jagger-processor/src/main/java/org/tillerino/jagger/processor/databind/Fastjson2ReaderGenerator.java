@@ -20,7 +20,7 @@ public class Fastjson2ReaderGenerator extends AbstractReaderGenerator<Fastjson2R
 
     public Fastjson2ReaderGenerator(CodeGeneratorContext generatorContext) {
         super(generatorContext);
-        parserVariable = prototype.parameters().get(0);
+        parserVariable = prototype.method().parameterOfType(kind.types().get(1));
     }
 
     public Fastjson2ReaderGenerator(
