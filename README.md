@@ -110,12 +110,12 @@ The context parameters can be omitted if they are not explicitly needed.
 
 ### Templates
 
-The `@JsonTemplate` annotation allows you to specify prototypes from templates without specifying each as a separate method.
+The `@JaggerTemplate` annotation allows you to specify prototypes from templates without specifying each as a separate method.
 
 ```java
 // jagger-tests/jackson/src/main/java/org/tillerino/jagger/tests/base/features/TemplatesSerde.java#L14-L16
 
-@JsonTemplate(
+@JaggerTemplate(
         templates = {GenericInputSerde.class, GenericOutputSerde.class},
         types = {double.class, AnEnum.class, double[].class, AnEnum[].class})
 ```

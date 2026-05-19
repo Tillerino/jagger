@@ -5,10 +5,10 @@ import lombok.RequiredArgsConstructor;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.tillerino.jagger.annotations.JaggerTemplate;
+import org.tillerino.jagger.annotations.JaggerTemplate.TypeArray;
 import org.tillerino.jagger.annotations.JsonConfig;
 import org.tillerino.jagger.annotations.JsonConfig.ImplementationMode;
-import org.tillerino.jagger.annotations.JsonTemplate;
-import org.tillerino.jagger.annotations.JsonTemplate.TypeArray;
 import org.tillerino.jagger.tests.SerdeUtil;
 import org.tillerino.jagger.tests.plugins.SimpleMapperPlugin.Mapper;
 import org.tillerino.jagger.tests.plugins.SimpleMapperPluginTest.SourceEntity.SourceAddress;
@@ -77,7 +77,7 @@ class SimpleMapperPluginTest {
             T map(S s);
         }
 
-        @JsonTemplate(
+        @JaggerTemplate(
                 templates = {MapperTemplate.class},
                 typeArrays = {
                     @TypeArray({TargetDto.class, SourceEntity.class}),

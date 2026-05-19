@@ -25,12 +25,12 @@ import org.tillerino.jagger.processor.util.InstantiatedMethod;
 
 @AutoService(JaggerPlugin.class)
 public class Templates implements JaggerPlugin {
-    public static final String JSON_TEMPLATE = "org.tillerino.jagger.annotations.JsonTemplate";
-    public static final String JSON_TEMPLATES = "org.tillerino.jagger.annotations.JsonTemplate.JsonTemplates";
+    public static final String JAGGER_TEMPLATE = "org.tillerino.jagger.annotations.JaggerTemplate";
+    public static final String JAGGER_TEMPLATES = "org.tillerino.jagger.annotations.JaggerTemplate.JaggerTemplates";
 
     @Override
     public Collection<String> getSupportedAnnotationTypes() {
-        return List.of(JSON_TEMPLATE, JSON_TEMPLATES);
+        return List.of(JAGGER_TEMPLATE, JAGGER_TEMPLATES);
     }
 
     @Override
@@ -123,7 +123,7 @@ public class Templates implements JaggerPlugin {
     private static class SingleAnnotationDetector implements BlueprintConfigurator {
         @Override
         public List<String> supportedAnnotationTypes() {
-            return List.of(JSON_TEMPLATE);
+            return List.of(JAGGER_TEMPLATE);
         }
 
         @Override
@@ -135,7 +135,7 @@ public class Templates implements JaggerPlugin {
     private static class RepeatedAnnotationDetector implements BlueprintConfigurator {
         @Override
         public List<String> supportedAnnotationTypes() {
-            return List.of(JSON_TEMPLATES);
+            return List.of(JAGGER_TEMPLATES);
         }
 
         @Override

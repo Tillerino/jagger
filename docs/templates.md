@@ -4,7 +4,7 @@
 Writing `@JsonInput` and `@JsonOutput` methods can be repetitive.
 If you use extra arguments (see [Delegators](delegators.md)), it can be especially error-prone.
 
-The `@JsonTemplate` annotation allows you to generate many prototypes based on simple templates.
+The `@JaggerTemplate` annotation allows you to generate many prototypes based on simple templates.
 
 Consider these generic interfaces:
 
@@ -31,7 +31,7 @@ Annotating your blueprint with
 ```java
 // ../jagger-tests/jackson/src/main/java/org/tillerino/jagger/tests/base/features/TemplatesSerde.java#L14-L16
 
-@JsonTemplate(
+@JaggerTemplate(
         templates = {GenericInputSerde.class, GenericOutputSerde.class},
         types = {double.class, AnEnum.class, double[].class, AnEnum[].class})
 ```
@@ -60,7 +60,7 @@ The generated methods behave exactly as if they were fully specified. In this bl
 // ../jagger-tests/jackson/src/main/java/org/tillerino/jagger/tests/base/features/TemplatesSerde.java#L13-L19
 
 public interface TemplatesSerde {
-    @JsonTemplate(
+    @JaggerTemplate(
             templates = {GenericInputSerde.class, GenericOutputSerde.class},
             types = {double.class, AnEnum.class, double[].class, AnEnum[].class})
     interface TemplatedSerde {

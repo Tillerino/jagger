@@ -5,9 +5,9 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
+import org.tillerino.jagger.annotations.JaggerTemplate;
 import org.tillerino.jagger.annotations.JsonConfig;
 import org.tillerino.jagger.annotations.JsonConfig.ImplementationMode;
-import org.tillerino.jagger.annotations.JsonTemplate;
 import org.tillerino.jagger.tests.plugins.DeepClonePlugin.Clone;
 
 class DeepClonePluginTest {
@@ -35,7 +35,7 @@ class DeepClonePluginTest {
     }
 
     @JsonConfig(implement = ImplementationMode.DO_IMPLEMENT)
-    @JsonTemplate(
+    @JaggerTemplate(
             templates = {ClonerTemplate.class},
             types = {Person.class, Address.class})
     public interface Cloner {}

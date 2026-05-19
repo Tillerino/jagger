@@ -2,16 +2,16 @@ package org.tillerino.jagger.tests.base.features;
 
 import com.fasterxml.jackson.core.JsonGenerator;
 import java.util.List;
+import org.tillerino.jagger.annotations.JaggerTemplate;
 import org.tillerino.jagger.annotations.JsonConfig;
 import org.tillerino.jagger.annotations.JsonOutput;
-import org.tillerino.jagger.annotations.JsonTemplate;
 import org.tillerino.jagger.tests.base.features.GenericsSerde.GenericInputSerde;
 import org.tillerino.jagger.tests.base.features.GenericsSerde.GenericOutputSerde;
 import org.tillerino.jagger.tests.model.AnEnum;
 import org.tillerino.jagger.tests.model.features.TemplatesModel.HasAnEnumArrayProperty;
 
 public interface TemplatesSerde {
-    @JsonTemplate(
+    @JaggerTemplate(
             templates = {GenericInputSerde.class, GenericOutputSerde.class},
             types = {double.class, AnEnum.class, double[].class, AnEnum[].class})
     interface TemplatedSerde {
@@ -20,16 +20,16 @@ public interface TemplatesSerde {
     }
 
     @JsonConfig(uses = TemplatedSerde.class)
-    @JsonTemplate(
+    @JaggerTemplate(
             templates = {GenericInputSerde.class, GenericOutputSerde.class},
             types = {HasAnEnumArrayProperty.class})
     interface CallsTemplatePrototypes {}
 
     @JsonConfig(uses = TemplatedSerde.class)
-    @JsonTemplate(
+    @JaggerTemplate(
             templates = {GenericOutputSerde.class},
             types = {AnEnum.class})
-    @JsonTemplate(
+    @JaggerTemplate(
             templates = {GenericInputSerde.class},
             types = {AnEnum.class})
     interface MultipleTemplateAnnotationsAndOneCustom {

@@ -1,7 +1,7 @@
 package org.tillerino.jagger.annotations;
 
 import java.lang.annotation.*;
-import org.tillerino.jagger.annotations.JsonTemplate.JsonTemplates;
+import org.tillerino.jagger.annotations.JaggerTemplate.JaggerTemplates;
 
 /**
  * Generate prototypes with this shorthand.
@@ -25,7 +25,7 @@ import org.tillerino.jagger.annotations.JsonTemplate.JsonTemplates;
  * <p>They can be instantiated like:
  *
  * <pre>{@code
- * @JsonTemplate(
+ * @JaggerTemplate(
  *     templates = {GenericInputSerde.class, GenericOutputSerde.class},
  *     types = {Float.class, String.class})
  * interface MySerde {}
@@ -44,8 +44,8 @@ import org.tillerino.jagger.annotations.JsonTemplate.JsonTemplates;
  */
 @Target(ElementType.TYPE)
 @Retention(RetentionPolicy.SOURCE)
-@Repeatable(JsonTemplates.class)
-public @interface JsonTemplate {
+@Repeatable(JaggerTemplates.class)
+public @interface JaggerTemplate {
     /**
      * A template for the methods to generate.
      *
@@ -61,11 +61,11 @@ public @interface JsonTemplate {
      */
     TypeArray[] typeArrays() default {};
 
-    /** Container annotation for repeatable @JsonTemplate annotations. */
+    /** Container annotation for repeatable {@link JaggerTemplate} annotations. */
     @Target(ElementType.TYPE)
     @Retention(RetentionPolicy.SOURCE)
-    @interface JsonTemplates {
-        JsonTemplate[] value();
+    @interface JaggerTemplates {
+        JaggerTemplate[] value();
     }
 
     @Retention(RetentionPolicy.SOURCE)
