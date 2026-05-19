@@ -2,6 +2,7 @@ package org.tillerino.jagger.processor.features;
 
 import static org.tillerino.jagger.processor.util.Expr.e;
 
+import jakarta.annotation.Nullable;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Optional;
@@ -117,9 +118,9 @@ public class Delegation {
     }
 
     public List<Expr> findArguments(
-            JaggerPrototype caller,
+            @Nullable JaggerPrototype caller,
             InstantiatedMethod callee,
-            List<Expr> additionalParameters,
+            List<? extends Expr> additionalParameters,
             int firstArgument,
             GeneratedClass generatedClass) {
         return IntStream.range(firstArgument, callee.parameters().size())
@@ -131,31 +132,33 @@ public class Delegation {
                                                     .formatted(ShortName.of(targetParameter.type())))
                                     .addContextValue("parameter", targetParameter)
                                     .addContextValue("callee", callee)
-                                    .addContextValue("caller", caller.method()));
+                                    .addContextValue("caller", caller != null ? caller.method() : "(anonymous)"));
                 })
                 .collect(Collectors.toList());
     }
 
     private Optional<Expr> findArgument(
-            JaggerPrototype caller,
+            @Nullable JaggerPrototype caller,
             GeneratedClass generatedClass,
-            List<Expr> additionalParameters,
+            List<? extends Expr> additionalParameters,
             InstantiatedVariable targetArgument) {
         // search in caller's own parameters
-        Iterable<Expr> locallyAvailable =
-                () -> Stream.concat(additionalParameters.stream(), caller.parameters().stream())
-                        .iterator();
+        Iterable<Expr> locallyAvailable = () -> Stream.concat(
+                        additionalParameters.stream(), caller != null ? caller.parameters().stream() : Stream.of())
+                .iterator();
         for (Expr instantiatedParameter : locallyAvailable) {
             if (ctx.commonTypes.isAssignable(instantiatedParameter.type(), targetArgument.type())) {
                 return Optional.of(instantiatedParameter);
             }
         }
 
-        // see if we can instantiate an instance from our list of used blueprints
-        Expr delegateeInField =
-                generatedClass.getOrCreateUsedBlueprintWithTypeField(targetArgument.type(), caller.config());
-        if (delegateeInField != null) {
-            return Optional.of(delegateeInField);
+        if (caller != null) {
+            // see if we can instantiate an instance from our list of used blueprints
+            Expr delegateeInField =
+                    generatedClass.getOrCreateUsedBlueprintWithTypeField(targetArgument.type(), caller.config());
+            if (delegateeInField != null) {
+                return Optional.of(delegateeInField);
+            }
         }
         if (targetArgument.type() instanceof DeclaredType t
                 && t.asElement().equals(ctx.commonTypes.classElement)
@@ -166,7 +169,8 @@ public class Delegation {
             }
         }
         // see if we can instantiate a lambda from our list of used blueprints
-        return ctx.generics.getOrCreateLambda(generatedClass, targetArgument.type(), caller.parameters(), 0);
+        return ctx.generics.getOrCreateLambda(
+                generatedClass, targetArgument.type(), caller != null ? caller.parameters() : List.of(), 0);
     }
 
     public record Delegatee(Expr fieldOrParameter, InstantiatedMethod method) {

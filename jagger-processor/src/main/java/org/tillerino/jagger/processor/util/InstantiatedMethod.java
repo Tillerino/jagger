@@ -2,6 +2,7 @@ package org.tillerino.jagger.processor.util;
 
 import static org.tillerino.jagger.processor.util.Expr.e;
 
+import jakarta.annotation.Nullable;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -63,11 +64,13 @@ public record InstantiatedMethod(
     }
 
     public List<Expr> findArguments(
-            JaggerPrototype caller, List<Expr> additionalParameters, GeneratedClass generatedClass) {
+            @Nullable JaggerPrototype caller,
+            List<? extends Expr> additionalParameters,
+            GeneratedClass generatedClass) {
         return ctx.delegation.findArguments(caller, this, additionalParameters, 0, generatedClass);
     }
 
-    public boolean hasSameSignature(InstantiatedMethod other, JaggerContext ctx) {
+    public boolean hasSameSignature(InstantiatedMethod other) {
         if (!ctx.types.isSameType(returnType, other.returnType)) {
             return false;
         }
@@ -77,6 +80,25 @@ public record InstantiatedMethod(
         for (int i = 0; i < parameters.size(); i++) {
             if (!ctx.types.isSameType(
                     parameters.get(i).type(), other.parameters.get(i).type())) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    public boolean hasOnlyParametersFrom(InstantiatedMethod other) {
+        if (!ctx.types.isSameType(returnType, other.returnType)) {
+            return false;
+        }
+        for (InstantiatedVariable parameter : parameters) {
+            boolean found = false;
+            for (InstantiatedVariable otherParameter : other.parameters) {
+                if (ctx.types.isSameType(parameter.type(), otherParameter.type())) {
+                    found = true;
+                    break;
+                }
+            }
+            if (!found) {
                 return false;
             }
         }

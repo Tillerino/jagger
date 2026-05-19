@@ -431,4 +431,22 @@ public class DelegationTest extends ReferenceTest {
                     .references("readPrimitiveDoubleMatrix");
         }
     }
+
+    @Nested
+    class WrongOrderForMethodReference {
+        WrongOrderForMethodReferenceSerde serde = SerdeUtil.impl(WrongOrderForMethodReferenceSerde.class);
+
+        @Test
+        void works() throws Exception {
+            outputUtils.assertIsEqualToDatabind(Map.of("one", 1), serde::writeStringIntMap);
+        }
+
+        @Test
+        void delegates() throws Exception {
+            assertThatImpl(WrongOrderForMethodReferenceSerde.class)
+                    .method("writeStringIntMap")
+                    .calls("writeGenericMap")
+                    .calls("writeInt");
+        }
+    }
 }

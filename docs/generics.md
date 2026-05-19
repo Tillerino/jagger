@@ -33,7 +33,7 @@ interface GenericOutputSerde<U> {
 ```
 
 `DO_NOT_IMPLEMENT` is important to prevent implementation of these prototypes.
-Note that these can have additional arguments like all prototypes, see [delegation](delegators.md#additional-arguments).
+Note that these can have additional arguments like all prototypes, see [delegation](delegation.md#additional-arguments).
 These generic interfaces are well-suited for [templates](templates.md).
 
 Now say you have the following generic class:

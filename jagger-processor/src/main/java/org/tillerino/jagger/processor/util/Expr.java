@@ -1,5 +1,7 @@
 package org.tillerino.jagger.processor.util;
 
+import static org.tillerino.jagger.processor.util.Code.c;
+
 import java.util.List;
 import java.util.function.Function;
 import javax.lang.model.type.TypeMirror;
@@ -27,7 +29,7 @@ public interface Expr extends Code {
     }
 
     static Expr e(TypeMirror type, String format, Object... args) {
-        return e(type, Code.c(format, args));
+        return e(type, c(format, args));
     }
 
     static Expr e(TypeMirror type, Code nested) {

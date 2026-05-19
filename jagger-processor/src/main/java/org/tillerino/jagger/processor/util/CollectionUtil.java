@@ -11,6 +11,13 @@ public class CollectionUtil {
         return l;
     }
 
+    public static <T> List<T> append(Collection<T> front, Collection<T> back) {
+        List<T> l = new ArrayList<>(back.size() + 1);
+        l.addAll(front);
+        l.addAll(back);
+        return l;
+    }
+
     public static <K, V> LinkedHashMap<K, V> mapLists(Collection<K> keys, Collection<V> values) {
         LinkedHashMap<K, V> map = new LinkedHashMap<>();
         Iterator<K> k = keys.iterator();

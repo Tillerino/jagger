@@ -2,7 +2,7 @@
 
 ## Basics
 Writing `@JsonInput` and `@JsonOutput` methods can be repetitive.
-If you use extra arguments (see [Delegators](delegators.md)), it can be especially error-prone.
+If you use extra arguments (see [Delegators](delegation.md)), it can be especially error-prone.
 
 The `@JaggerTemplate` annotation allows you to generate many prototypes based on simple templates.
 

@@ -1,10 +1,12 @@
 package org.tillerino.jagger.processor.features;
 
+import static org.tillerino.jagger.processor.util.Code.c;
 import static org.tillerino.jagger.processor.util.Expr.e;
 
 import jakarta.annotation.Nullable;
 import java.util.*;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import javax.lang.model.element.Element;
 import javax.lang.model.element.ExecutableElement;
 import javax.lang.model.element.TypeElement;
@@ -13,7 +15,10 @@ import javax.lang.model.type.*;
 import javax.lang.model.util.AbstractTypeVisitor14;
 import javax.lang.model.util.ElementFilter;
 import javax.lang.model.util.Types;
-import org.tillerino.jagger.processor.*;
+import org.tillerino.jagger.processor.GeneratedClass;
+import org.tillerino.jagger.processor.JaggerBlueprint;
+import org.tillerino.jagger.processor.JaggerContext;
+import org.tillerino.jagger.processor.JaggerPrototype;
 import org.tillerino.jagger.processor.config.AnyConfig;
 import org.tillerino.jagger.processor.config.ConfigProperty.LocationKind;
 import org.tillerino.jagger.processor.util.Code;
@@ -206,53 +211,87 @@ public class Generics {
             // do not explode here.
             return Optional.empty();
         }
-        return instantiateFunctionalInterface(targetType)
-                .flatMap(functionalInterface -> createMethodReference(callingClass, functionalInterface));
+        return isFunctionalInterface(targetType)
+                ? instantiateFunctionalInterface(callingClass, targetType)
+                : Optional.empty();
     }
 
-    Optional<TypeMirror> instantiateFunctionalInterface(TypeMirror functionalInterface) {
+    boolean isFunctionalInterface(TypeMirror functionalInterface) {
         if (!(functionalInterface instanceof DeclaredType d)) {
-            return Optional.empty();
+            return false;
         }
+
         TypeElement typeElement = (TypeElement) d.asElement();
         if (!typeElement.getKind().isInterface()) {
-            return Optional.empty();
+            return false;
         }
+
         List<ExecutableElement> methods = ElementFilter.methodsIn(ctx.elements.getAllMembers(typeElement)).stream()
                 .filter(method -> !method.getEnclosingElement().toString().equals("java.lang.Object"))
                 .toList();
-        if (methods.size() != 1) {
-            return Optional.empty();
-        }
-        return Optional.of(functionalInterface);
+
+        return methods.size() == 1;
     }
 
-    private Optional<Expr> createMethodReference(GeneratedClass callingClass, TypeMirror functionalInterface) {
+    private Optional<Expr> instantiateFunctionalInterface(GeneratedClass callingClass, TypeMirror functionalInterface) {
         InstantiatedMethod targetMethod = ctx.generics
                 .instantiateMethods(functionalInterface, LocationKind.PROTOTYPE)
                 .get(0);
+
         JaggerBlueprint blueprint = callingClass.blueprint;
-        for (JaggerPrototype method : blueprint.prototypes) {
-            if (method.method().hasSameSignature(targetMethod, ctx)) {
-                return Optional.of(e(
-                        functionalInterface,
-                        "$C::$L",
-                        callingClass.getOrCreateDelegateeField(blueprint, blueprint, !method.overrides()),
-                        method.method().name()));
+        List<JaggerPrototype> allAvailablePrototypes = Stream.concat(
+                        blueprint.prototypes.stream(),
+                        blueprint.config.reversedUses().stream().flatMap(b -> b.prototypes.stream()))
+                .toList();
+
+        for (JaggerPrototype method : allAvailablePrototypes) {
+            Optional<Expr> methodReference = createMethodReference(
+                            functionalInterface, targetMethod, callingClass, method)
+                    .or(() -> createLambda(functionalInterface, targetMethod, callingClass, method));
+            if (methodReference.isPresent()) {
+                return methodReference;
             }
         }
-        for (JaggerBlueprint use : blueprint.config.reversedUses()) {
-            for (JaggerPrototype method : use.prototypes) {
-                if (method.method().hasSameSignature(targetMethod, ctx)) {
-                    return Optional.of(e(
-                            functionalInterface,
-                            "$C::$L",
-                            callingClass.getOrCreateDelegateeField(blueprint, use, !method.overrides()),
-                            method.method().name()));
-                }
-            }
-        }
+
         return Optional.empty();
+    }
+
+    private Optional<Expr> createMethodReference(
+            TypeMirror functionalInterface,
+            InstantiatedMethod singleMethod,
+            GeneratedClass caller,
+            JaggerPrototype callee) {
+        if (!callee.method().hasSameSignature(singleMethod)) {
+            return Optional.empty();
+        }
+
+        return Optional.of(e(
+                functionalInterface,
+                "$C::$L",
+                caller.getOrCreateDelegateeField(caller.blueprint, callee.blueprint(), !callee.overrides()),
+                callee.method().name()));
+    }
+
+    private Optional<Expr> createLambda(
+            TypeMirror functionalInterface,
+            InstantiatedMethod singleMethod,
+            GeneratedClass caller,
+            JaggerPrototype callee) {
+        if (!callee.method().hasOnlyParametersFrom(singleMethod)) {
+            return Optional.empty();
+        }
+
+        // TODO avoid local variables
+        Code argsDecl = c("($C)", Code.join(singleMethod.parameters(), ", "));
+        Code argsVals = Code.join(callee.method().findArguments(null, singleMethod.parameters(), caller), ", ");
+
+        return Optional.of(e(
+                functionalInterface,
+                "$C -> $C.$L($C)",
+                argsDecl,
+                caller.getOrCreateDelegateeField(caller.blueprint, callee.blueprint(), !callee.overrides()),
+                callee.method().name(),
+                argsVals));
     }
 
     /** Finds a parameter of type {@code Class<T>} on the method. */

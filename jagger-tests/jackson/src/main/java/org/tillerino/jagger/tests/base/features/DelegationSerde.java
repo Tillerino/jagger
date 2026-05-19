@@ -12,6 +12,7 @@ import org.tillerino.jagger.api.DeserializationContext;
 import org.tillerino.jagger.api.SerializationContext;
 import org.tillerino.jagger.tests.base.PrimitiveScalarsSerde;
 import org.tillerino.jagger.tests.base.features.GenericsSerde.GenericContainersSerde;
+import org.tillerino.jagger.tests.base.features.GenericsSerde.GenericOutputSerde;
 import org.tillerino.jagger.tests.model.PrimitiveArrayFieldsRecord;
 import org.tillerino.jagger.tests.model.ScalarFieldsRecord;
 import org.tillerino.jagger.tests.model.features.DelegationModel.GenericInterface;
@@ -319,5 +320,25 @@ public interface DelegationSerde {
 
         @JsonInput
         double[][][] readPrimitiveDoubleTensor(JsonParser parser) throws Exception;
+    }
+
+    @JsonConfig(uses = GenericContainersSerde.class)
+    interface WrongOrderForMethodReferenceSerde {
+        /**
+         * Here, we delegate to {@link GenericContainersSerde#writeGenericMap(Map, JsonGenerator, GenericOutputSerde)}.
+         * However, {@link #writeInt(JsonGenerator, Integer)} does not quite match
+         * {@link GenericOutputSerde#writeOnGenericInterface(Object, JsonGenerator)}, so we cannot use a method
+         * reference. We are forced to instantiate a full lambda.
+         */
+        @JsonOutput
+        void writeStringIntMap(Map<String, Integer> map, JsonGenerator out) throws Exception;
+
+        /**
+         * Parameters intentionally not in the order of
+         * {@link org.tillerino.jagger.tests.base.features.GenericsSerde.GenericOutputSerde#writeOnGenericInterface(Object,
+         * JsonGenerator)}.
+         */
+        @JsonOutput
+        void writeInt(JsonGenerator out, Integer integer) throws Exception;
     }
 }

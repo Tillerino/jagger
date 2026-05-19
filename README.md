@@ -141,7 +141,7 @@ Here, the implementation of the first method will call the second method for eac
 It is recommended to view the generated code and declare further methods to break down large generated methods.
 This will work at any level, and you can even declare methods for primitive types.
 
-[more](docs/delegators.md)
+[more](docs/delegation.md)
 
 ### Converters
 
