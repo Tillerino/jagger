@@ -1,8 +1,7 @@
 package org.tillerino.jagger.processor.features;
 
 import com.google.auto.service.AutoService;
-import java.util.Collection;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Stream;
 import javax.lang.model.type.TypeMirror;
 import javax.lang.model.type.TypeVariable;
@@ -11,7 +10,10 @@ import org.tillerino.jagger.processor.JaggerBlueprint;
 import org.tillerino.jagger.processor.JaggerContext;
 import org.tillerino.jagger.processor.JaggerProcessor.Trigger;
 import org.tillerino.jagger.processor.JaggerPrototype;
+import org.tillerino.jagger.processor.config.ConfigProperty;
 import org.tillerino.jagger.processor.config.ConfigProperty.LocationKind;
+import org.tillerino.jagger.processor.config.ConfigProperty.MergeFunction;
+import org.tillerino.jagger.processor.config.ConfigProperty.PropagationKind;
 import org.tillerino.jagger.processor.ext.BlueprintConfigurator;
 import org.tillerino.jagger.processor.ext.JaggerPlugin;
 import org.tillerino.jagger.processor.ext.PrototypeKind;
@@ -25,6 +27,13 @@ import org.tillerino.jagger.processor.util.InstantiatedMethod;
 
 @AutoService(JaggerPlugin.class)
 public class Templates implements JaggerPlugin {
+    static ConfigProperty<List<TemplateAnnotation>> TEMPLATES = new ConfigProperty<>(
+            "TEMPLATES",
+            List.of(LocationKind.BLUEPRINT),
+            List.of(),
+            MergeFunction.appendLists(),
+            PropagationKind.none());
+
     public static final String JAGGER_TEMPLATE = "org.tillerino.jagger.annotations.JaggerTemplate";
     public static final String JAGGER_TEMPLATES = "org.tillerino.jagger.annotations.JaggerTemplate.JaggerTemplates";
 
@@ -35,118 +44,123 @@ public class Templates implements JaggerPlugin {
 
     @Override
     public void configure(JaggerContext ctx) {
-        ctx.register(new SingleAnnotationDetector());
-        ctx.register(new RepeatedAnnotationDetector());
+        record TemplateConfigurator(String annotationType) implements BlueprintConfigurator {
+            @Override
+            public List<String> supportedAnnotationTypes() {
+                return List.of(annotationType);
+            }
+
+            @Override
+            public void configure(JaggerBlueprint blueprint, AnnotationMirrorWrapper annotation) {
+                addTemplatesFromAnnotation(blueprint);
+            }
+        }
+        ctx.register(new TemplateConfigurator(JAGGER_TEMPLATE));
+        ctx.register(new TemplateConfigurator(JAGGER_TEMPLATES));
+
+        ctx.configProperties.addConfigAnnotation(
+                TEMPLATES,
+                JAGGER_TEMPLATE,
+                annotation -> Optional.of(List.of(TemplateAnnotation.fromAnnotation(annotation))));
+
+        ctx.configProperties.addConfigAnnotation(TEMPLATES, JAGGER_TEMPLATES, annotation -> {
+            List<TemplateAnnotation> annotations =
+                    annotation.method("value", false).orElseThrow(Exceptions::unexpected).asArray().stream()
+                            .map(AnnotationValueWrapper::asAnnotation)
+                            .map(TemplateAnnotation::fromAnnotation)
+                            .toList();
+            return Optional.of(annotations);
+        });
     }
 
-    private static void addTemplatesFromAnnotation(
-            JaggerBlueprint blueprint, AnnotationMirrorWrapper templateAnnotation) {
-        List<Template> templates = findTemplates(templateAnnotation);
-        List<List<TypeMirror>> typeLists = findTypes(templateAnnotation);
-        JaggerContext ctx = templateAnnotation.ctx();
-        for (List<TypeMirror> typeList : typeLists) {
-            for (Template template : templates) {
-                if (template.typeVars.size() != typeList.size()) {
-                    throw new ContextedRuntimeException("Mismatched number of type variables")
-                            .addContextValue("template method name", template.method.name())
-                            .addContextValue("type variables", template.typeVars)
-                            .addContextValue("provided types", typeList);
+    private static void addTemplatesFromAnnotation(JaggerBlueprint blueprint) {
+        for (TemplateAnnotation templateAnnotation :
+                blueprint.config.resolveProperty(TEMPLATES).value()) {
+            for (Template template : templateAnnotation.templates()) {
+                for (List<TypeMirror> typeList : templateAnnotation.types()) {
+                    addPrototype(blueprint, template, typeList);
                 }
-                TemplatablePrototypeKind prototypeKind = template.kind.withTypesPrefix(typeList);
-                InstantiatedMethod instantiatedMethod = ctx.generics
-                        .applyTypeBindings(template.method, CollectionUtil.mapLists(template.typeVars, typeList))
-                        .withName(prototypeKind.defaultMethodName());
-
-                blueprint.prototypes.add(JaggerPrototype.of(
-                        blueprint, instantiatedMethod, prototypeKind, ctx, false, new Trigger(blueprint.typeElement)));
             }
         }
     }
 
-    private static List<Template> findTemplates(AnnotationMirrorWrapper templateAnnotation) {
-        return templateAnnotation.method("templates", false).orElseThrow(Exceptions::unexpected).asArray().stream()
-                .map(templateWrapper -> createTemplate(templateAnnotation, templateWrapper))
-                .toList();
+    private static void addPrototype(JaggerBlueprint blueprint, Template template, List<TypeMirror> typeList) {
+        if (template.typeVars.size() != typeList.size()) {
+            throw new ContextedRuntimeException("Mismatched number of type variables")
+                    .addContextValue("template method name", template.method.name())
+                    .addContextValue("type variables", template.typeVars)
+                    .addContextValue("provided types", typeList);
+        }
+        TemplatablePrototypeKind prototypeKind = template.kind.withTypesPrefix(typeList);
+
+        InstantiatedMethod instantiatedMethod = blueprint
+                .ctx
+                .generics
+                .applyTypeBindings(template.method, CollectionUtil.mapLists(template.typeVars, typeList))
+                .withName(prototypeKind.defaultMethodName());
+
+        blueprint.prototypes.add(JaggerPrototype.of(
+                blueprint,
+                instantiatedMethod,
+                prototypeKind,
+                blueprint.ctx,
+                false,
+                new Trigger(blueprint.typeElement)));
     }
 
-    private static Template createTemplate(
-            AnnotationMirrorWrapper templateAnnotation, AnnotationValueWrapper templateWrapper) {
-        JaggerContext ctx = templateAnnotation.ctx();
-        TypeMirror templateType = templateWrapper.asTypeMirror();
-        List<InstantiatedMethod> templateMethods =
-                ctx.generics.instantiateMethods(templateType, LocationKind.PROTOTYPE);
-        if (templateMethods.size() != 1) {
-            throw new ContextedRuntimeException("Template is not a functional interface")
-                    .addContextValue("template", templateType);
-        }
-        InstantiatedMethod template = templateMethods.get(0);
-        PrototypeKind prototypeKind = ctx.detectPrototype(template)
-                .orElseThrow(() -> new ContextedRuntimeException("Template prototype of unknown kind")
-                        .addContextValue("prototype", template));
-        if (!(prototypeKind instanceof TemplatablePrototypeKind t)) {
-            throw new ContextedRuntimeException("Prototype kind not templatable")
-                    .addContextValue("prototype", template);
-        }
-        List<TypeVar> typeVars = t.types().stream()
-                .filter(type -> type instanceof TypeVariable)
-                .map(TypeVariable.class::cast)
-                .map(TypeVar::of)
-                .toList();
-        if (typeVars.isEmpty()) {
-            throw new ContextedRuntimeException("Template prototype must use at least one type variable")
-                    .addContextValue("prototype", template);
-        }
-        return new Template(template, t, typeVars);
-    }
-
-    private static List<List<TypeMirror>> findTypes(AnnotationMirrorWrapper templateAnnotation) {
-        Stream<List<TypeMirror>> plainTypes =
-                templateAnnotation.method("types", true).orElseThrow(Exceptions::unexpected).asArray().stream()
-                        .map(AnnotationValueWrapper::asTypeMirror)
-                        .map(List::of);
-        Stream<List<TypeMirror>> typeArrays =
-                templateAnnotation.method("typeArrays", true).orElseThrow(Exceptions::unexpected).asArray().stream()
-                        .map(
-                                w -> w
-                                        .asAnnotation()
-                                        .method("value", false)
-                                        .orElseThrow(Exceptions::unexpected)
-                                        .asArray()
-                                        .stream()
-                                        .map(AnnotationValueWrapper::asTypeMirror)
-                                        .toList());
-        return Stream.concat(plainTypes, typeArrays).toList();
-    }
-
-    private record Template(InstantiatedMethod method, TemplatablePrototypeKind kind, List<TypeVar> typeVars) {}
-
-    private static class SingleAnnotationDetector implements BlueprintConfigurator {
-        @Override
-        public List<String> supportedAnnotationTypes() {
-            return List.of(JAGGER_TEMPLATE);
+    private record TemplateAnnotation(List<Template> templates, List<List<TypeMirror>> types) {
+        private static TemplateAnnotation fromAnnotation(AnnotationMirrorWrapper templateAnnotation) {
+            List<Template> templates = Template.fromAnnotation(templateAnnotation);
+            List<List<TypeMirror>> types = findTypes(templateAnnotation);
+            return new TemplateAnnotation(templates, types);
         }
 
-        @Override
-        public void configure(JaggerBlueprint blueprint, AnnotationMirrorWrapper annotation) {
-            addTemplatesFromAnnotation(blueprint, annotation);
+        private static List<List<TypeMirror>> findTypes(AnnotationMirrorWrapper templateAnnotation) {
+            Stream<List<TypeMirror>> plainTypes = templateAnnotation.defaultMethod("types").asArray().stream()
+                    .map(AnnotationValueWrapper::asTypeMirror)
+                    .map(List::of);
+            Stream<List<TypeMirror>> typeArrays = templateAnnotation.defaultMethod("typeArrays").asArray().stream()
+                    .map(w -> w.asAnnotation().requiredMethod("value").asArray().stream()
+                            .map(AnnotationValueWrapper::asTypeMirror)
+                            .toList());
+            return Stream.concat(plainTypes, typeArrays).toList();
         }
     }
 
-    private static class RepeatedAnnotationDetector implements BlueprintConfigurator {
-        @Override
-        public List<String> supportedAnnotationTypes() {
-            return List.of(JAGGER_TEMPLATES);
+    private record Template(InstantiatedMethod method, TemplatablePrototypeKind kind, List<TypeVar> typeVars) {
+        private static List<Template> fromAnnotation(AnnotationMirrorWrapper templateAnnotation) {
+            return templateAnnotation.requiredMethod("templates").asArray().stream()
+                    .map(Template::createTemplate)
+                    .toList();
         }
 
-        @Override
-        public void configure(JaggerBlueprint blueprint, AnnotationMirrorWrapper annotation) {
-            List<AnnotationValueWrapper> annotations = annotation
-                    .method("value", false)
-                    .orElseThrow(Exceptions::unexpected)
-                    .asArray();
-            for (AnnotationValueWrapper templateAnnotation : annotations) {
-                addTemplatesFromAnnotation(blueprint, templateAnnotation.asAnnotation());
+        private static Template createTemplate(AnnotationValueWrapper templateWrapper) {
+            JaggerContext ctx = templateWrapper.ctx();
+            TypeMirror templateType = templateWrapper.asTypeMirror();
+            List<InstantiatedMethod> templateMethods =
+                    ctx.generics.instantiateMethods(templateType, LocationKind.PROTOTYPE);
+            if (templateMethods.size() != 1) {
+                throw new ContextedRuntimeException("Template is not a functional interface")
+                        .addContextValue("template", templateType);
             }
+            InstantiatedMethod template = templateMethods.get(0);
+            PrototypeKind prototypeKind = ctx.detectPrototype(template)
+                    .orElseThrow(() -> new ContextedRuntimeException("Template prototype of unknown kind")
+                            .addContextValue("prototype", template));
+            if (!(prototypeKind instanceof TemplatablePrototypeKind t)) {
+                throw new ContextedRuntimeException("Prototype kind not templatable")
+                        .addContextValue("prototype", template);
+            }
+            List<TypeVar> typeVars = t.types().stream()
+                    .filter(type -> type instanceof TypeVariable)
+                    .map(TypeVariable.class::cast)
+                    .map(TypeVar::of)
+                    .toList();
+            if (typeVars.isEmpty()) {
+                throw new ContextedRuntimeException("Template prototype must use at least one type variable")
+                        .addContextValue("prototype", template);
+            }
+            return new Template(template, t, typeVars);
         }
     }
 }

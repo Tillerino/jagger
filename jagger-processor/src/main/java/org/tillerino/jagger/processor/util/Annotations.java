@@ -3,12 +3,12 @@ package org.tillerino.jagger.processor.util;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.function.Function;
 import javax.lang.model.element.*;
 import javax.lang.model.type.TypeMirror;
+import javax.lang.model.util.SimpleAnnotationValueVisitor14;
+import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.exception.ContextedRuntimeException;
 import org.tillerino.jagger.processor.JaggerContext;
-import org.tillerino.jagger.processor.JaggerContext.GetAnnotationValues;
 
 public class Annotations {
     protected final JaggerContext ctx;
@@ -34,6 +34,14 @@ public class Annotations {
                             .addContextValue("Method", name));
         }
 
+        public AnnotationValueWrapper defaultMethod(String name) {
+            return method(name, true)
+                    .orElseThrow(
+                            () -> new ContextedRuntimeException("Assumed method has default value, but was not present")
+                                    .addContextValue("Annotation", mirror.getAnnotationType())
+                                    .addContextValue("Method", name));
+        }
+
         public Optional<AnnotationValueWrapper> method(String name, boolean withDefaults) {
             return filterMethod(
                             name,
@@ -54,116 +62,99 @@ public class Annotations {
 
     public record AnnotationValueWrapper(AnnotationValue value, JaggerContext ctx) {
         public List<AnnotationValueWrapper> asArray() {
-            return Exceptions.notNull(
-                    value.accept(
-                            new GetAnnotationValues<List<AnnotationValueWrapper>, Void>() {
-                                @Override
-                                public List<AnnotationValueWrapper> visitArray(
-                                        List<? extends AnnotationValue> vals, Void o) {
-                                    return vals.stream()
-                                            .map(v -> new AnnotationValueWrapper(v, ctx))
-                                            .toList();
-                                }
-                            },
-                            null),
-                    "not an array: %s",
-                    value);
-        }
-
-        public <T> List<T> asArray(Function<AnnotationValueWrapper, T> transformer) {
-            return asArray().stream().map(transformer).toList();
+            return value.accept(
+                    new GetAnnotationValues<List<AnnotationValueWrapper>, Void>("array") {
+                        @Override
+                        public List<AnnotationValueWrapper> visitArray(List<? extends AnnotationValue> vals, Void o) {
+                            return vals.stream()
+                                    .map(v -> new AnnotationValueWrapper(v, ctx))
+                                    .toList();
+                        }
+                    },
+                    null);
         }
 
         public AnnotationMirrorWrapper asAnnotation() {
             return new AnnotationMirrorWrapper(
-                    Exceptions.notNull(
-                            value.accept(
-                                    new GetAnnotationValues<AnnotationMirror, Void>() {
-                                        @Override
-                                        public AnnotationMirror visitAnnotation(AnnotationMirror a, Void o) {
-                                            return a;
-                                        }
-                                    },
-                                    null),
-                            "not an annotation: %s",
-                            value),
+                    value.accept(
+                            new GetAnnotationValues<AnnotationMirror, Void>("annotation") {
+                                @Override
+                                public AnnotationMirror visitAnnotation(AnnotationMirror a, Void o) {
+                                    return a;
+                                }
+                            },
+                            null),
                     ctx);
         }
 
         public String asString() {
-            return Exceptions.notNull(
-                    value.accept(
-                            new GetAnnotationValues<String, Void>() {
-                                @Override
-                                public String visitString(String s, Void o) {
-                                    return s;
-                                }
-                            },
-                            null),
-                    "not a string: %s",
-                    value);
+            return value.accept(
+                    new GetAnnotationValues<String, Void>("string") {
+                        @Override
+                        public String visitString(String s, Void o) {
+                            return s;
+                        }
+                    },
+                    null);
         }
 
         public TypeMirror asTypeMirror() {
-            return Exceptions.notNull(
-                    value.accept(
-                            new GetAnnotationValues<TypeMirror, Void>() {
-                                @Override
-                                public TypeMirror visitType(TypeMirror t, Void o) {
-                                    return t;
-                                }
-                            },
-                            null),
-                    "not a type: %s",
-                    value);
+            return value.accept(
+                    new GetAnnotationValues<TypeMirror, Void>("type") {
+                        @Override
+                        public TypeMirror visitType(TypeMirror t, Void o) {
+                            return t;
+                        }
+                    },
+                    null);
         }
 
         public <T extends Enum<T>> T asEnum(Class<T> cls) {
-            return Exceptions.notNull(
-                    value.accept(
-                            new GetAnnotationValues<T, Void>() {
-                                @Override
-                                public T visitEnumConstant(VariableElement c, Void o) {
-                                    try {
-                                        return Enum.valueOf(
-                                                cls, c.getSimpleName().toString());
-                                    } catch (IllegalArgumentException e) {
-                                        throw new ContextedRuntimeException("Unknown value %s for type %s"
-                                                .formatted(c.getSimpleName().toString(), cls.getSimpleName()));
-                                    }
-                                }
-                            },
-                            null),
-                    "not an enum: %s",
-                    value);
+            return value.accept(
+                    new GetAnnotationValues<T, Void>("enum") {
+                        @Override
+                        public T visitEnumConstant(VariableElement c, Void o) {
+                            try {
+                                return Enum.valueOf(cls, c.getSimpleName().toString());
+                            } catch (IllegalArgumentException e) {
+                                throw new ContextedRuntimeException("Unknown value %s for type %s"
+                                        .formatted(c.getSimpleName().toString(), cls.getSimpleName()));
+                            }
+                        }
+                    },
+                    null);
         }
 
         public boolean asBoolean() {
-            return Exceptions.notNull(
-                    value.accept(
-                            new GetAnnotationValues<Boolean, Void>() {
-                                @Override
-                                public Boolean visitBoolean(boolean b, Void o) {
-                                    return b;
-                                }
-                            },
-                            null),
-                    "not a boolean: %s",
-                    value);
+            return value.accept(
+                    new GetAnnotationValues<Boolean, Void>("boolean") {
+                        @Override
+                        public Boolean visitBoolean(boolean b, Void o) {
+                            return b;
+                        }
+                    },
+                    null);
         }
 
         public int asInt() {
-            return Exceptions.notNull(
-                    value.accept(
-                            new GetAnnotationValues<Integer, Void>() {
-                                @Override
-                                public Integer visitInt(int i, Void o) {
-                                    return i;
-                                }
-                            },
-                            null),
-                    "not an int: %s",
-                    value);
+            return value.accept(
+                    new GetAnnotationValues<Integer, Void>("int") {
+                        @Override
+                        public Integer visitInt(int i, Void o) {
+                            return i;
+                        }
+                    },
+                    null);
+        }
+    }
+
+    @RequiredArgsConstructor
+    static class GetAnnotationValues<R, P> extends SimpleAnnotationValueVisitor14<R, P> {
+        private final String requestedType;
+
+        @Override
+        protected R defaultAction(Object o, P p) {
+            throw new ContextedRuntimeException("Not a " + requestedType).addContextValue("Annotation value", o);
         }
     }
 }

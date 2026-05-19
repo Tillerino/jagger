@@ -47,19 +47,27 @@ import org.tillerino.jagger.annotations.JaggerTemplate.JaggerTemplates;
 @Repeatable(JaggerTemplates.class)
 public @interface JaggerTemplate {
     /**
-     * A template for the methods to generate.
+     * Templates to generate prototypes from.
      *
-     * @return functional interfaces. Each interfaces must have exactly one type parameter either on the interface or
-     *     method.
+     * @return functional interfaces. Each interfaces must have one or more type parameters either on the interface
+     *     itself or on the single method.
      */
     Class[] templates();
 
+    /**
+     * If the template prototypes have a single type parameter, one prototype is instantiated for each template and each
+     * type specified here.
+     */
     Class[] types() default {};
 
     /**
-     * If your template requires more than one type parameter, you can use this as an alternative to {@link #types()}.
+     * If the template prototypes have multiple type parameters, one prototype is instantiated for each template and
+     * each type array specified here.
      */
     TypeArray[] typeArrays() default {};
+
+    /** If true, the templates are instantiated automatically whenever a delegator is searched. */
+    boolean auto() default false;
 
     /** Container annotation for repeatable {@link JaggerTemplate} annotations. */
     @Target(ElementType.TYPE)

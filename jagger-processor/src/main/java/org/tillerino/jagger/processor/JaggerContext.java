@@ -15,7 +15,6 @@ import javax.lang.model.type.DeclaredType;
 import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
 import javax.lang.model.util.Elements;
-import javax.lang.model.util.SimpleAnnotationValueVisitor14;
 import javax.lang.model.util.Types;
 import org.apache.commons.lang3.exception.ContextedRuntimeException;
 import org.tillerino.jagger.processor.config.ConfigProperties;
@@ -92,14 +91,6 @@ public class JaggerContext {
     public void register(BlueprintConfigurator blueprintConfigurator) {
         for (String supportedAnnotationType : blueprintConfigurator.supportedAnnotationTypes()) {
             blueprintConfigurators.put(supportedAnnotationType, blueprintConfigurator);
-        }
-    }
-
-    public static class GetAnnotationValues<R, P> extends SimpleAnnotationValueVisitor14<R, P> {
-        @Override
-        public R visitArray(List<? extends AnnotationValue> vals, P o) {
-            vals.forEach(val -> val.accept(this, o));
-            return null;
         }
     }
 

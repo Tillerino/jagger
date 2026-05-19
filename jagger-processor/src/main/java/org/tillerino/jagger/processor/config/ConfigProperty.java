@@ -2,11 +2,13 @@ package org.tillerino.jagger.processor.config;
 
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.BinaryOperator;
 import java.util.stream.Collector;
 import java.util.stream.Collectors;
 import javax.lang.model.element.Element;
 import org.tillerino.jagger.processor.JaggerContext;
 import org.tillerino.jagger.processor.util.Annotations.AnnotationMirrorWrapper;
+import org.tillerino.jagger.processor.util.CollectionUtil;
 
 public final class ConfigProperty<T> {
     private static final AtomicInteger counter = new AtomicInteger();
@@ -64,6 +66,19 @@ public final class ConfigProperty<T> {
         }
 
         static <T> MergeFunction<Set<T>> mergeSets() {
+            return mergeCollections((strong, weak) -> {
+                LinkedHashSet<T> merged = new LinkedHashSet<>();
+                merged.addAll(strong);
+                merged.addAll(weak);
+                return merged;
+            });
+        }
+
+        static <T> MergeFunction<List<T>> appendLists() {
+            return mergeCollections(CollectionUtil::append);
+        }
+
+        static <T, C extends Collection<T>> MergeFunction<C> mergeCollections(BinaryOperator<C> merger) {
             return (strong, weak) -> {
                 if (weak.value.isEmpty()) {
                     return strong;
@@ -71,13 +86,10 @@ public final class ConfigProperty<T> {
                 if (strong.value.isEmpty()) {
                     return weak;
                 }
-                LinkedHashSet<T> merged = new LinkedHashSet<>();
-                merged.addAll(strong.value);
-                merged.addAll(weak.value);
                 return new InstantiatedProperty<>(
                         strong.property,
                         strong.locationKind,
-                        Collections.unmodifiableSet(merged),
+                        merger.apply(strong.value, weak.value),
                         "Merged " + strong.sourceLocation + " and " + weak.sourceLocation);
             };
         }
