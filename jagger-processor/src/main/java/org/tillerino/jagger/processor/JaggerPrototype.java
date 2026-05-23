@@ -12,6 +12,7 @@ import org.tillerino.jagger.processor.config.AnyConfig;
 import org.tillerino.jagger.processor.config.ConfigProperty;
 import org.tillerino.jagger.processor.ext.PrototypeKind;
 import org.tillerino.jagger.processor.ext.PrototypeKind.TemplatablePrototypeKind;
+import org.tillerino.jagger.processor.ext.PrototypeKind.TemplatablePrototypeKind.MatchingOptions;
 import org.tillerino.jagger.processor.features.Generics.TypeVar;
 import org.tillerino.jagger.processor.util.InstantiatedMethod;
 import org.tillerino.jagger.processor.util.InstantiatedMethod.InstantiatedVariable;
@@ -49,7 +50,7 @@ public record JaggerPrototype(
         }
         LinkedHashMap<TypeVar, TypeMirror> typeBindings = new LinkedHashMap<>();
 
-        if (t.matches(target, ctx, typeBindings, freeTypeVars())) {
+        if (t.matches(target, new MatchingOptions(ctx, typeBindings, freeTypeVars(), false))) {
             if (!allowExact && typeBindings.isEmpty()) {
                 return null;
             }

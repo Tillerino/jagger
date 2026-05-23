@@ -8,6 +8,7 @@ import org.tillerino.jagger.annotations.JsonOutput;
 import org.tillerino.jagger.tests.base.features.GenericsSerde.GenericInputSerde;
 import org.tillerino.jagger.tests.base.features.GenericsSerde.GenericOutputSerde;
 import org.tillerino.jagger.tests.model.AnEnum;
+import org.tillerino.jagger.tests.model.ScalarFieldsRecord;
 import org.tillerino.jagger.tests.model.features.TemplatesModel.HasAnEnumArrayProperty;
 
 public interface TemplatesSerde {
@@ -36,4 +37,10 @@ public interface TemplatesSerde {
         @JsonOutput
         void writeAnEnumList(List<AnEnum> anEnums, JsonGenerator gen) throws Exception;
     }
+
+    @JaggerTemplate(
+            templates = {GenericInputSerde.class, GenericOutputSerde.class},
+            types = {ScalarFieldsRecord.class},
+            auto = true)
+    interface AutoTemplatesSerde {}
 }

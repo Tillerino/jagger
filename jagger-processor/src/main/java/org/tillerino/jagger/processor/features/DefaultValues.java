@@ -31,7 +31,7 @@ public class DefaultValues {
                     typeBindings.clear();
                     if (isInputDefaultValue(method.element())
                             && ctx.generics.typeBindingsSatisfyingEquality(
-                                    targetType, method.returnType(), typeBindings, method.freeTypeVars())) {
+                                    targetType, method.returnType(), typeBindings, method.freeTypeVars(), true)) {
                         return Stream.of(ctx.generics.applyTypeBindings(method, typeBindings));
                     }
                     return Stream.empty();

@@ -31,11 +31,19 @@ public class RebuildingTypeVisitor extends AbstractTypeVisitor8<TypeMirror, Type
     @Override
     public TypeMirror visitDeclared(DeclaredType t, Types types) {
         try {
-            return types.getDeclaredType(
-                    (TypeElement) t.asElement(),
-                    t.getTypeArguments().stream()
-                            .map(arg -> arg.accept(this, types))
-                            .toArray(TypeMirror[]::new));
+            TypeMirror[] newTypeArguments = t.getTypeArguments().stream()
+                    .map(arg -> arg.accept(this, types))
+                    .toArray(TypeMirror[]::new);
+
+            for (TypeMirror tm : newTypeArguments) {
+                if (tm.getKind().isPrimitive()) {
+                    throw new ContextedRuntimeException("Cannot use primitive as type parameter")
+                            .addContextValue("primitive", tm)
+                            .addContextValue("parameterized type", t);
+                }
+            }
+
+            return types.getDeclaredType((TypeElement) t.asElement(), newTypeArguments);
         } catch (IllegalArgumentException e) {
             throw new ContextedRuntimeException(e);
         }

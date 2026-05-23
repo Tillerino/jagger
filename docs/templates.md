@@ -29,7 +29,7 @@ interface GenericOutputSerde<U> {
 
 Annotating your blueprint with
 ```java
-// ../jagger-tests/jackson/src/main/java/org/tillerino/jagger/tests/base/features/TemplatesSerde.java#L14-L16
+// ../jagger-tests/jackson/src/main/java/org/tillerino/jagger/tests/base/features/TemplatesSerde.java#L15-L17
 
 @JaggerTemplate(
         templates = {GenericInputSerde.class, GenericOutputSerde.class},
@@ -57,15 +57,15 @@ public void writeAnEnum(AnEnum obj, JsonGenerator gen) throws Exception {
 
 The generated methods behave exactly as if they were fully specified. In this blueprint:
 ```java
-// ../jagger-tests/jackson/src/main/java/org/tillerino/jagger/tests/base/features/TemplatesSerde.java#L13-L19
+// ../jagger-tests/jackson/src/main/java/org/tillerino/jagger/tests/base/features/TemplatesSerde.java#L15-L21
 
-public interface TemplatesSerde {
-    @JaggerTemplate(
-            templates = {GenericInputSerde.class, GenericOutputSerde.class},
-            types = {double.class, AnEnum.class, double[].class, AnEnum[].class})
-    interface TemplatedSerde {
-        @JsonOutput
-        <T> void writeGenericArray(T[] ts, JsonGenerator gen, GenericOutputSerde<T> serde) throws Exception;
+@JaggerTemplate(
+        templates = {GenericInputSerde.class, GenericOutputSerde.class},
+        types = {double.class, AnEnum.class, double[].class, AnEnum[].class})
+interface TemplatedSerde {
+    @JsonOutput
+    <T> void writeGenericArray(T[] ts, JsonGenerator gen, GenericOutputSerde<T> serde) throws Exception;
+}
 ```
 
 `writeAnEnum` works with generics and delegates serialization of the enum itself to the specialized method:
@@ -76,3 +76,55 @@ public void writeArrayOfAnEnum(AnEnum[] obj, JsonGenerator gen) throws Exception
   this.writeGenericArray(obj, gen, this::writeAnEnum);
 }
 ```
+
+## Auto Templates
+
+Instead of specifying types manually, you can use `auto = true` to automatically instantiate templates when needed.
+
+```java
+// ../jagger-tests/jackson/src/main/java/org/tillerino/jagger/tests/base/features/TemplatesSerde.java#L41-L45
+
+@JaggerTemplate(
+        templates = {GenericInputSerde.class, GenericOutputSerde.class},
+        types = {ScalarFieldsRecord.class},
+        auto = true)
+interface AutoTemplatesSerde {}
+```
+
+In this example, we specify the entry point `ScalarFieldsRecord`.
+Instead of handling all properties inline
+(compare with [the default serialization](../jagger-tests/jackson/target/generated-sources/annotations/org/tillerino/jagger/tests/base/ScalarFieldsRecordSerdeImpl.java)),
+all properties are delegated to automatically created methods.
+For example, reading the `Double dd` property delegates to `readDouble`.
+
+```java
+// ../jagger-tests/jackson/target/generated-sources/annotations/org/tillerino/jagger/tests/base/features/TemplatesSerde$AutoTemplatesSerdeImpl.java#L122-L125
+
+case "dd": {
+  dd = this.readDouble(parser);
+  break;
+}
+```
+
+`readDouble` itself only does a null-check and then delegates to `readPrimitiveDouble`:
+
+```java
+// ../jagger-tests/jackson/target/generated-sources/annotations/org/tillerino/jagger/tests/base/features/TemplatesSerde$AutoTemplatesSerdeImpl.java#L424-L433
+
+public Double readDouble(JsonParser parser) throws Exception {
+  if (!parser.hasCurrentToken()) {
+    parser.nextToken();
+  }
+  if (nextIfCurrentTokenIs(parser, VALUE_NULL)) {
+    return null;
+  } else {
+    return this.readPrimitiveDouble(parser);
+  }
+}
+```
+
+All these methods are reused whenever needed, so auto templates are an effective way of keeping generated code small.
+
+Whenever generic types `T<S>` are used, templates are instantiated for the concrete type (e.g. `T<String>`) - not the parameterized type.
+This means that, with auto templates, you should still define prototypes for your generic types, especially containers,
+see [Generic containers](generics.md#containers).

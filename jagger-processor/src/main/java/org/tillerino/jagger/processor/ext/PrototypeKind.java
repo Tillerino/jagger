@@ -84,17 +84,17 @@ public interface PrototypeKind {
         /** See {@link #withTypesPrefix(List)} */
         TemplatablePrototypeKind withTypes(List<TypeMirror> newTypes);
 
-        default boolean matches(
-                TemplatablePrototypeKind other,
-                JaggerContext ctx,
-                Map<TypeVar, TypeMirror> typeBindings,
-                Set<TypeVar> freeTypeVariables) {
+        default boolean matches(TemplatablePrototypeKind other, MatchingOptions options) {
             if (!Objects.equals(specialization(), other.specialization()) || getClass() != other.getClass()) {
                 return false;
             }
             for (int i = 0; i < types().size(); i++) {
-                if (!ctx.generics.typeBindingsSatisfyingEquality(
-                        other.types().get(i), types().get(i), typeBindings, freeTypeVariables)) {
+                if (!options.ctx.generics.typeBindingsSatisfyingEquality(
+                        other.types().get(i),
+                        types().get(i),
+                        options.typeBindings,
+                        options.freeTypeVariables,
+                        options.assignPrimitives)) {
                     return false;
                 }
             }
@@ -107,6 +107,12 @@ public interface PrototypeKind {
                     Stream.concat(replacement.stream(), types().stream().skip(replacement.size()))
                             .toList());
         }
+
+        record MatchingOptions(
+                JaggerContext ctx,
+                Map<TypeVar, TypeMirror> typeBindings,
+                Set<TypeVar> freeTypeVariables,
+                boolean assignPrimitives) {}
     }
 
     interface PrototypeKindInstantiator {

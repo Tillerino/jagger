@@ -113,7 +113,7 @@ The context parameters can be omitted if they are not explicitly needed.
 The `@JaggerTemplate` annotation allows you to specify prototypes from templates without specifying each as a separate method.
 
 ```java
-// jagger-tests/jackson/src/main/java/org/tillerino/jagger/tests/base/features/TemplatesSerde.java#L14-L16
+// jagger-tests/jackson/src/main/java/org/tillerino/jagger/tests/base/features/TemplatesSerde.java#L15-L17
 
 @JaggerTemplate(
         templates = {GenericInputSerde.class, GenericOutputSerde.class},

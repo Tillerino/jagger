@@ -17,7 +17,7 @@ This is very important for keeping the generated code small.
 Take the following example:
 
 ```java
-// ../jagger-tests/jackson/src/main/java/org/tillerino/jagger/tests/base/features/DelegationSerde.java#L24-L28
+// ../jagger-tests/jackson/src/main/java/org/tillerino/jagger/tests/base/features/DelegationSerde.java#L25-L29
 
 @JsonInput
 ScalarFieldsRecord deserializeSingle(JsonParser parser) throws Exception;
@@ -61,7 +61,7 @@ public interface PrimitiveScalarsSerde {
 ```
 
 ```java
-// ../jagger-tests/jackson/src/main/java/org/tillerino/jagger/tests/base/features/DelegationSerde.java#L62-L65
+// ../jagger-tests/jackson/src/main/java/org/tillerino/jagger/tests/base/features/DelegationSerde.java#L63-L66
 
 @JsonConfig(uses = PrimitiveScalarsSerde.class)
 interface BoxedScalarsSerde {
@@ -164,7 +164,7 @@ public interface PrimitiveScalarsSerde {
 
 Then define boxed serializers that reuse the primitive serializers:
 ```java
-// ../jagger-tests/jackson/src/main/java/org/tillerino/jagger/tests/base/features/DelegationSerde.java#L62-L74
+// ../jagger-tests/jackson/src/main/java/org/tillerino/jagger/tests/base/features/DelegationSerde.java#L63-L75
 
 @JsonConfig(uses = PrimitiveScalarsSerde.class)
 interface BoxedScalarsSerde {
@@ -184,7 +184,7 @@ interface BoxedScalarsSerde {
 
 Finally, define array serializers that reuse both primitive and boxed serializers:
 ```java
-// ../jagger-tests/jackson/src/main/java/org/tillerino/jagger/tests/base/features/DelegationSerde.java#L126-L138
+// ../jagger-tests/jackson/src/main/java/org/tillerino/jagger/tests/base/features/DelegationSerde.java#L127-L139
 
 @JsonConfig(uses = BoxedScalarsSerde.class)
 interface ScalarArraysSerde {
@@ -216,7 +216,7 @@ record SelfReferencingRecord(String prop, SelfReferencingRecord self) {}
 
 This type cannot be used in any other serialization without adding a dedicated serializer:
 ```java
-// ../jagger-tests/jackson/src/main/java/org/tillerino/jagger/tests/base/features/DelegationSerde.java#L234-L238
+// ../jagger-tests/jackson/src/main/java/org/tillerino/jagger/tests/base/features/DelegationSerde.java#L235-L239
 
 @JsonInput
 SelfReferencingRecord deserializeRecord(JsonParser input) throws Exception;

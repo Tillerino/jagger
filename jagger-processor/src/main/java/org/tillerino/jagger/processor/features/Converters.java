@@ -35,7 +35,7 @@ public class Converters {
                     typeBindings.clear();
                     if (isInputConverter(method.element())
                             && ctx.generics.typeBindingsSatisfyingEquality(
-                                    targetType, method.returnType(), typeBindings, method.freeTypeVars())) {
+                                    targetType, method.returnType(), typeBindings, method.freeTypeVars(), true)) {
                         return Stream.of(ctx.generics.applyTypeBindings(method, typeBindings));
                     }
                     return Stream.empty();
@@ -54,7 +54,8 @@ public class Converters {
                                     toConvert.type(),
                                     method.parameters().get(0).type(),
                                     typeBindings,
-                                    method.freeTypeVars())) {
+                                    method.freeTypeVars(),
+                                    true)) {
                         InstantiatedMethod instantiatedMethod = ctx.generics.applyTypeBindings(method, typeBindings);
                         return Stream.of(instantiatedMethod.callStaticFindingArguments(
                                 prototype, List.of(toConvert), generatedClass));

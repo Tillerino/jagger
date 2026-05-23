@@ -49,7 +49,11 @@ public class Creators {
                     ctx.generics.instantiateMethod(method, typeBindings, LocationKind.CREATOR);
             Map<TypeVar, TypeMirror> methodTypeVars = new LinkedHashMap<>();
             if (!ctx.generics.typeBindingsSatisfyingEquality(
-                    tm, methodWithTypeTypeVars.returnType(), methodTypeVars, methodWithTypeTypeVars.freeTypeVars())) {
+                    tm,
+                    methodWithTypeTypeVars.returnType(),
+                    methodTypeVars,
+                    methodWithTypeTypeVars.freeTypeVars(),
+                    true)) {
                 continue;
             }
             return Optional.of(Creator.of(

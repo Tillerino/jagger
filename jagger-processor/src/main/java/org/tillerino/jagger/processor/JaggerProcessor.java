@@ -194,7 +194,9 @@ public class JaggerProcessor extends AbstractProcessor {
         ctx.codeGeneration.addClassAnnotations(blueprint.config, classBuilder);
         ctx.codeGeneration.addSuper(blueprint.typeElement, classBuilder);
         GeneratedClass generatedClass = new GeneratedClass(classBuilder, ctx, blueprint);
-        for (JaggerPrototype prototype : blueprint.prototypes) {
+        // we use an index here, since auto-templates can extend the list while we are generating
+        for (int i = 0; i < blueprint.prototypes.size(); i++) {
+            JaggerPrototype prototype = blueprint.prototypes.get(i);
             try {
                 if (!CodeGeneration.shouldImplement(prototype)) {
                     // method is implemented by user and can be used by us

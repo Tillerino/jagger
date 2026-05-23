@@ -77,6 +77,65 @@ case "f": {
 }
 ```
 
+## Containers
+
+Generics are essential for container types like lists, maps, and arrays.
+You can base your containers serde off the following:
+
+```java
+// ../jagger-tests/jackson/src/main/java/org/tillerino/jagger/tests/base/features/GenericsSerde.java#L98-L119
+
+interface GenericContainersSerde {
+    @JsonOutput
+    <T> void writeGenericList(List<T> list, JsonGenerator gen, GenericOutputSerde<T> componentWriter)
+            throws Exception;
+
+    @JsonInput
+    <T> List<T> readGenericList(JsonParser parser, GenericInputSerde<T> componentReader) throws Exception;
+
+    @JsonOutput
+    <V> void writeGenericMap(Map<String, V> map, JsonGenerator gen, GenericOutputSerde<V> valueWriter)
+            throws Exception;
+
+    @JsonInput
+    <V> Map<String, V> readGenericMap(JsonParser parser, GenericInputSerde<V> valueReader) throws Exception;
+
+    @JsonOutput
+    <T> void writeGenericArray(T[] ts, JsonGenerator gen, GenericOutputSerde<T> componentWriter) throws Exception;
+
+    @JsonInput
+    <T> T[] readGenericArray(JsonParser parser, GenericInputSerde<T> componentReader, Class<T[]> arrayClass)
+            throws Exception;
+}
+```
+
+### Arrays
+
+While writing generic arrays works just like any generic type, reading arrays requires us to instantiate an array of
+the component type. This means that it has to be known at runtime.
+
+```java
+// ../jagger-tests/jackson/src/main/java/org/tillerino/jagger/tests/base/features/GenericsSerde.java#L116-L118
+
+@JsonInput
+<T> T[] readGenericArray(JsonParser parser, GenericInputSerde<T> componentReader, Class<T[]> arrayClass)
+        throws Exception;
+```
+
+Jagger will instantiate this class parameter automatically when necessary:
+
+```java
+// ../jagger-tests/jackson/target/generated-sources/annotations/org/tillerino/jagger/tests/base/features/GenericsSerde$ConcreteContainerSerdeImpl.java#L56-L62
+
+@Override
+public Double[] readDoubleArray(JsonParser parser) throws Exception {
+  if (!parser.hasCurrentToken()) {
+    parser.nextToken();
+  }
+  return genericContainersSerde$0$delegate.readGenericArray(parser, boxedScalarsSerde$1$delegate::readBoxedDoubleX, Double[].class);
+}
+```
+
 ## Filling delegator parameters
 
 When Jagger delegates to a generic prototype, the generic delegator parameter is filled automatically from the available
@@ -176,32 +235,5 @@ genericRecordSerde$0$delegate.writeGenericRecord(usesGenericRecord.gi(), gen, bo
 case "gi": {
   gi = genericRecordSerde$0$delegate.readGenericRecord(parser, boxedScalarsSerde$1$delegate::readBoxedIntX);
   break;
-}
-```
-
-## Arrays
-
-While writing generic arrays works just like any generic type, reading arrays requires us to instantiate an array of
-the component type. This means that it has to be known at runtime.
-
-```java
-// ../jagger-tests/jackson/src/main/java/org/tillerino/jagger/tests/base/features/GenericsSerde.java#L116-L118
-
-@JsonInput
-<T> T[] readGenericArray(JsonParser parser, GenericInputSerde<T> componentReader, Class<T[]> arrayClass)
-        throws Exception;
-```
-
-Jagger will instantiate this class parameter automatically when necessary:
-
-```java
-// ../jagger-tests/jackson/target/generated-sources/annotations/org/tillerino/jagger/tests/base/features/GenericsSerde$ConcreteContainerSerdeImpl.java#L56-L62
-
-@Override
-public Double[] readDoubleArray(JsonParser parser) throws Exception {
-  if (!parser.hasCurrentToken()) {
-    parser.nextToken();
-  }
-  return genericContainersSerde$0$delegate.readGenericArray(parser, boxedScalarsSerde$1$delegate::readBoxedDoubleX, Double[].class);
 }
 ```

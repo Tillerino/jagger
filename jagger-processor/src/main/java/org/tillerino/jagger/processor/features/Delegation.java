@@ -23,6 +23,7 @@ import org.tillerino.jagger.processor.config.ConfigProperty.LocationKind;
 import org.tillerino.jagger.processor.config.ConfigProperty.MergeFunction;
 import org.tillerino.jagger.processor.config.ConfigProperty.PropagationKind;
 import org.tillerino.jagger.processor.ext.PrototypeKind.TemplatablePrototypeKind;
+import org.tillerino.jagger.processor.ext.PrototypeKind.TemplatablePrototypeKind.MatchingOptions;
 import org.tillerino.jagger.processor.util.Expr;
 import org.tillerino.jagger.processor.util.InstantiatedMethod;
 import org.tillerino.jagger.processor.util.InstantiatedMethod.InstantiatedVariable;
@@ -59,7 +60,16 @@ public class Delegation {
                                 d.blueprint(),
                                 !d.prototype().overrides()),
                         d.method()))
-                .or(() -> ctx.delegation.findDelegateeInMethodParameters(caller, target));
+                .or(() -> ctx.delegation.findDelegateeInMethodParameters(caller, target))
+                .or(() -> allowExact
+                        ? Templates.delegateToAutoTemplate(ctx, target, caller)
+                                .map(d -> new Delegatee(
+                                        generatedClass.getOrCreateDelegateeField(
+                                                caller.blueprint(),
+                                                d.blueprint(),
+                                                !d.prototype().overrides()),
+                                        d.method()))
+                        : Optional.empty());
     }
 
     private Optional<InstantiatedPrototype> findPrototype(
@@ -108,7 +118,8 @@ public class Delegation {
                 Optional<TemplatablePrototypeKind> prototypeKind = ctx.detectPrototype(method)
                         .filter(kind -> kind instanceof TemplatablePrototypeKind)
                         .map(TemplatablePrototypeKind.class::cast)
-                        .filter(kind -> kind.matches(target, ctx, new LinkedHashMap<>(), method.freeTypeVars()));
+                        .filter(kind -> kind.matches(
+                                target, new MatchingOptions(ctx, new LinkedHashMap<>(), method.freeTypeVars(), false)));
                 if (prototypeKind.isPresent()) {
                     return Optional.of(new Delegatee(parameter, method));
                 }

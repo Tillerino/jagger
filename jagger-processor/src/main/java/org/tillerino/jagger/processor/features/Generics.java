@@ -146,13 +146,13 @@ public class Generics {
      * Records type variables such that the candidate type is equal to the actual type.
      *
      * @param typeBindings is modified by the (recursive) call
-     * @param freeTypeVariables
      */
     public boolean typeBindingsSatisfyingEquality(
             TypeMirror actualType,
             TypeMirror candidateType,
             Map<TypeVar, TypeMirror> typeBindings,
-            Set<TypeVar> freeTypeVariables) {
+            Set<TypeVar> freeTypeVariables,
+            boolean assignPrimitives) {
         if (ctx.types.isSameType(actualType, candidateType)) {
             return true;
         }
@@ -176,7 +176,8 @@ public class Generics {
                         actualDeclared.getTypeArguments().get(i),
                         candidateDeclared.getTypeArguments().get(i),
                         typeBindings,
-                        freeTypeVariables)) {
+                        freeTypeVariables,
+                        false)) {
                     return false;
                 }
             }
@@ -184,7 +185,11 @@ public class Generics {
         }
         if ((actualType instanceof ArrayType actualArray) && (candidateType instanceof ArrayType candidateArray)) {
             return typeBindingsSatisfyingEquality(
-                    actualArray.getComponentType(), candidateArray.getComponentType(), typeBindings, freeTypeVariables);
+                    actualArray.getComponentType(),
+                    candidateArray.getComponentType(),
+                    typeBindings,
+                    freeTypeVariables,
+                    assignPrimitives);
         }
         if (candidateType instanceof TypeVariable candidateVar) {
             TypeVar candidate = TypeVar.of(candidateVar);
@@ -194,7 +199,7 @@ public class Generics {
             if (!freeTypeVariables.contains(candidate)) {
                 return false;
             }
-            if (actualType.getKind().isPrimitive()) {
+            if (actualType.getKind().isPrimitive() && !assignPrimitives) {
                 return false;
             }
             typeBindings.put(candidate, actualType);

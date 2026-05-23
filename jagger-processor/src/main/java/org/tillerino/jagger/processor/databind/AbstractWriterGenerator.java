@@ -12,7 +12,6 @@ import org.apache.commons.lang3.exception.ContextedRuntimeException;
 import org.tillerino.jagger.processor.config.AnyConfig;
 import org.tillerino.jagger.processor.config.ConfigProperty.PropagationKind;
 import org.tillerino.jagger.processor.databind.AbstractWriterGenerator.LHS.Member;
-import org.tillerino.jagger.processor.databind.AbstractWriterGenerator.LHS.Return;
 import org.tillerino.jagger.processor.ext.PrototypeKind.CodeGeneratorContext;
 import org.tillerino.jagger.processor.ext.PrototypeKind.TemplatablePrototypeKind;
 import org.tillerino.jagger.processor.features.Delegation.Delegatee;
@@ -20,6 +19,7 @@ import org.tillerino.jagger.processor.features.Enums;
 import org.tillerino.jagger.processor.features.IgnoreProperties;
 import org.tillerino.jagger.processor.features.IgnoreProperty;
 import org.tillerino.jagger.processor.features.Polymorphism;
+import org.tillerino.jagger.processor.features.Properties.OutputProperty;
 import org.tillerino.jagger.processor.features.References.Setup;
 import org.tillerino.jagger.processor.features.Verification.ProtoAndProps;
 import org.tillerino.jagger.processor.util.Code;
@@ -57,7 +57,7 @@ public abstract class AbstractWriterGenerator<SELF extends AbstractWriterGenerat
         Optional<Delegatee> delegate = ctx.delegation.findDelegatee(
                 kind.withTypesPrefix(List.of(type)),
                 prototype,
-                !(lhs instanceof Return),
+                !(lhs instanceof LHS.Return),
                 stackDepth() > 1,
                 config,
                 generatedClass);
@@ -326,10 +326,10 @@ public abstract class AbstractWriterGenerator<SELF extends AbstractWriterGenerat
         Set<String> ignoredProperties =
                 config.resolveProperty(IgnoreProperties.IGNORED_PROPERTIES).value();
 
-        ctx.properties.outputProperties(type, this.config).forEach(property -> {
+        for (OutputProperty property : ctx.properties.outputProperties(type, this.config)) {
             if (IgnoreProperty.isIgnoredForJson(property.config())
                     || ignoredProperties.contains(property.externalName())) {
-                return;
+                continue;
             }
             verificationForDto.addProperty(
                     property.externalName(), property.accessor().type(), property.config());
@@ -345,7 +345,7 @@ public abstract class AbstractWriterGenerator<SELF extends AbstractWriterGenerat
             Exceptions.runWithContext("property", property.canonicalName(), nested::build);
             referencesSetup.flatMap(s -> s.rememberId(rhs, accessorCall)).ifPresent(this::addStatement);
             code.add("\n");
-        });
+        }
     }
 
     private void writeEnum() {
