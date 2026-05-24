@@ -18,24 +18,25 @@ import java.util.function.Supplier;
  */
 public class SerializationContext {
     /**
-     * Marks if the object being written is a child class of a polymorphic type and needs to have its discriminator
-     * written.
+     * Marks if the start-object has been written for the current object. This is relevant for polymorphic
+     * serialization, where the start-object is written before dispatching to the actual serializer.
      */
-    public String pendingDiscriminatorProperty = null;
-    /** Only relevant when {@link #pendingDiscriminatorProperty} is not null. */
-    public String pendingDiscriminatorValue = null;
+    private boolean objectOpen = false;
 
     private static Map<ClassAndScope, ObjectIdGenerator<?>> globalObjectIdGenerators;
     private Map<ClassAndScope, ObjectIdGenerator<?>> objectIdGenerators;
     private Map<Object, Object> knownObjectIds;
 
-    public void setPendingDiscriminator(String property, String value) {
-        pendingDiscriminatorProperty = property;
-        pendingDiscriminatorValue = value;
+    public boolean isObjectOpen(boolean clear) {
+        boolean result = objectOpen;
+        if (clear) {
+            objectOpen = false;
+        }
+        return result;
     }
 
-    public boolean isDiscriminatorPending() {
-        return pendingDiscriminatorProperty != null;
+    public void markObjectOpen() {
+        this.objectOpen = true;
     }
 
     public <T> T previouslyWrittenId(Object dto) {

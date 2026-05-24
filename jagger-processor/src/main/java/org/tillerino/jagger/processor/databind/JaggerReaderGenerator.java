@@ -1,14 +1,13 @@
 package org.tillerino.jagger.processor.databind;
 
 import static org.tillerino.jagger.api.JaggerReader.Advance.CONSUME;
+import static org.tillerino.jagger.api.JaggerReader.Advance.KEEP;
 import static org.tillerino.jagger.processor.util.Code.c;
 
 import com.squareup.javapoet.ClassName;
-import jakarta.annotation.Nonnull;
 import javax.lang.model.type.TypeMirror;
 import org.apache.commons.lang3.exception.ContextedRuntimeException;
 import org.tillerino.jagger.api.JaggerReader;
-import org.tillerino.jagger.processor.config.AnyConfig;
 import org.tillerino.jagger.processor.ext.PrototypeKind.CodeGeneratorContext;
 import org.tillerino.jagger.processor.util.Code;
 import org.tillerino.jagger.processor.util.InstantiatedMethod.InstantiatedVariable;
@@ -21,13 +20,8 @@ public class JaggerReaderGenerator extends AbstractReaderGenerator<JaggerReaderG
         parserVariable = prototype.method().parameterOfType(kind.types().get(1));
     }
 
-    public JaggerReaderGenerator(
-            String potentialVariableName,
-            LHS lhs,
-            @Nonnull JaggerReaderGenerator parent,
-            AnyConfig config,
-            boolean exhaust) {
-        super(parent, potentialVariableName, lhs, config, exhaust);
+    public JaggerReaderGenerator(JaggerReaderGenerator parent, Props props) {
+        super(parent, props);
         this.parserVariable = parent.parserVariable;
     }
 
@@ -102,7 +96,7 @@ public class JaggerReaderGenerator extends AbstractReaderGenerator<JaggerReaderG
 
     @Override
     protected void iterateOverFields() {
-        beginControlFlow("while (!$C.isObjectEnd($L))", parserVariable, importAdvance(CONSUME));
+        beginControlFlow("while (!$C.isObjectEnd($L))", parserVariable, importAdvance(KEEP));
     }
 
     @Override
@@ -111,7 +105,9 @@ public class JaggerReaderGenerator extends AbstractReaderGenerator<JaggerReaderG
     }
 
     @Override
-    protected void afterObject() {}
+    protected void afterObject() {
+        addStatement("$C.isObjectEnd($L)", parserVariable, importAdvance(CONSUME));
+    }
 
     @Override
     protected void readMemberNameInIteration(String variableName) {
@@ -148,8 +144,8 @@ public class JaggerReaderGenerator extends AbstractReaderGenerator<JaggerReaderG
     }
 
     @Override
-    protected JaggerReaderGenerator nest(String potentialVariableName, LHS lhs, AnyConfig config, boolean exhaust) {
-        return new JaggerReaderGenerator(potentialVariableName, lhs, this, config, exhaust);
+    protected JaggerReaderGenerator nest(Props props) {
+        return new JaggerReaderGenerator(this, props);
     }
 
     private String importAdvance(JaggerReader.Advance advance) {

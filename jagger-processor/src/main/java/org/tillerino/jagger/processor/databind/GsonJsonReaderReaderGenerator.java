@@ -2,13 +2,11 @@ package org.tillerino.jagger.processor.databind;
 
 import static org.tillerino.jagger.processor.util.Code.c;
 
-import jakarta.annotation.Nonnull;
 import java.io.IOException;
 import javax.lang.model.element.TypeElement;
 import javax.lang.model.type.TypeMirror;
 import org.apache.commons.lang3.exception.ContextedRuntimeException;
 import org.tillerino.jagger.helpers.GsonJsonReaderHelper;
-import org.tillerino.jagger.processor.config.AnyConfig;
 import org.tillerino.jagger.processor.ext.PrototypeKind.CodeGeneratorContext;
 import org.tillerino.jagger.processor.util.Code;
 import org.tillerino.jagger.processor.util.InstantiatedMethod.InstantiatedVariable;
@@ -21,13 +19,8 @@ public class GsonJsonReaderReaderGenerator extends AbstractReaderGenerator<GsonJ
         parserVariable = prototype.method().parameterOfType(kind.types().get(1));
     }
 
-    public GsonJsonReaderReaderGenerator(
-            String potentialVariableName,
-            LHS lhs,
-            @Nonnull GsonJsonReaderReaderGenerator parent,
-            AnyConfig config,
-            boolean exhaust) {
-        super(parent, potentialVariableName, lhs, config, exhaust);
+    public GsonJsonReaderReaderGenerator(GsonJsonReaderReaderGenerator parent, Props props) {
+        super(parent, props);
         this.parserVariable = parent.parserVariable;
     }
 
@@ -158,8 +151,7 @@ public class GsonJsonReaderReaderGenerator extends AbstractReaderGenerator<GsonJ
     }
 
     @Override
-    protected GsonJsonReaderReaderGenerator nest(
-            String potentialVariableName, LHS lhs, AnyConfig config, boolean exhaust) {
-        return new GsonJsonReaderReaderGenerator(potentialVariableName, lhs, this, config, exhaust);
+    protected GsonJsonReaderReaderGenerator nest(Props props) {
+        return new GsonJsonReaderReaderGenerator(this, props);
     }
 }

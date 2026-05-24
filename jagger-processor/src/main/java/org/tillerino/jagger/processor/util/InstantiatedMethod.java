@@ -12,6 +12,7 @@ import javax.lang.model.element.ExecutableElement;
 import javax.lang.model.element.VariableElement;
 import javax.lang.model.type.DeclaredType;
 import javax.lang.model.type.TypeMirror;
+import lombok.With;
 import org.tillerino.jagger.processor.GeneratedClass;
 import org.tillerino.jagger.processor.JaggerContext;
 import org.tillerino.jagger.processor.JaggerPrototype;
@@ -27,7 +28,7 @@ import org.tillerino.jagger.processor.util.Code.AnyVariable;
  */
 public record InstantiatedMethod(
         String name,
-        TypeMirror returnType,
+        @With TypeMirror returnType,
         List<InstantiatedVariable> parameters,
         ExecutableElement element,
         Set<TypeVar> freeTypeVars,

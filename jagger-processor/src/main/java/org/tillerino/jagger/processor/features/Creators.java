@@ -34,7 +34,10 @@ public class Creators {
                 continue;
             }
             return Optional.of(Creator.of(
-                    annotation.get(), ctx.generics.instantiateMethod(constructor, typeBindings, LocationKind.CREATOR)));
+                    annotation.get(),
+                    ctx.generics
+                            .instantiateMethod(constructor, typeBindings, LocationKind.CREATOR)
+                            .withReturnType(tm)));
         }
         for (ExecutableElement method : ElementFilter.methodsIn(dt.asElement().getEnclosedElements())) {
             Optional<JsonCreatorMode> annotation = jsonCreatorType(method);

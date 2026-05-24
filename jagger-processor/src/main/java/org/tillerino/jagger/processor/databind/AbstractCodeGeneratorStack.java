@@ -12,7 +12,6 @@ import org.tillerino.jagger.processor.config.AnyConfig;
 import org.tillerino.jagger.processor.config.ConfigProperty;
 import org.tillerino.jagger.processor.databind.DatabindPrototypeDetector.DatabindPrototypeKind;
 import org.tillerino.jagger.processor.ext.PrototypeKind.CodeGeneratorContext;
-import org.tillerino.jagger.processor.features.Polymorphism;
 import org.tillerino.jagger.processor.util.Code;
 import org.tillerino.jagger.processor.util.InstantiatedMethod.InstantiatedVariable;
 
@@ -28,8 +27,6 @@ public abstract class AbstractCodeGeneratorStack<SELF extends AbstractCodeGenera
     /** potential variable name */
     protected final String pvn;
 
-    protected final boolean canBePolyChild;
-
     protected final AnyConfig config;
 
     protected final DatabindPrototypeKind kind;
@@ -42,8 +39,6 @@ public abstract class AbstractCodeGeneratorStack<SELF extends AbstractCodeGenera
         this.parent = null;
         this.stackRelevantType = true;
         this.pvn = "root";
-        this.canBePolyChild =
-                contextParameter().isPresent() && stackDepth() == 1 && Polymorphism.isSomeChild(type, ctx);
         this.config = type instanceof DeclaredType dt && dt.asElement() != null
                 ? AnyConfig.create(dt.asElement(), ConfigProperty.LocationKind.DTO, ctx)
                         .merge(prototype.config())
@@ -59,8 +54,6 @@ public abstract class AbstractCodeGeneratorStack<SELF extends AbstractCodeGenera
         this.parent = parent;
         this.stackRelevantType = !parent.ctx.types.isSameType(parent.type, type);
         this.pvn = Objects.requireNonNull(pvn);
-        this.canBePolyChild =
-                contextParameter().isPresent() && stackDepth() == 1 && Polymorphism.isSomeChild(type, ctx);
         this.config = config;
         this.kind = parent.kind;
     }

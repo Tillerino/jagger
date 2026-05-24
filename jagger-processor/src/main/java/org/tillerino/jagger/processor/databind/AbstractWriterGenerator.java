@@ -11,6 +11,9 @@ import lombok.Getter;
 import org.apache.commons.lang3.exception.ContextedRuntimeException;
 import org.tillerino.jagger.processor.config.AnyConfig;
 import org.tillerino.jagger.processor.config.ConfigProperty.PropagationKind;
+import org.tillerino.jagger.processor.databind.AbstractCodeGeneratorStack.BinaryKind;
+import org.tillerino.jagger.processor.databind.AbstractCodeGeneratorStack.Branch;
+import org.tillerino.jagger.processor.databind.AbstractCodeGeneratorStack.StringKind;
 import org.tillerino.jagger.processor.databind.AbstractWriterGenerator.LHS.Member;
 import org.tillerino.jagger.processor.ext.PrototypeKind.CodeGeneratorContext;
 import org.tillerino.jagger.processor.ext.PrototypeKind.TemplatablePrototypeKind;
@@ -216,11 +219,11 @@ public abstract class AbstractWriterGenerator<SELF extends AbstractWriterGenerat
         Member key = new Member(e(ctx.commonTypes.string, "$C.getKey()", entry));
         SELF valueNested = nest(valueType, key, "value", value, config.propagateTo(PropagationKind.PROPERTY));
 
-        startObject();
-        beginControlFlow("for ($T<$T, $T> $C : $C.entrySet())", Map.Entry.class, keyType, valueType, entry, rhs);
-        Exceptions.runWithContext("value", valueType, valueNested::build);
-        endControlFlow();
-        endObject();
+        inGuardedObject(() -> {
+            beginControlFlow("for ($T<$T, $T> $C : $C.entrySet())", Map.Entry.class, keyType, valueType, entry, rhs);
+            Exceptions.runWithContext("value", valueType, valueNested::build);
+            endControlFlow();
+        });
     }
 
     protected void writeObjectAsMap() {
@@ -228,12 +231,39 @@ public abstract class AbstractWriterGenerator<SELF extends AbstractWriterGenerat
             throw new ContextedRuntimeException("I don't know what to do with this type: " + type);
         }
         TypeElement typeElement = (TypeElement) dt.asElement();
-        Polymorphism.of(typeElement, ctx).ifPresentOrElse(this::writePolymorphicObject, () -> {
-            startObject();
-            code.add("\n");
-            writeObjectPropertiesAsFields();
-            endObject();
+        Polymorphism.of(typeElement, ctx)
+                .ifPresentOrElse(
+                        this::writePolymorphicObject,
+                        () -> inGuardedObject(() -> {
+                            code.add("\n");
+                            writeObjectPropertiesAsFields();
+                            code.add("\n");
+                        }));
+    }
+
+    private void inGuardedObject(Runnable r) {
+        Optional<TypedVariable> alreadyOpen = contextParameter().map(contextParameter -> {
+            TypedVariable ao = createVariable(ctx.types.getPrimitiveType(TypeKind.BOOLEAN), "objectOpen");
+            addStatement("boolean $C = $C.isObjectOpen(true)", ao, contextParameter);
+            return ao;
         });
+        alreadyOpen.ifPresentOrElse(
+                ao -> {
+                    beginControlFlow("if (!$C)", ao);
+                    startObject();
+                    endControlFlow();
+                },
+                this::startObject);
+
+        r.run();
+
+        alreadyOpen.ifPresentOrElse(
+                ao -> {
+                    beginControlFlow("if (!$C)", ao);
+                    endObject();
+                    endControlFlow();
+                },
+                this::endObject);
     }
 
     private void writePolymorphicObject(Polymorphism polymorphism) {
@@ -259,16 +289,25 @@ public abstract class AbstractWriterGenerator<SELF extends AbstractWriterGenerat
                                     throw new ContextedRuntimeException(
                                             "Delegate method must have a context parameter");
                                 }
-                                addStatement(
-                                        "$C.setPendingDiscriminator($S, $S)",
-                                        callerContext,
-                                        polymorphism.discriminator(),
-                                        child.name());
+                                startObject();
+                                code.add("\n");
+                                nest(
+                                                ctx.commonTypes.string,
+                                                new Member(
+                                                        e(ctx.commonTypes.string, "$S", polymorphism.discriminator())),
+                                                "discriminator",
+                                                new RHS(ctx.commonTypes.stringLiteral(child.name()), false),
+                                                config.propagateTo(PropagationKind.PROPERTY))
+                                        .build();
+                                addStatement("$C.markObjectOpen()", callerContext);
                                 Exceptions.runWithContext(
                                         "instance",
                                         child.type(),
-                                        () -> nest(child.type(), lhs, "instance", casted, childConfig)
-                                                .callDelegate(delegatee));
+                                        () -> addStatement(delegatee.call(
+                                                nest(child.type(), lhs, "instance", casted, childConfig).prototype,
+                                                List.of(casted),
+                                                generatedClass)));
+                                endObject();
                             },
                             () -> {
                                 startObject();
@@ -298,20 +337,6 @@ public abstract class AbstractWriterGenerator<SELF extends AbstractWriterGenerat
     }
 
     void writeObjectPropertiesAsFields() {
-        if (canBePolyChild) {
-            InstantiatedVariable context = contextParameter().orElseThrow();
-            beginControlFlow("if ($C.isDiscriminatorPending())", context);
-            nest(
-                            ctx.commonTypes.string,
-                            new Member(e(ctx.commonTypes.string, "$C.pendingDiscriminatorProperty", context)),
-                            "discriminator",
-                            new RHS(context.field(ctx.commonTypes.string, "pendingDiscriminatorValue"), false),
-                            config.propagateTo(PropagationKind.PROPERTY))
-                    .build();
-            addStatement("$C.pendingDiscriminatorProperty = null", context);
-            endControlFlow();
-        }
-
         Optional<Setup> referencesSetup = ctx.references.resolveSetup(config, contextParameter());
         referencesSetup.ifPresent(setup -> setup.generateId(rhs)
                 .ifPresent(id -> nest(

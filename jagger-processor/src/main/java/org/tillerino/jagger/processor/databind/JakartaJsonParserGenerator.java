@@ -3,12 +3,10 @@ package org.tillerino.jagger.processor.databind;
 import static org.tillerino.jagger.processor.util.Code.c;
 
 import com.squareup.javapoet.ClassName;
-import jakarta.annotation.Nonnull;
 import java.io.IOException;
 import javax.lang.model.type.TypeMirror;
 import org.apache.commons.lang3.exception.ContextedRuntimeException;
 import org.tillerino.jagger.helpers.JakartaJsonParserHelper;
-import org.tillerino.jagger.processor.config.AnyConfig;
 import org.tillerino.jagger.processor.ext.PrototypeKind.CodeGeneratorContext;
 import org.tillerino.jagger.processor.util.Code;
 import org.tillerino.jagger.processor.util.InstantiatedMethod.InstantiatedVariable;
@@ -21,13 +19,8 @@ public class JakartaJsonParserGenerator extends AbstractReaderGenerator<JakartaJ
         parserVariable = prototype.method().parameterOfType(kind.types().get(1));
     }
 
-    public JakartaJsonParserGenerator(
-            String potentialVariableName,
-            LHS lhs,
-            @Nonnull JakartaJsonParserGenerator parent,
-            AnyConfig config,
-            boolean exhaust) {
-        super(parent, potentialVariableName, lhs, config, exhaust);
+    public JakartaJsonParserGenerator(JakartaJsonParserGenerator parent, Props props) {
+        super(parent, props);
         this.parserVariable = parent.parserVariable;
     }
 
@@ -128,7 +121,7 @@ public class JakartaJsonParserGenerator extends AbstractReaderGenerator<JakartaJ
     protected void iterateOverFields() {
         importHelper();
         // we immediately skip the END_OBJECT token once we encounter it
-        beginControlFlow("while (!nextIfCurrentTokenIs($C, $L))", parserVariable, token("END_OBJECT"));
+        beginControlFlow("while ($C.currentEvent() != $L)", parserVariable, token("END_OBJECT"));
     }
 
     @Override
@@ -139,7 +132,9 @@ public class JakartaJsonParserGenerator extends AbstractReaderGenerator<JakartaJ
     }
 
     @Override
-    protected void afterObject() {}
+    protected void afterObject() {
+        addStatement("$C.next()", parserVariable);
+    }
 
     @Override
     protected void readMemberNameInIteration(String variableName) {
@@ -186,9 +181,8 @@ public class JakartaJsonParserGenerator extends AbstractReaderGenerator<JakartaJ
     }
 
     @Override
-    protected JakartaJsonParserGenerator nest(
-            String potentialVariableName, LHS lhs, AnyConfig config, boolean exhaust) {
-        return new JakartaJsonParserGenerator(potentialVariableName, lhs, this, config, exhaust);
+    protected JakartaJsonParserGenerator nest(Props props) {
+        return new JakartaJsonParserGenerator(this, props);
     }
 
     private Class<JakartaJsonParserHelper> importHelper() {

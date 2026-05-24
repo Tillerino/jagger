@@ -2,14 +2,12 @@ package org.tillerino.jagger.processor.databind;
 
 import static org.tillerino.jagger.processor.util.Code.c;
 
-import jakarta.annotation.Nonnull;
 import java.io.IOException;
 import javax.lang.model.type.ArrayType;
 import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
 import org.apache.commons.lang3.exception.ContextedRuntimeException;
 import org.tillerino.jagger.helpers.Fastjson2ReaderHelper;
-import org.tillerino.jagger.processor.config.AnyConfig;
 import org.tillerino.jagger.processor.ext.PrototypeKind.CodeGeneratorContext;
 import org.tillerino.jagger.processor.util.Code;
 import org.tillerino.jagger.processor.util.InstantiatedMethod.InstantiatedVariable;
@@ -23,13 +21,8 @@ public class Fastjson2ReaderGenerator extends AbstractReaderGenerator<Fastjson2R
         parserVariable = prototype.method().parameterOfType(kind.types().get(1));
     }
 
-    public Fastjson2ReaderGenerator(
-            String potentialVariableName,
-            LHS lhs,
-            @Nonnull Fastjson2ReaderGenerator parent,
-            AnyConfig config,
-            boolean exhaust) {
-        super(parent, potentialVariableName, lhs, config, exhaust);
+    public Fastjson2ReaderGenerator(Fastjson2ReaderGenerator parent, Props props) {
+        super(parent, props);
         this.parserVariable = parent.parserVariable;
     }
 
@@ -120,7 +113,7 @@ public class Fastjson2ReaderGenerator extends AbstractReaderGenerator<Fastjson2R
 
     @Override
     protected void iterateOverFields() {
-        beginControlFlow("while (!$C.nextIfObjectEnd())", parserVariable);
+        beginControlFlow("while ($C.current() != '}')", parserVariable);
     }
 
     @Override
@@ -129,7 +122,9 @@ public class Fastjson2ReaderGenerator extends AbstractReaderGenerator<Fastjson2R
     }
 
     @Override
-    protected void afterObject() {}
+    protected void afterObject() {
+        addStatement("$C.nextIfObjectEnd()", parserVariable);
+    }
 
     @Override
     protected void readMemberNameInIteration(String variableName) {
@@ -169,7 +164,7 @@ public class Fastjson2ReaderGenerator extends AbstractReaderGenerator<Fastjson2R
     }
 
     @Override
-    protected Fastjson2ReaderGenerator nest(String potentialVariableName, LHS lhs, AnyConfig config, boolean exhaust) {
-        return new Fastjson2ReaderGenerator(potentialVariableName, lhs, this, config, exhaust);
+    protected Fastjson2ReaderGenerator nest(Props props) {
+        return new Fastjson2ReaderGenerator(this, props);
     }
 }
