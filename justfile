@@ -39,7 +39,7 @@ readme-update-toc:
   docker run --rm -v .:/work --entrypoint=/bin/sh mkenney/npm -c 'npm config set unsafe-perm true; npm install -g markdown-toc; cd /work; for f in README.md docs/*; do markdown-toc -i $f; done'
 
 readme-build-embedme:
-  echo "FROM mkenney/npm" > /tmp/embedme.dockerfile
+  echo "FROM node:22" > /tmp/embedme.dockerfile
   echo "RUN wget https://github.com/Tillerino/embedme/tarball/master; tar -zxvf master; cd */; yarn --frozen-lockfile --non-interactive --no-progress; yarn build; npm install -g;" >> /tmp/embedme.dockerfile
   echo 'ENTRYPOINT [ "/bin/sh", "-c" ]' >> /tmp/embedme.dockerfile
   docker build -t embedme -f /tmp/embedme.dockerfile .

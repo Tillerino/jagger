@@ -5,6 +5,12 @@ This document explains the mechanisms that are available to plugins and how they
 
 <!-- toc -->
 
+- [Plugin discovery](#plugin-discovery)
+- [New configuration annotations](#new-configuration-annotations)
+- [Custom code generators](#custom-code-generators)
+
+<!-- tocstop -->
+
 ## Plugin discovery
 
 Plugins are discovered via the standard Java `ServiceLoader` mechanism.
@@ -14,10 +20,10 @@ plugin's fully qualified class name.
 The easiest way to do this is with Google's `@AutoService` annotation, which generates the service file at compile time:
 
 ```java
-// ../jagger-tests/custom-plugins/src/main/java/org/tillerino/jagger/tests/plugins/DeepClonePlugin.java#L38-L39
+// ../jagger-tests/custom-plugins/src/main/java/org/tillerino/jagger/tests/plugins/DeepClonePlugin.java#L35-L36
 
-@Override
-public void configure(JaggerContext ctx) {
+@AutoService(JaggerPlugin.class)
+public class DeepClonePlugin implements JaggerPlugin {
 ```
 
 Add the annotation and its processor to your build:
@@ -83,6 +89,6 @@ Jagger will take care of the rest:
 contains some simple plugins that can serve as a starting reference.
 
 Internally, Jagger is split into plugins. These can serve as good references:
-- [DatabindPlugin.java](../jagger-processor/src/main/java/org/tillerino/jagger/processor/config/DatabindPlugin.java)
-- [JdbcPlugin.java](../jagger-processor/src/main/java/org/tillerino/jagger/processor/config/JdbcPlugin.java)
+- [DatabindPlugin.java](../jagger-processor/src/main/java/org/tillerino/jagger/processor/databind/DatabindPlugin.java)
+- [JdbcPlugin.java](../jagger-processor/src/main/java/org/tillerino/jagger/processor/jdbc/JdbcPlugin.java)
 - [Templates.java](../jagger-processor/src/main/java/org/tillerino/jagger/processor/features/Templates.java)

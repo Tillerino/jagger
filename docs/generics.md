@@ -3,8 +3,9 @@
 <!-- toc -->
 
 - [Basics](#basics)
+- [Containers](#containers)
+  * [Arrays](#arrays)
 - [Filling delegator parameters](#filling-delegator-parameters)
-- [Arrays](#arrays)
 
 <!-- tocstop -->
 
@@ -62,7 +63,7 @@ interface GenericRecordSerde {
 The code generated for these generic prototypes will then delegate to the prototypes passed as a parameter:
 
 ```java
-// ../jagger-tests/jackson/target/generated-sources/annotations/org/tillerino/jagger/tests/base/features/GenericsSerde$GenericRecordSerdeImpl.java#L55-L56
+// ../jagger-tests/jackson/target/generated-sources/annotations/org/tillerino/jagger/tests/base/features/GenericsSerde$GenericRecordSerdeImpl.java#L56-L57
 
 gen.writeFieldName("f");
 fieldSerde.writeOnGenericInterface(obj.f(), gen);
@@ -230,7 +231,7 @@ genericRecordSerde$0$delegate.writeGenericRecord(usesGenericRecord.gi(), gen, bo
 ```
 
 ```java
-// ../jagger-tests/jackson/target/generated-sources/annotations/org/tillerino/jagger/tests/base/features/GenericsSerde$UsesGenericRecordSerdeImpl.java#L50-L53
+// ../jagger-tests/jackson/target/generated-sources/annotations/org/tillerino/jagger/tests/base/features/GenericsSerde$UsesGenericRecordSerdeImpl.java#L51-L54
 
 case "gi": {
   gi = genericRecordSerde$0$delegate.readGenericRecord(parser, boxedScalarsSerde$1$delegate::readBoxedIntX);

@@ -28,7 +28,7 @@ List<ScalarFieldsRecord> deserializeList(JsonParser parser) throws Exception;
 
 `deserializeList` will then refer to `deserializeSingle` instead of repeating the entire deserialization of `ScalarFieldsRecord`.
 ```java
-// ../jagger-tests/jackson/target/generated-sources/annotations/org/tillerino/jagger/tests/base/features/DelegationSerde$SimpleDelegationSerdeImpl.java#L331-L347
+// ../jagger-tests/jackson/target/generated-sources/annotations/org/tillerino/jagger/tests/base/features/DelegationSerde$SimpleDelegationSerdeImpl.java#L332-L348
 
 @Override
 public List<ScalarFieldsRecord> deserializeList(JsonParser parser) throws Exception {
@@ -228,7 +228,7 @@ List<SelfReferencingRecord> deserializeList(JsonParser input) throws Exception;
 This is because when serializing `SelfReferencingRecord`, a recursive call must be made:
 
 ```java
-// ../jagger-tests/jackson/target/generated-sources/annotations/org/tillerino/jagger/tests/base/features/DelegationSerde$SelfReferencingSerdeImpl.java#L68-L71
+// ../jagger-tests/jackson/target/generated-sources/annotations/org/tillerino/jagger/tests/base/features/DelegationSerde$SelfReferencingSerdeImpl.java#L69-L72
 
 case "self": {
   self = this.deserializeRecord(input);

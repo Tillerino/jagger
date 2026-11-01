@@ -109,7 +109,7 @@ case "dd": {
 `readDouble` itself only does a null-check and then delegates to `readPrimitiveDouble`:
 
 ```java
-// ../jagger-tests/jackson/target/generated-sources/annotations/org/tillerino/jagger/tests/base/features/TemplatesSerde$AutoTemplatesSerdeImpl.java#L424-L433
+// ../jagger-tests/jackson/target/generated-sources/annotations/org/tillerino/jagger/tests/base/features/TemplatesSerde$AutoTemplatesSerdeImpl.java#L426-L435
 
 public Double readDouble(JsonParser parser) throws Exception {
   if (!parser.hasCurrentToken()) {
