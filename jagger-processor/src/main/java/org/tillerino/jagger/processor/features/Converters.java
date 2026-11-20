@@ -44,7 +44,7 @@ public class Converters {
                 .findFirst();
     }
 
-    public Optional<Function<Expr, Expr>> findOutputConverter(
+    public Optional<OutputConverter> findOutputConverter(
             TypeMirror toConvertType, JaggerPrototype prototype, AnyConfig config, GeneratedClass generatedClass) {
         Map<TypeVar, TypeMirror> typeBindings = new LinkedHashMap<>();
         return declaredMethodsFromSelfAndUsed(prototype.blueprint(), config)
@@ -60,12 +60,14 @@ public class Converters {
                         InstantiatedMethod instantiatedMethod = ctx.generics.applyTypeBindings(method, typeBindings);
                         Function<Expr, Expr> converter = toConvert -> instantiatedMethod.callStaticFindingArguments(
                                 prototype, List.of(toConvert), generatedClass);
-                        return Stream.of(converter);
+                        return Stream.of(new OutputConverter(converter, instantiatedMethod.returnType()));
                     }
                     return Stream.empty();
                 })
                 .findFirst();
     }
+
+    public record OutputConverter(Function<Expr, Expr> converter, TypeMirror convertedType) {}
 
     public boolean isInputConverter(ExecutableElement methodElement) {
         return methodElement.getModifiers().contains(Modifier.STATIC)

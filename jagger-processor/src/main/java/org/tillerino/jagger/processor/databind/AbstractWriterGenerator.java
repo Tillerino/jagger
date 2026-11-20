@@ -11,8 +11,11 @@ import javax.lang.model.type.*;
 import lombok.Getter;
 import org.apache.commons.lang3.exception.ContextedRuntimeException;
 import org.tillerino.jagger.processor.config.AnyConfig;
+import org.tillerino.jagger.processor.config.ConfigProperty.InstantiatedProperty;
+import org.tillerino.jagger.processor.config.ConfigProperty.LocationKind;
 import org.tillerino.jagger.processor.config.ConfigProperty.PropagationKind;
 import org.tillerino.jagger.processor.databind.AbstractWriterGenerator.LHS.Member;
+import org.tillerino.jagger.processor.databind.AbstractWriterGenerator.LHS.Return;
 import org.tillerino.jagger.processor.databind.AbstractWriterGenerator.WrittenType.Binary;
 import org.tillerino.jagger.processor.databind.AbstractWriterGenerator.WrittenType.Boxed;
 import org.tillerino.jagger.processor.databind.AbstractWriterGenerator.WrittenType.Converted;
@@ -25,6 +28,8 @@ import org.tillerino.jagger.processor.databind.AbstractWriterGenerator.WrittenTy
 import org.tillerino.jagger.processor.databind.AbstractWriterGenerator.WrittenType.Text;
 import org.tillerino.jagger.processor.ext.PrototypeKind.CodeGeneratorContext;
 import org.tillerino.jagger.processor.ext.PrototypeKind.TemplatablePrototypeKind;
+import org.tillerino.jagger.processor.features.Converters.OutputConverter;
+import org.tillerino.jagger.processor.features.Delegation;
 import org.tillerino.jagger.processor.features.Delegation.Delegatee;
 import org.tillerino.jagger.processor.features.Enums;
 import org.tillerino.jagger.processor.features.IgnoreProperties;
@@ -83,11 +88,14 @@ public abstract class AbstractWriterGenerator<SELF extends AbstractWriterGenerat
         if (type.getKind().isPrimitive()) {
             return new Primitive((PrimitiveType) type);
         }
-        Optional<Function<Expr, Expr>> converter = ctx.converters
+        Optional<OutputConverter> converter = ctx.converters
                 .findOutputConverter(type, prototype, config, generatedClass)
-                .or(() -> ctx.converters.findJsonValueMethod(type, __ -> true).map(m -> m::call));
+                .or(() -> ctx.converters
+                        .findJsonValueMethod(type, __ -> true)
+                        .map(m -> new OutputConverter(m::call, m.returnType())));
         if (converter.isPresent()) {
-            return new Converted(converter.get());
+            OutputConverter c = converter.get();
+            return new Converted(c.converter(), c.convertedType());
         }
         if (ctx.commonTypes.isBoxed(type)) {
             return new Boxed(ctx.types.unboxedType(type));
@@ -244,15 +252,35 @@ public abstract class AbstractWriterGenerator<SELF extends AbstractWriterGenerat
     private void writeMap(TypeMirror keyType, TypeMirror valueType) {
         TypedVariable entry = createVariable(null, "entry");
 
-        RHS value = new RHS(entry.call(valueType, "getValue"), true);
-        Member key = new Member(e(ctx.commonTypes.string, "$C.getKey()", entry));
-        SELF valueNested = nest(valueType, key, "value", value, config.propagateTo(PropagationKind.PROPERTY));
+        LHS keyLhs = Exceptions.getWithContext("key", keyType, () -> getMapKeyLhs(keyType, entry));
+        RHS valueRhs = new RHS(entry.call(valueType, "getValue"), true);
+        SELF valueNested = nest(valueType, keyLhs, "value", valueRhs, config.propagateTo(PropagationKind.PROPERTY));
 
         inGuardedObject(() -> {
             beginControlFlow("for ($T<$T, $T> $C : $C.entrySet())", Map.Entry.class, keyType, valueType, entry, rhs);
             Exceptions.runWithContext("value", valueType, valueNested::build);
             endControlFlow();
         });
+    }
+
+    private LHS getMapKeyLhs(TypeMirror keyType, TypedVariable entry) {
+        Expr rawKeyExpr = entry.call(keyType, "getKey");
+        AnyConfig mapKeyConfig = new AnyConfig(
+                        List.of(new InstantiatedProperty<>(
+                                Delegation.DELEGATE_FROM, LocationKind.PROPERTY, false, "map key")),
+                        ctx)
+                .merge(config.propagateTo(PropagationKind.SUBSTITUTE));
+
+        WrittenType keyWrittenType = nest(keyType, new Return(), "key", new RHS(rawKeyExpr, true), mapKeyConfig).wt;
+        if (keyWrittenType instanceof Text text && text.kind() == StringKind.STRING) {
+            return new Member(rawKeyExpr);
+        } else if (keyWrittenType instanceof Converted converted
+                && ctx.commonTypes.isString(converted.convertedType())) {
+            return new Member(converted.converter().apply(rawKeyExpr));
+        }
+
+        throw new ContextedRuntimeException("Map keys must be serialized as strings")
+                .addContextValue("keyType", keyType);
     }
 
     protected void writeObjectAsMap(DeclaredType declaredType) {
@@ -491,7 +519,7 @@ public abstract class AbstractWriterGenerator<SELF extends AbstractWriterGenerat
         record Primitive(PrimitiveType pt) implements WrittenType {}
 
         /** The value is converted before writing. The converter is applied to the current {@link #rhs}. */
-        record Converted(Function<Expr, Expr> converter) implements WrittenType {}
+        record Converted(Function<Expr, Expr> converter, TypeMirror convertedType) implements WrittenType {}
 
         /** A boxed primitive that is written as its {@code unboxed} primitive type. */
         record Boxed(PrimitiveType unboxed) implements WrittenType {}
