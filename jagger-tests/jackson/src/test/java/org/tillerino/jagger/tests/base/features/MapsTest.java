@@ -9,7 +9,10 @@ import org.junit.jupiter.api.Test;
 import org.tillerino.jagger.tests.ReferenceTest;
 import org.tillerino.jagger.tests.Replacement;
 import org.tillerino.jagger.tests.SerdeUtil;
+import org.tillerino.jagger.tests.model.AnEnum;
 import org.tillerino.jagger.tests.model.features.CreatorsModel.ConvertersInheritance.JsonValueChild;
+import org.tillerino.jagger.tests.model.features.EnumsModel.CustomNames.CustomNamedEnum;
+import org.tillerino.jagger.tests.model.features.EnumsModel.JsonValueEnum;
 import org.tillerino.jagger.tests.model.features.MapsModel.Keys.OffsetDateTimeMapRecord;
 import org.tillerino.jagger.tests.variants.GeneratedVariant;
 import org.tillerino.jagger.tests.variants.Variant;
@@ -34,6 +37,31 @@ class MapsTest extends ReferenceTest {
             Map<JsonValueChild, String> map = new LinkedHashMap<>();
             map.put(new JsonValueChild(), "value");
             outputUtils.assertIsEqualToDatabind(map, serde::writeJsonValueMap);
+        }
+
+        @Test
+        void enumMapKey() throws Exception {
+            Map<CustomNamedEnum, String> map = new LinkedHashMap<>();
+            map.put(CustomNamedEnum.VALUE3, "first");
+            map.put(CustomNamedEnum.VALUE1, "second");
+            map.put(CustomNamedEnum.VALUE2, null);
+            outputUtils.assertIsEqualToDatabind(map, serde::writeEnumMap);
+        }
+
+        @Test
+        void plainEnumMapKey() throws Exception {
+            Map<AnEnum, String> map = new LinkedHashMap<>();
+            map.put(AnEnum.ANOTHER_VALUE, "first");
+            map.put(AnEnum.SOME_VALUE, null);
+            outputUtils.assertIsEqualToDatabind(map, serde::writePlainEnumMap);
+        }
+
+        @Test
+        void jsonValueEnumMapKey() throws Exception {
+            Map<JsonValueEnum, String> map = new LinkedHashMap<>();
+            map.put(JsonValueEnum.VALUE2, "first");
+            map.put(JsonValueEnum.VALUE1, null);
+            outputUtils.assertIsEqualToDatabind(map, serde::writeJsonValueEnumMap);
         }
 
         @Variants({

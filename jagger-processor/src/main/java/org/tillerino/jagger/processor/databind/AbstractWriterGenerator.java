@@ -279,6 +279,8 @@ public abstract class AbstractWriterGenerator<SELF extends AbstractWriterGenerat
         } else if (keyWrittenType instanceof Converted converted
                 && ctx.commonTypes.isString(converted.convertedType())) {
             return new Member(converted.converter().apply(rawKeyExpr));
+        } else if (keyWrittenType instanceof EnumValue) {
+            return new Member(e(ctx.commonTypes.string, Enums.serializationCode(generatedClass, keyType, rawKeyExpr)));
         }
 
         throw new ContextedRuntimeException("Map keys must be serialized as strings")

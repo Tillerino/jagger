@@ -6,7 +6,10 @@ import org.tillerino.jagger.annotations.JsonConfig;
 import org.tillerino.jagger.annotations.JsonOutput;
 import org.tillerino.jagger.converters.AllOutputConverters;
 import org.tillerino.jagger.tests.Replacement;
+import org.tillerino.jagger.tests.model.AnEnum;
 import org.tillerino.jagger.tests.model.features.CreatorsModel.ConvertersInheritance.JsonValueChild;
+import org.tillerino.jagger.tests.model.features.EnumsModel.CustomNames.CustomNamedEnum;
+import org.tillerino.jagger.tests.model.features.EnumsModel.JsonValueEnum;
 import org.tillerino.jagger.tests.model.features.MapsModel.Keys.OffsetDateTimeMapRecord;
 import org.tillerino.jagger.tests.variants.GeneratedVariant;
 import org.tillerino.jagger.tests.variants.Variant;
@@ -20,6 +23,15 @@ interface MapsSerde {
 
         @JsonOutput
         void writeJsonValueMap(Map<JsonValueChild, String> map, JsonGenerator generator) throws Exception;
+
+        @JsonOutput
+        void writeEnumMap(Map<CustomNamedEnum, String> map, JsonGenerator generator) throws Exception;
+
+        @JsonOutput
+        void writePlainEnumMap(Map<AnEnum, String> map, JsonGenerator generator) throws Exception;
+
+        @JsonOutput
+        void writeJsonValueEnumMap(Map<JsonValueEnum, String> map, JsonGenerator generator) throws Exception;
 
         @Variants({
             @Variant({
