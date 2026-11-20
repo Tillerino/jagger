@@ -10,7 +10,10 @@ import java.io.IOException;
 import java.util.*;
 import java.util.ServiceLoader.Provider;
 import java.util.stream.Collectors;
-import javax.annotation.processing.*;
+import javax.annotation.processing.AbstractProcessor;
+import javax.annotation.processing.ProcessingEnvironment;
+import javax.annotation.processing.Processor;
+import javax.annotation.processing.RoundEnvironment;
 import javax.lang.model.SourceVersion;
 import javax.lang.model.element.*;
 import javax.lang.model.util.ElementFilter;
@@ -23,7 +26,6 @@ import org.tillerino.jagger.processor.features.CodeGeneration;
 import org.tillerino.jagger.processor.util.Annotations.AnnotationMirrorWrapper;
 import org.tillerino.jagger.processor.util.InstantiatedMethod;
 
-@SupportedSourceVersion(SourceVersion.RELEASE_17)
 @AutoService(Processor.class)
 public class JaggerProcessor extends AbstractProcessor {
 
@@ -41,6 +43,11 @@ public class JaggerProcessor extends AbstractProcessor {
         ctx = new JaggerContext(processingEnv);
 
         plugins.forEach(plugin -> plugin.configure(ctx));
+    }
+
+    @Override
+    public SourceVersion getSupportedSourceVersion() {
+        return SourceVersion.latestSupported();
     }
 
     @Override
