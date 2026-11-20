@@ -20,42 +20,67 @@ public sealed interface MethodInScope {
         if (this instanceof FromParameter fromParameter) {
             return new FromParameter(fromParameter.parameter(), bound);
         }
+        if (this instanceof FromPrototype fromPrototype) {
+            JaggerPrototype prototype = fromPrototype.prototype();
+            return new FromPrototype(new JaggerPrototype(
+                    prototype.blueprint(),
+                    bound,
+                    prototype.kind(),
+                    prototype.ctx(),
+                    prototype.config(),
+                    prototype.overrides(),
+                    prototype.trigger()));
+        }
         if (this instanceof FromBlueprint fromBlueprint) {
             return new FromBlueprint(fromBlueprint.blueprint(), bound);
         }
         throw new IllegalStateException();
     }
 
-    default Expr call(JaggerPrototype prototype, List<Expr> arguments, GeneratedClass generatedClass) {
+    default Expr call(JaggerPrototype caller, List<Expr> arguments, GeneratedClass generatedClass) {
         InstantiatedMethod method = method();
         if (method.element().getModifiers().contains(Modifier.STATIC)) {
-            return method.callStaticFindingArguments(prototype, arguments, generatedClass);
+            return method.callStaticFindingArguments(caller, arguments, generatedClass);
         }
-        return method.callFindingArguments(instance(prototype, generatedClass), prototype, arguments, generatedClass);
+        return method.callFindingArguments(instance(caller, generatedClass), caller, arguments, generatedClass);
     }
 
-    Expr instance(JaggerPrototype prototype, GeneratedClass generatedClass);
+    Expr instance(JaggerPrototype caller, GeneratedClass generatedClass);
 
     record FromParameter(InstantiatedVariable parameter, InstantiatedMethod method) implements MethodInScope {
         @Override
-        public Expr instance(JaggerPrototype prototype, GeneratedClass generatedClass) {
+        public Expr instance(JaggerPrototype caller, GeneratedClass generatedClass) {
             return parameter;
         }
     }
 
+    record FromPrototype(JaggerPrototype prototype) implements MethodInScope {
+        @Override
+        public InstantiatedMethod method() {
+            return prototype.method();
+        }
+
+        @Override
+        public Expr instance(JaggerPrototype caller, GeneratedClass generatedClass) {
+            return generatedClass.getOrCreateDelegateeField(
+                    caller.blueprint(), prototype.blueprint(), !prototype.overrides());
+        }
+    }
+
+    /** A general method that can be reached from the blueprint that is not an actual {@link JaggerPrototype}. */
     record FromBlueprint(JaggerBlueprint blueprint, InstantiatedMethod method) implements MethodInScope {
         @Override
-        public Expr instance(JaggerPrototype prototype, GeneratedClass generatedClass) {
-            if (blueprint == prototype.blueprint()) {
-                return generatedClass.getOrCreateDelegateeField(prototype.blueprint(), blueprint, false);
+        public Expr instance(JaggerPrototype caller, GeneratedClass generatedClass) {
+            if (blueprint == caller.blueprint()) {
+                return generatedClass.getOrCreateDelegateeField(caller.blueprint(), blueprint, false);
             }
             TypeMirror declaringType = blueprint.typeElement.asType();
-            for (InstantiatedVariable parameter : prototype.parameters()) {
-                if (prototype.blueprint().ctx.commonTypes.isAssignable(parameter.type(), declaringType)) {
+            for (InstantiatedVariable parameter : caller.parameters()) {
+                if (caller.blueprint().ctx.commonTypes.isAssignable(parameter.type(), declaringType)) {
                     return parameter;
                 }
             }
-            return generatedClass.getOrCreateDelegateeField(prototype.blueprint(), blueprint, false);
+            return generatedClass.getOrCreateDelegateeField(caller.blueprint(), blueprint, false);
         }
     }
 }

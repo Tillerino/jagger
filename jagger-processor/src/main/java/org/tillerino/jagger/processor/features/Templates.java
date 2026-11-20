@@ -109,7 +109,7 @@ public class Templates implements JaggerPlugin {
                 new Trigger(blueprint.typeElement)));
     }
 
-    public static Optional<Delegation.InstantiatedPrototype> delegateToAutoTemplate(
+    public static Optional<JaggerPrototype> delegateToAutoTemplate(
             JaggerContext ctx, TemplatablePrototypeKind target, JaggerPrototype caller) {
         for (TemplateAnnotation templateAnnotation :
                 caller.config().resolveProperty(TEMPLATES).value()) {
@@ -129,8 +129,7 @@ public class Templates implements JaggerPlugin {
                     JaggerPrototype templatedPototype =
                             JaggerPrototype.of(blueprint, instantiated, protoKind, ctx, false, caller.trigger());
                     blueprint.prototypes.add(templatedPototype);
-                    return Optional.of(
-                            new Delegation.InstantiatedPrototype(blueprint, templatedPototype, instantiated));
+                    return Optional.of(templatedPototype);
                 }
             }
         }

@@ -25,7 +25,7 @@ public class DefaultValues {
     public Optional<MethodInScope> findInputDefaultValue(
             JaggerPrototype prototype, TypeMirror targetType, AnyConfig config) {
         Map<TypeVar, TypeMirror> typeBindings = new LinkedHashMap<>();
-        for (MethodInScope methodInScope : ctx.converters.listMethodsInScope(prototype, config)) {
+        for (MethodInScope methodInScope : ctx.delegation.listMethodsInScope(prototype, config)) {
             InstantiatedMethod method = methodInScope.method();
             typeBindings.clear();
             if (isInputDefaultValue(method.element())

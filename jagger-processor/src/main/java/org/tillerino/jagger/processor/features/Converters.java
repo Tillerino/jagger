@@ -1,13 +1,11 @@
 package org.tillerino.jagger.processor.features;
 
-import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
 import java.util.function.Predicate;
-import java.util.stream.Stream;
 import javax.lang.model.element.ExecutableElement;
 import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
@@ -31,7 +29,7 @@ public class Converters {
     public Optional<InputConverter> findInputConverter(
             JaggerPrototype prototype, TypeMirror targetType, AnyConfig config, GeneratedClass generatedClass) {
         Map<TypeVar, TypeMirror> typeBindings = new LinkedHashMap<>();
-        for (MethodInScope methodInScope : listMethodsInScope(prototype, config)) {
+        for (MethodInScope methodInScope : ctx.delegation.listMethodsInScope(prototype, config)) {
             InstantiatedMethod method = methodInScope.method();
             if (!isInputConverter(method.element())) {
                 continue;
@@ -51,7 +49,7 @@ public class Converters {
     public Optional<OutputConverter> findOutputConverter(
             TypeMirror toConvertType, JaggerPrototype prototype, AnyConfig config, GeneratedClass generatedClass) {
         Map<TypeVar, TypeMirror> typeBindings = new LinkedHashMap<>();
-        for (MethodInScope methodInScope : listMethodsInScope(prototype, config)) {
+        for (MethodInScope methodInScope : ctx.delegation.listMethodsInScope(prototype, config)) {
             InstantiatedMethod method = methodInScope.method();
             if (!isOutputConverter(method.element())) {
                 continue;
@@ -66,25 +64,6 @@ public class Converters {
             }
         }
         return Optional.empty();
-    }
-
-    /**
-     * Lists methods available through prototype parameters, plus methods declared by the prototype's blueprint and its
-     * used blueprints. Parameter methods take precedence.
-     */
-    List<MethodInScope> listMethodsInScope(JaggerPrototype prototype, AnyConfig config) {
-        List<MethodInScope> methods = new ArrayList<>();
-        ctx.delegation
-                .methodsInParameters(prototype)
-                .forEach(parameterMethod -> methods.add(
-                        new MethodInScope.FromParameter(parameterMethod.parameter(), parameterMethod.method())));
-        Stream<MethodInScope> own = prototype.blueprint().declaredMethods.stream()
-                .map(method -> new MethodInScope.FromBlueprint(prototype.blueprint(), method));
-        Stream<MethodInScope> used = config.reversedUses().stream()
-                .flatMap(use ->
-                        use.declaredMethods.stream().map(method -> new MethodInScope.FromBlueprint(use, method)));
-        methods.addAll(Stream.concat(own, used).toList());
-        return methods;
     }
 
     public record OutputConverter(Function<Expr, Expr> converter, TypeMirror convertedType) {}

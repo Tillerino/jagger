@@ -3,6 +3,7 @@ package org.tillerino.jagger.processor.features;
 import static org.tillerino.jagger.processor.util.Expr.e;
 
 import jakarta.annotation.Nullable;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Optional;
@@ -24,9 +25,12 @@ import org.tillerino.jagger.processor.config.ConfigProperty.MergeFunction;
 import org.tillerino.jagger.processor.config.ConfigProperty.PropagationKind;
 import org.tillerino.jagger.processor.ext.PrototypeKind.TemplatablePrototypeKind;
 import org.tillerino.jagger.processor.ext.PrototypeKind.TemplatablePrototypeKind.MatchingOptions;
+import org.tillerino.jagger.processor.features.Generics.TypeVar;
 import org.tillerino.jagger.processor.util.Expr;
 import org.tillerino.jagger.processor.util.InstantiatedMethod;
 import org.tillerino.jagger.processor.util.InstantiatedMethod.InstantiatedVariable;
+import org.tillerino.jagger.processor.util.MethodInScope;
+import org.tillerino.jagger.processor.util.MethodInScope.FromParameter;
 import org.tillerino.jagger.processor.util.ShortName;
 
 public class Delegation {
@@ -53,52 +57,51 @@ public class Delegation {
             boolean allowExact,
             AnyConfig config,
             GeneratedClass generatedClass) {
-        return findPrototype(target, caller, allowRecursion, allowExact, config)
-                .map(d -> new Delegatee(
-                        generatedClass.getOrCreateDelegateeField(
-                                caller.blueprint(),
-                                d.blueprint(),
-                                !d.prototype().overrides()),
-                        d.method()))
-                .or(() -> ctx.delegation.findDelegateeInMethodParameters(caller, target))
+        return findDelegateeInScope(target, caller, allowRecursion, allowExact, config, generatedClass)
                 .or(() -> allowExact
-                        ? Templates.delegateToAutoTemplate(ctx, target, caller)
-                                .map(d -> new Delegatee(
-                                        generatedClass.getOrCreateDelegateeField(
-                                                caller.blueprint(),
-                                                d.blueprint(),
-                                                !d.prototype().overrides()),
-                                        d.method()))
+                        ? Templates.delegateToAutoTemplate(ctx, target, caller).map(prototype -> {
+                            MethodInScope template = new MethodInScope.FromPrototype(prototype);
+                            return new Delegatee(template.instance(caller, generatedClass), template.method());
+                        })
                         : Optional.empty());
     }
 
-    private Optional<InstantiatedPrototype> findPrototype(
+    private Optional<Delegatee> findDelegateeInScope(
             TemplatablePrototypeKind target,
             JaggerPrototype caller,
             boolean allowRecursion,
             boolean allowExact,
-            AnyConfig config) {
+            AnyConfig config,
+            GeneratedClass generatedClass) {
         if (!config.resolveProperty(DELEGATE_FROM).value()) {
             return Optional.empty();
         }
-        JaggerBlueprint blueprint = caller.blueprint();
-        for (JaggerPrototype callee : blueprint.prototypes) {
-            if (canBeDelegatedTo(callee) && (callee != caller || allowRecursion)) {
-                InstantiatedMethod match = callee.matches(target, allowExact);
-                if (match != null) {
-                    return Optional.of(new InstantiatedPrototype(blueprint, callee, match));
+        for (MethodInScope methodInScope : listMethodsInScope(caller, config)) {
+            if (methodInScope instanceof MethodInScope.FromBlueprint) {
+                continue;
+            }
+            if (methodInScope instanceof MethodInScope.FromPrototype fromPrototype) {
+                JaggerPrototype callee = fromPrototype.prototype();
+                if (!canBeDelegatedTo(callee) || (callee == caller && !allowRecursion)) {
+                    continue;
                 }
             }
-        }
-        for (JaggerBlueprint use : config.reversedUses()) {
-            for (JaggerPrototype callee : use.prototypes) {
-                if (canBeDelegatedTo(callee)) {
-                    InstantiatedMethod match = callee.matches(target, allowExact);
-                    if (match != null) {
-                        return Optional.of(new InstantiatedPrototype(use, callee, match));
-                    }
-                }
+            InstantiatedMethod method = methodInScope.method();
+            Optional<TemplatablePrototypeKind> kind = ctx.detectPrototype(method)
+                    .filter(k -> k instanceof TemplatablePrototypeKind)
+                    .map(TemplatablePrototypeKind.class::cast);
+            if (kind.isEmpty()) {
+                continue;
             }
+            LinkedHashMap<TypeVar, TypeMirror> typeBindings = new LinkedHashMap<>();
+            if (!kind.get().matches(target, new MatchingOptions(ctx, typeBindings, method.freeTypeVars(), false))) {
+                continue;
+            }
+            if (methodInScope instanceof MethodInScope.FromPrototype && !allowExact && typeBindings.isEmpty()) {
+                continue;
+            }
+            MethodInScope bound = methodInScope.applyTypeBindings(typeBindings);
+            return Optional.of(new Delegatee(bound.instance(caller, generatedClass), bound.method()));
         }
         return Optional.empty();
     }
@@ -107,34 +110,23 @@ public class Delegation {
         return callee.config().resolveProperty(DELEGATE_TO).value().canBeDelegatedTo();
     }
 
-    private Optional<Delegatee> findDelegateeInMethodParameters(
-            JaggerPrototype prototype, TemplatablePrototypeKind target) {
-        if (!(prototype.kind() instanceof TemplatablePrototypeKind)) {
-            return Optional.empty();
-        }
-        for (ParameterMethod parameterMethod : methodsInParameters(prototype).toList()) {
-            Optional<TemplatablePrototypeKind> prototypeKind = ctx.detectPrototype(parameterMethod.method())
-                    .filter(kind -> kind instanceof TemplatablePrototypeKind)
-                    .map(TemplatablePrototypeKind.class::cast)
-                    .filter(kind -> kind.matches(
-                            target,
-                            new MatchingOptions(
-                                    ctx,
-                                    new LinkedHashMap<>(),
-                                    parameterMethod.method().freeTypeVars(),
-                                    false)));
-            if (prototypeKind.isPresent()) {
-                return Optional.of(new Delegatee(parameterMethod.parameter(), parameterMethod.method()));
+    public List<MethodInScope> listMethodsInScope(JaggerPrototype prototype, AnyConfig config) {
+        List<MethodInScope> methods = new ArrayList<>();
+        for (InstantiatedVariable parameter : prototype.parameters()) {
+            for (InstantiatedMethod method :
+                    ctx.generics.instantiateMethods(parameter.type(), LocationKind.PROTOTYPE)) {
+                FromParameter fromParameter = new FromParameter(parameter, method);
+                methods.add(fromParameter);
             }
         }
-        return Optional.empty();
+        addBlueprintMethods(methods, prototype.blueprint());
+        config.reversedUses().forEach(use -> addBlueprintMethods(methods, use));
+        return methods;
     }
 
-    /** Lists methods that are available through prototype parameters. */
-    public Stream<ParameterMethod> methodsInParameters(JaggerPrototype prototype) {
-        return prototype.parameters().stream()
-                .flatMap(parameter -> ctx.generics.instantiateMethods(parameter.type(), LocationKind.PROTOTYPE).stream()
-                        .map(method -> new ParameterMethod(parameter, method)));
+    private static void addBlueprintMethods(List<MethodInScope> methods, JaggerBlueprint blueprint) {
+        blueprint.prototypes.forEach(prototype -> methods.add(new MethodInScope.FromPrototype(prototype)));
+        blueprint.declaredMethods.forEach(method -> methods.add(new MethodInScope.FromBlueprint(blueprint, method)));
     }
 
     public List<Expr> findArguments(
@@ -198,9 +190,4 @@ public class Delegation {
             return method.callFindingArguments(fieldOrParameter, caller, additionalParameters, generatedClass);
         }
     }
-
-    public record ParameterMethod(InstantiatedVariable parameter, InstantiatedMethod method) {}
-
-    public record InstantiatedPrototype(
-            JaggerBlueprint blueprint, JaggerPrototype prototype, InstantiatedMethod method) {}
 }
