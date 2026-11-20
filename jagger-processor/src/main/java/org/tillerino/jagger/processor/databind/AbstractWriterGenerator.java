@@ -121,17 +121,6 @@ public abstract class AbstractWriterGenerator<SELF extends AbstractWriterGenerat
      * specializations for some types that require a dedicated null check.
      */
     protected void writeNullCheckedObject() {
-        Optional<Setup> referenceSetup = ctx.references.resolveSetup(config, contextParameter());
-        if (referenceSetup.isPresent()) {
-            Setup setup = referenceSetup.get();
-            TypeMirror idType = setup.finalIdType(type, ctx);
-            RHS idVar = new RHS(createVariable(idType, "id"), false);
-            addStatement("$T $C = $C", idType, idVar, setup.previouslyWritten(rhs));
-            beginControlFlow("if ($C != null)", idVar);
-            nest(idType, lhs, "id", idVar, config.propagateTo(PropagationKind.PROPERTY))
-                    .build();
-            nextControlFlow("else");
-        }
 
         Optional<Expr> converter = ctx.converters
                 .findOutputConverter(rhs, prototype, config, generatedClass)
@@ -142,10 +131,7 @@ public abstract class AbstractWriterGenerator<SELF extends AbstractWriterGenerat
             addStatement(c("$T $C = $C", converted.type(), newValue, converted));
             nest(converted.type(), lhs, pvn, newValue, config.propagateTo(PropagationKind.SUBSTITUTE))
                     .build();
-            return;
-        }
-
-        if (ctx.commonTypes.isBoxed(type)) {
+        } else if (ctx.commonTypes.isBoxed(type)) {
             nest(ctx.types.unboxedType(type), lhs, pvn, rhs, config.propagateTo(PropagationKind.SUBSTITUTE))
                     .build();
         } else if (ctx.commonTypes.isString(type) || ctx.commonTypes.isArrayOf(type, TypeKind.CHAR)) {
@@ -161,9 +147,20 @@ public abstract class AbstractWriterGenerator<SELF extends AbstractWriterGenerat
         } else if (type.getKind() == TypeKind.TYPEVAR) {
             throw new ContextedRuntimeException("Missing serializer for type variable " + type);
         } else {
+            Optional<Setup> referenceSetup = ctx.references.resolveSetup(config, contextParameter());
+            if (referenceSetup.isPresent()) {
+                Setup setup = referenceSetup.get();
+                TypeMirror idType = setup.finalIdType(type, ctx);
+                RHS idVar = new RHS(createVariable(idType, "id"), false);
+                addStatement("$T $C = $C", idType, idVar, setup.previouslyWritten(rhs));
+                beginControlFlow("if ($C != null)", idVar);
+                nest(idType, lhs, "id", idVar, config.propagateTo(PropagationKind.PROPERTY))
+                        .build();
+                nextControlFlow("else");
+            }
             writeObjectAsMap();
+            referenceSetup.ifPresent(__ -> endControlFlow());
         }
-        referenceSetup.ifPresent(__ -> endControlFlow());
     }
 
     protected void writeIterable() {

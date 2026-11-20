@@ -137,4 +137,19 @@ public interface ReferencesSerde {
         @JsonInput
         UuidChild readChild(JsonParser parser, DeserializationContext ctx) throws Exception;
     }
+
+    @JsonConfig(uses = {UuidInputConverters.class, UuidOutputConverters.class})
+    interface WithJsonValueAndJsonCreatorReferencesSerde {
+        @JsonOutput
+        void write(UuidIdConvertedRecord record, JsonGenerator gen, SerializationContext ctx) throws Exception;
+
+        @JsonInput
+        UuidIdConvertedRecord read(JsonParser parser, DeserializationContext ctx) throws Exception;
+
+        @JsonOutput
+        void writeList(List<UuidIdConvertedRecord> list, JsonGenerator gen, SerializationContext ctx) throws Exception;
+
+        @JsonInput
+        List<UuidIdConvertedRecord> readList(JsonParser parser, DeserializationContext ctx) throws Exception;
+    }
 }
