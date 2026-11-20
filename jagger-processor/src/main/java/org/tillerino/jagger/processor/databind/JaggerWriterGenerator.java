@@ -3,6 +3,7 @@ package org.tillerino.jagger.processor.databind;
 import static org.tillerino.jagger.processor.util.Code.c;
 
 import java.util.List;
+import javax.lang.model.type.PrimitiveType;
 import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
 import org.tillerino.jagger.processor.config.AnyConfig;
@@ -71,7 +72,7 @@ public class JaggerWriterGenerator extends AbstractWriterGenerator<JaggerWriterG
     }
 
     @Override
-    public void writePrimitive(TypeMirror typeMirror) {
+    public void writePrimitive(PrimitiveType typeMirror) {
         Code rhs_ = rhs;
         if (typeMirror.getKind() == TypeKind.CHAR) {
             rhs_ = c("String.valueOf($C)", rhs);

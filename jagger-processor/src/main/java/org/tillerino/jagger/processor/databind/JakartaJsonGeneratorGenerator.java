@@ -4,6 +4,7 @@ import static org.tillerino.jagger.processor.util.Code.c;
 
 import jakarta.annotation.Nonnull;
 import java.util.List;
+import javax.lang.model.type.PrimitiveType;
 import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
 import org.tillerino.jagger.processor.config.AnyConfig;
@@ -73,7 +74,7 @@ public class JakartaJsonGeneratorGenerator extends AbstractWriterGenerator<Jakar
     }
 
     @Override
-    public void writePrimitive(TypeMirror typeMirror) {
+    public void writePrimitive(PrimitiveType typeMirror) {
         Code value = typeMirror.getKind() == TypeKind.CHAR ? c("String.valueOf($C)", rhs) : rhs;
         if (lhs instanceof Member f) {
             addStatement(c("$C.write($C, $C)", generatorVariable, f, value));

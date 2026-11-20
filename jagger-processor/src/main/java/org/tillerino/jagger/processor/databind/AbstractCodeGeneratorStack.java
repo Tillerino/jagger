@@ -118,7 +118,7 @@ public abstract class AbstractCodeGeneratorStack<SELF extends AbstractCodeGenera
         CHAR_ARRAY
     }
 
-    enum BinaryKind {
+    protected enum BinaryKind {
         BYTE_ARRAY
     }
 

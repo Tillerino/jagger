@@ -2,6 +2,7 @@ package org.tillerino.jagger.processor.databind;
 
 import java.util.List;
 import javax.lang.model.type.ArrayType;
+import javax.lang.model.type.PrimitiveType;
 import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
 import org.apache.commons.lang3.exception.ContextedRuntimeException;
@@ -31,11 +32,11 @@ public class Fastjson2WriterGenerator extends AbstractWriterGenerator<Fastjson2W
     }
 
     @Override
-    protected void writeNullable() {
+    protected void writeNullable(WrittenType wt) {
         if (writeNatively()) {
             return;
         }
-        super.writeNullable();
+        super.writeNullable(wt);
     }
 
     @Override
@@ -62,7 +63,7 @@ public class Fastjson2WriterGenerator extends AbstractWriterGenerator<Fastjson2W
     }
 
     @Override
-    public void writePrimitive(TypeMirror typeMirror) {
+    public void writePrimitive(PrimitiveType typeMirror) {
         addFieldNameIfNeeded();
         TypeKind kind = typeMirror.getKind();
         if (kind == TypeKind.CHAR) {

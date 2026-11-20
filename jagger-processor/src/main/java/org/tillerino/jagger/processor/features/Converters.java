@@ -4,6 +4,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
 import javax.lang.model.element.ExecutableElement;
@@ -43,22 +44,23 @@ public class Converters {
                 .findFirst();
     }
 
-    public Optional<Expr> findOutputConverter(
-            Expr toConvert, JaggerPrototype prototype, AnyConfig config, GeneratedClass generatedClass) {
+    public Optional<Function<Expr, Expr>> findOutputConverter(
+            TypeMirror toConvertType, JaggerPrototype prototype, AnyConfig config, GeneratedClass generatedClass) {
         Map<TypeVar, TypeMirror> typeBindings = new LinkedHashMap<>();
         return declaredMethodsFromSelfAndUsed(prototype.blueprint(), config)
                 .flatMap(method -> {
                     typeBindings.clear();
                     if (isOutputConverter(method.element())
                             && ctx.generics.typeBindingsSatisfyingEquality(
-                                    toConvert.type(),
+                                    toConvertType,
                                     method.parameters().get(0).type(),
                                     typeBindings,
                                     method.freeTypeVars(),
                                     true)) {
                         InstantiatedMethod instantiatedMethod = ctx.generics.applyTypeBindings(method, typeBindings);
-                        return Stream.of(instantiatedMethod.callStaticFindingArguments(
-                                prototype, List.of(toConvert), generatedClass));
+                        Function<Expr, Expr> converter = toConvert -> instantiatedMethod.callStaticFindingArguments(
+                                prototype, List.of(toConvert), generatedClass);
+                        return Stream.of(converter);
                     }
                     return Stream.empty();
                 })
@@ -85,11 +87,6 @@ public class Converters {
         return Stream.concat(
                 blueprint.declaredMethods.stream(),
                 config.reversedUses().stream().flatMap(use -> use.declaredMethods.stream()));
-    }
-
-    public Optional<Expr> findJsonValueMethod(Expr toConvert) {
-        Optional<InstantiatedMethod> result = findJsonValueMethod(toConvert.type(), __ -> true);
-        return result.map(m -> m.call(toConvert));
     }
 
     public Optional<InstantiatedMethod> findJsonValueMethod(

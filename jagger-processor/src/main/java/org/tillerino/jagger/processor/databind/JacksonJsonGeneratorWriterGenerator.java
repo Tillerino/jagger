@@ -1,6 +1,7 @@
 package org.tillerino.jagger.processor.databind;
 
 import java.util.List;
+import javax.lang.model.type.PrimitiveType;
 import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
 import org.tillerino.jagger.processor.config.AnyConfig;
@@ -70,7 +71,7 @@ public class JacksonJsonGeneratorWriterGenerator extends AbstractWriterGenerator
     }
 
     @Override
-    public void writePrimitive(TypeMirror typeMirror) {
+    public void writePrimitive(PrimitiveType typeMirror) {
         if (lhs instanceof Member f) {
             if (typeMirror.getKind() == TypeKind.BOOLEAN) {
                 addStatement("$C.writeBooleanField($C, $C)", generatorVariable, f, rhs);

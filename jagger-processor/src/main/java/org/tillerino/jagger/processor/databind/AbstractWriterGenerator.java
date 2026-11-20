@@ -5,16 +5,24 @@ import static org.tillerino.jagger.processor.util.Expr.e;
 
 import com.squareup.javapoet.CodeBlock;
 import java.util.*;
+import java.util.function.Function;
 import javax.lang.model.element.TypeElement;
 import javax.lang.model.type.*;
 import lombok.Getter;
 import org.apache.commons.lang3.exception.ContextedRuntimeException;
 import org.tillerino.jagger.processor.config.AnyConfig;
 import org.tillerino.jagger.processor.config.ConfigProperty.PropagationKind;
-import org.tillerino.jagger.processor.databind.AbstractCodeGeneratorStack.BinaryKind;
-import org.tillerino.jagger.processor.databind.AbstractCodeGeneratorStack.Branch;
-import org.tillerino.jagger.processor.databind.AbstractCodeGeneratorStack.StringKind;
 import org.tillerino.jagger.processor.databind.AbstractWriterGenerator.LHS.Member;
+import org.tillerino.jagger.processor.databind.AbstractWriterGenerator.WrittenType.Binary;
+import org.tillerino.jagger.processor.databind.AbstractWriterGenerator.WrittenType.Boxed;
+import org.tillerino.jagger.processor.databind.AbstractWriterGenerator.WrittenType.Converted;
+import org.tillerino.jagger.processor.databind.AbstractWriterGenerator.WrittenType.Delegated;
+import org.tillerino.jagger.processor.databind.AbstractWriterGenerator.WrittenType.EnumValue;
+import org.tillerino.jagger.processor.databind.AbstractWriterGenerator.WrittenType.IterableValue;
+import org.tillerino.jagger.processor.databind.AbstractWriterGenerator.WrittenType.MapValue;
+import org.tillerino.jagger.processor.databind.AbstractWriterGenerator.WrittenType.ObjectAsMap;
+import org.tillerino.jagger.processor.databind.AbstractWriterGenerator.WrittenType.Primitive;
+import org.tillerino.jagger.processor.databind.AbstractWriterGenerator.WrittenType.Text;
 import org.tillerino.jagger.processor.ext.PrototypeKind.CodeGeneratorContext;
 import org.tillerino.jagger.processor.ext.PrototypeKind.TemplatablePrototypeKind;
 import org.tillerino.jagger.processor.features.Delegation.Delegatee;
@@ -56,6 +64,19 @@ public abstract class AbstractWriterGenerator<SELF extends AbstractWriterGenerat
     }
 
     public CodeBlock.Builder build() {
+        WrittenType wt = detect();
+
+        if (wt instanceof Delegated d) {
+            callDelegate(d.delegatee());
+        } else if (wt instanceof Primitive p) {
+            writePotentiallyNonFinitePrimitive(p);
+        } else {
+            writeNullable(wt);
+        }
+        return code;
+    }
+
+    private WrittenType detect() {
         // delegate to any of the used blueprints
         Optional<Delegatee> delegate = ctx.delegation.findDelegatee(
                 kind.withTypesPrefix(List.of(type)),
@@ -65,49 +86,89 @@ public abstract class AbstractWriterGenerator<SELF extends AbstractWriterGenerat
                 config,
                 generatedClass);
         if (delegate.isPresent()) {
-            callDelegate(delegate.get());
-            return code;
+            return new Delegated(delegate.get());
         }
-
         detectSelfReferencingType();
         if (type.getKind().isPrimitive()) {
-            PrimitiveType pt = (PrimitiveType) type;
-            if (List.of(TypeKind.FLOAT, TypeKind.DOUBLE).contains(pt.getKind())
-                    && features().onlySupportsFiniteNumbers()) {
-                TypeMirror boxedType = ctx.types.boxedClass(pt).asType();
-                beginControlFlow("if ($T.isFinite($C))", boxedType, rhs);
-                writePrimitive(type);
-                nextControlFlow("else");
-                RHS asString = new RHS(e(ctx.commonTypes.string, "$T.toString($C)", boxedType, rhs), false);
-                nest(ctx.commonTypes.string, lhs, pvn, asString, config.propagateTo(PropagationKind.SUBSTITUTE))
-                        .build();
-                endControlFlow();
-            } else {
-                writePrimitive(type);
-            }
-        } else {
-            writeNullable();
+            return new Primitive((PrimitiveType) type);
         }
-        return code;
+        Optional<Function<Expr, Expr>> converter = ctx.converters
+                .findOutputConverter(type, prototype, config, generatedClass)
+                .or(() -> ctx.converters.findJsonValueMethod(type, __ -> true).map(m -> m::call));
+        if (converter.isPresent()) {
+            return new Converted(converter.get());
+        }
+        if (ctx.commonTypes.isBoxed(type)) {
+            return new Boxed(ctx.types.unboxedType(type));
+        }
+        if (ctx.commonTypes.isString(type) || ctx.commonTypes.isArrayOf(type, TypeKind.CHAR)) {
+            return new Text(ctx.commonTypes.isString(type) ? StringKind.STRING : StringKind.CHAR_ARRAY);
+        }
+        if (ctx.commonTypes.isEnum(type)) {
+            return new EnumValue();
+        }
+        if (ctx.commonTypes.isArrayOf(type, TypeKind.BYTE)) {
+            return new Binary(BinaryKind.BYTE_ARRAY);
+        }
+        if (ctx.commonTypes.isIterableOrArray(type)) {
+            TypeMirror componentType = type.getKind() == TypeKind.ARRAY
+                    ? ((ArrayType) type).getComponentType()
+                    : ctx.generics
+                            .recordTypeBindingsFor((DeclaredType) type, ctx.commonTypes.elem(Iterable.class))
+                            .values()
+                            .iterator()
+                            .next();
+            return new IterableValue(componentType);
+        }
+        if (ctx.commonTypes.isErasureAssignableTo(type, Map.class)) {
+            TypeMirror[] typeBindings = ctx.generics
+                    .recordTypeBindingsFor((DeclaredType) type, ctx.commonTypes.elem(Map.class))
+                    .values()
+                    .toArray(TypeMirror[]::new);
+            return new MapValue(typeBindings[0], typeBindings[1]);
+        }
+        if (type.getKind() == TypeKind.TYPEVAR) {
+            throw new ContextedRuntimeException("Missing serializer for type variable " + type);
+        }
+        if (!(type instanceof DeclaredType declaredType)) {
+            throw new ContextedRuntimeException("I don't know what to do with this type: " + type);
+        }
+        return new ObjectAsMap(declaredType);
+    }
+
+    private void writePotentiallyNonFinitePrimitive(Primitive p) {
+        if (List.of(TypeKind.FLOAT, TypeKind.DOUBLE).contains(p.pt.getKind())
+                && features().onlySupportsFiniteNumbers()) {
+            TypeMirror boxedType = ctx.types.boxedClass(p.pt).asType();
+            beginControlFlow("if ($T.isFinite($C))", boxedType, rhs);
+            writePrimitive(p.pt);
+            nextControlFlow("else");
+            RHS asString = new RHS(e(ctx.commonTypes.string, "$T.toString($C)", boxedType, rhs), false);
+            nest(ctx.commonTypes.string, lhs, pvn, asString, config.propagateTo(PropagationKind.SUBSTITUTE))
+                    .build();
+            endControlFlow();
+        } else {
+            writePrimitive(p.pt);
+        }
     }
 
     /**
      * Writes non-primitive types. This is a good method to override if you want to add specializations for some types
      * that work with null values.
      */
-    protected void writeNullable() {
+    protected void writeNullable(WrittenType wt) {
         if (rhs.isNullable()) {
             if (rhs.isQuick()) {
                 beginControlFlow("if ($C != null)", rhs);
             } else {
                 RHS nest = new RHS(createVariable(rhs.type(), pvn), true);
                 addStatement("$T $C = $C", type, nest, rhs);
-                nest(type, lhs, "nullChecked", nest, config).writeNullable();
+                nest(type, lhs, "nullChecked", nest, config).writeNullable(wt);
                 return;
             }
         }
 
-        writeNullCheckedObject();
+        writeNullCheckedObject(wt);
 
         if (rhs.isNullable()) {
             nextControlFlow("else");
@@ -120,58 +181,34 @@ public abstract class AbstractWriterGenerator<SELF extends AbstractWriterGenerat
      * Writes non-primitive types that are known to be non-null. This is a good method to override if you want to add
      * specializations for some types that require a dedicated null check.
      */
-    protected void writeNullCheckedObject() {
-
-        Optional<Expr> converter = ctx.converters
-                .findOutputConverter(rhs, prototype, config, generatedClass)
-                .or(() -> ctx.converters.findJsonValueMethod(rhs));
-        if (converter.isPresent()) {
-            Expr converted = converter.get();
-            RHS newValue = new RHS(createVariable(converted.type(), "converted"), true);
-            addStatement(c("$T $C = $C", converted.type(), newValue, converted));
-            nest(converted.type(), lhs, pvn, newValue, config.propagateTo(PropagationKind.SUBSTITUTE))
+    protected void writeNullCheckedObject(WrittenType wt) {
+        if (wt instanceof Converted converted) {
+            Expr convertedValue = converted.converter().apply(rhs);
+            RHS newValue = new RHS(createVariable(convertedValue.type(), "converted"), true);
+            addStatement(c("$T $C = $C", convertedValue.type(), newValue, convertedValue));
+            nest(convertedValue.type(), lhs, pvn, newValue, config.propagateTo(PropagationKind.SUBSTITUTE))
                     .build();
-        } else if (ctx.commonTypes.isBoxed(type)) {
-            nest(ctx.types.unboxedType(type), lhs, pvn, rhs, config.propagateTo(PropagationKind.SUBSTITUTE))
+        } else if (wt instanceof Boxed boxed) {
+            nest(boxed.unboxed(), lhs, pvn, rhs, config.propagateTo(PropagationKind.SUBSTITUTE))
                     .build();
-        } else if (ctx.commonTypes.isString(type) || ctx.commonTypes.isArrayOf(type, TypeKind.CHAR)) {
-            writeString(ctx.commonTypes.isString(type) ? StringKind.STRING : StringKind.CHAR_ARRAY);
-        } else if (ctx.commonTypes.isEnum(type)) {
+        } else if (wt instanceof Text text) {
+            writeString(text.kind());
+        } else if (wt instanceof EnumValue) {
             writeEnum();
-        } else if (ctx.commonTypes.isArrayOf(type, TypeKind.BYTE)) {
-            writeBinary(BinaryKind.BYTE_ARRAY);
-        } else if (ctx.commonTypes.isIterableOrArray(type)) {
-            writeIterable();
-        } else if (ctx.commonTypes.isErasureAssignableTo(type, Map.class)) {
-            writeMap();
-        } else if (type.getKind() == TypeKind.TYPEVAR) {
-            throw new ContextedRuntimeException("Missing serializer for type variable " + type);
+        } else if (wt instanceof Binary binary) {
+            writeBinary(binary.kind());
+        } else if (wt instanceof IterableValue iterable) {
+            writeIterable(iterable.componentType());
+        } else if (wt instanceof MapValue map) {
+            writeMap(map.keyType(), map.valueType());
+        } else if (wt instanceof ObjectAsMap object) {
+            writeObjectAsMap(object.declaredType());
         } else {
-            Optional<Setup> referenceSetup = ctx.references.resolveSetup(config, contextParameter());
-            if (referenceSetup.isPresent()) {
-                Setup setup = referenceSetup.get();
-                TypeMirror idType = setup.finalIdType(type, ctx);
-                RHS idVar = new RHS(createVariable(idType, "id"), false);
-                addStatement("$T $C = $C", idType, idVar, setup.previouslyWritten(rhs));
-                beginControlFlow("if ($C != null)", idVar);
-                nest(idType, lhs, "id", idVar, config.propagateTo(PropagationKind.PROPERTY))
-                        .build();
-                nextControlFlow("else");
-            }
-            writeObjectAsMap();
-            referenceSetup.ifPresent(__ -> endControlFlow());
+            throw Exceptions.unexpected();
         }
     }
 
-    protected void writeIterable() {
-        TypeMirror componentType = type.getKind() == TypeKind.ARRAY
-                ? ((ArrayType) type).getComponentType()
-                : ctx.generics
-                        .recordTypeBindingsFor((DeclaredType) type, ctx.commonTypes.elem(Iterable.class))
-                        .values()
-                        .iterator()
-                        .next();
-
+    protected void writeIterable(TypeMirror componentType) {
         RHS elemVar = new RHS(createVariable(componentType, "item"), true);
         SELF nested =
                 nest(componentType, new LHS.Array(), "item", elemVar, config.propagateTo(PropagationKind.PROPERTY));
@@ -202,14 +239,7 @@ public abstract class AbstractWriterGenerator<SELF extends AbstractWriterGenerat
         }
     }
 
-    private void writeMap() {
-        TypeMirror[] typeBindings = ctx.generics
-                .recordTypeBindingsFor((DeclaredType) type, ctx.commonTypes.elem(Map.class))
-                .values()
-                .toArray(TypeMirror[]::new);
-        TypeMirror keyType = typeBindings[0];
-        TypeMirror valueType = typeBindings[1];
-
+    private void writeMap(TypeMirror keyType, TypeMirror valueType) {
         TypedVariable entry = createVariable(null, "entry");
 
         RHS value = new RHS(entry.call(valueType, "getValue"), true);
@@ -223,11 +253,19 @@ public abstract class AbstractWriterGenerator<SELF extends AbstractWriterGenerat
         });
     }
 
-    protected void writeObjectAsMap() {
-        if (!(type instanceof DeclaredType dt)) {
-            throw new ContextedRuntimeException("I don't know what to do with this type: " + type);
+    protected void writeObjectAsMap(DeclaredType declaredType) {
+        Optional<Setup> referenceSetup = ctx.references.resolveSetup(config, contextParameter());
+        if (referenceSetup.isPresent()) {
+            Setup setup = referenceSetup.get();
+            TypeMirror idType = setup.finalIdType(type, ctx);
+            RHS idVar = new RHS(createVariable(idType, "id"), false);
+            addStatement("$T $C = $C", idType, idVar, setup.previouslyWritten(rhs));
+            beginControlFlow("if ($C != null)", idVar);
+            nest(idType, lhs, "id", idVar, config.propagateTo(PropagationKind.PROPERTY))
+                    .build();
+            nextControlFlow("else");
         }
-        TypeElement typeElement = (TypeElement) dt.asElement();
+        TypeElement typeElement = (TypeElement) declaredType.asElement();
         Polymorphism.of(typeElement, ctx)
                 .ifPresentOrElse(
                         this::writePolymorphicObject,
@@ -236,6 +274,7 @@ public abstract class AbstractWriterGenerator<SELF extends AbstractWriterGenerat
                             writeObjectPropertiesAsFields();
                             code.add("\n");
                         }));
+        referenceSetup.ifPresent(__ -> endControlFlow());
     }
 
     private void inGuardedObject(Runnable r) {
@@ -389,7 +428,7 @@ public abstract class AbstractWriterGenerator<SELF extends AbstractWriterGenerat
     protected abstract void writeBinary(BinaryKind binaryKind);
 
     /** @param typeMirror if non-null, the type is a primitive wrapper and this is the primitive type */
-    public abstract void writePrimitive(TypeMirror typeMirror);
+    public abstract void writePrimitive(PrimitiveType typeMirror);
 
     protected abstract void startArray();
 
@@ -442,5 +481,30 @@ public abstract class AbstractWriterGenerator<SELF extends AbstractWriterGenerat
         }
     }
 
-    record Features(boolean onlySupportsFiniteNumbers) {}
+    protected record Features(boolean onlySupportsFiniteNumbers) {}
+
+    protected sealed interface WrittenType {
+        record Delegated(Delegatee delegatee) implements WrittenType {}
+
+        record Primitive(PrimitiveType pt) implements WrittenType {}
+
+        /** The value is converted before writing. The converter is applied to the current {@link #rhs}. */
+        record Converted(Function<Expr, Expr> converter) implements WrittenType {}
+
+        /** A boxed primitive that is written as its {@code unboxed} primitive type. */
+        record Boxed(PrimitiveType unboxed) implements WrittenType {}
+
+        /** A {@link String} or {@code char[]} written as a string. */
+        record Text(StringKind kind) implements WrittenType {}
+
+        record EnumValue() implements WrittenType {}
+
+        record Binary(BinaryKind kind) implements WrittenType {}
+
+        record IterableValue(TypeMirror componentType) implements WrittenType {}
+
+        record MapValue(TypeMirror keyType, TypeMirror valueType) implements WrittenType {}
+
+        record ObjectAsMap(DeclaredType declaredType) implements WrittenType {}
+    }
 }

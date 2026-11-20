@@ -4,6 +4,7 @@ import static org.tillerino.jagger.processor.util.Code.c;
 
 import jakarta.annotation.Nonnull;
 import java.util.List;
+import javax.lang.model.type.PrimitiveType;
 import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
 import org.tillerino.jagger.processor.config.AnyConfig;
@@ -55,7 +56,7 @@ public class GsonJsonWriterWriterGenerator extends AbstractWriterGenerator<GsonJ
     }
 
     @Override
-    public void writePrimitive(TypeMirror typeMirror) {
+    public void writePrimitive(PrimitiveType typeMirror) {
         addMemberNameIfNeeded();
         TypeKind kind = typeMirror.getKind();
         if (kind == TypeKind.CHAR) {
