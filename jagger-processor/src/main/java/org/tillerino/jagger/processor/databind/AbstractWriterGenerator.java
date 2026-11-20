@@ -274,6 +274,8 @@ public abstract class AbstractWriterGenerator<SELF extends AbstractWriterGenerat
         WrittenType keyWrittenType = nest(keyType, new Return(), "key", new RHS(rawKeyExpr, true), mapKeyConfig).wt;
         if (keyWrittenType instanceof Text text && text.kind() == StringKind.STRING) {
             return new Member(rawKeyExpr);
+        } else if (keyWrittenType instanceof Boxed) {
+            return new Member(e(ctx.commonTypes.string, "$T.valueOf($C)", String.class, rawKeyExpr));
         } else if (keyWrittenType instanceof Converted converted
                 && ctx.commonTypes.isString(converted.convertedType())) {
             return new Member(converted.converter().apply(rawKeyExpr));
