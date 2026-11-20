@@ -134,5 +134,6 @@ release:
     # format so that we fail earlier if there are issues (release plugin will notice dirty working directory)
     just format
     # don't use mvnd here. no need to overoptimize
-    mvn release:prepare -DtagNameFormat=@{project.version} '-Darguments=-Dmaven.build.cache.skipCache=true'
+    # maven can change formatting of poms, so we apply spotless again
+    mvn release:prepare -DtagNameFormat=@{project.version} '-DpreparationGoals=clean spotless:apply verify' '-Darguments=-Dmaven.build.cache.skipCache=true'
     mvn release:perform -P release '-Darguments=-Dmaven.build.cache.skipCache=true --projects jagger-processor --also-make'
