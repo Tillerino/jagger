@@ -443,7 +443,7 @@ public abstract class AbstractWriterGenerator<SELF extends AbstractWriterGenerat
 
     private void writeEnum() {
         RHS representation = new RHS(createVariable(ctx.commonTypes.string, pvn), false);
-        Code reprCode = Enums.serializationCode(ctx, generatedClass, type, rhs);
+        Code reprCode = Enums.serializationCode(generatedClass, type, rhs);
         addStatement("$T $C = $C", ctx.commonTypes.string, representation, reprCode);
         nest(ctx.commonTypes.string, lhs, "string", representation, config.propagateTo(PropagationKind.SUBSTITUTE))
                 .build();

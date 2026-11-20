@@ -32,14 +32,7 @@ public class Enums {
         this.ctx = ctx;
     }
 
-    public static Code serializationCode(
-            JaggerContext ctx, GeneratedClass generatedClass, TypeMirror enumType, Expr enumValue) {
-        Optional<InstantiatedMethod> jsonValueMethod =
-                ctx.converters.findJsonValueMethod(enumType, ctx.commonTypes::isString);
-        if (jsonValueMethod.isPresent()) {
-            return jsonValueMethod.get().call(enumValue);
-        }
-
+    public static Code serializationCode(GeneratedClass generatedClass, TypeMirror enumType, Expr enumValue) {
         EnumValuesField enumField = generatedClass.getOrCreateEnumField(enumType);
         if (!enumField.explicitMappings().isEmpty()) {
             return c("$L.get($C)", enumField.serializedFormField(), enumValue);
