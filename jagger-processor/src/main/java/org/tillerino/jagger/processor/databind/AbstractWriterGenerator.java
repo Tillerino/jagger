@@ -46,11 +46,14 @@ public abstract class AbstractWriterGenerator<SELF extends AbstractWriterGenerat
 
     protected final RHS rhs;
 
+    protected final WrittenType wt;
+
     protected AbstractWriterGenerator(
             SELF parent, TypeMirror type, String potentialVariableName, RHS rhs, LHS lhs, AnyConfig config) {
         super(parent, type, potentialVariableName, config);
         this.lhs = lhs;
         this.rhs = rhs;
+        wt = detect();
     }
 
     protected AbstractWriterGenerator(CodeGeneratorContext generatorContext) {
@@ -61,19 +64,7 @@ public abstract class AbstractWriterGenerator<SELF extends AbstractWriterGenerat
                         .get(0));
         this.rhs = new RHS(prototype.method().parameterOfType(type), true);
         this.lhs = new LHS.Return();
-    }
-
-    public CodeBlock.Builder build() {
-        WrittenType wt = detect();
-
-        if (wt instanceof Delegated d) {
-            callDelegate(d.delegatee());
-        } else if (wt instanceof Primitive p) {
-            writePotentiallyNonFinitePrimitive(p);
-        } else {
-            writeNullable(wt);
-        }
-        return code;
+        wt = detect();
     }
 
     private WrittenType detect() {
@@ -134,6 +125,17 @@ public abstract class AbstractWriterGenerator<SELF extends AbstractWriterGenerat
             throw new ContextedRuntimeException("I don't know what to do with this type: " + type);
         }
         return new ObjectAsMap(declaredType);
+    }
+
+    public CodeBlock.Builder build() {
+        if (wt instanceof Delegated d) {
+            callDelegate(d.delegatee());
+        } else if (wt instanceof Primitive p) {
+            writePotentiallyNonFinitePrimitive(p);
+        } else {
+            writeNullable(wt);
+        }
+        return code;
     }
 
     private void writePotentiallyNonFinitePrimitive(Primitive p) {
