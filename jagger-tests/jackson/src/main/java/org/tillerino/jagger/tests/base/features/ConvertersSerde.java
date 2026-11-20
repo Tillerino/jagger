@@ -5,13 +5,12 @@ import com.fasterxml.jackson.core.JsonParser;
 import org.tillerino.jagger.annotations.JsonConfig;
 import org.tillerino.jagger.annotations.JsonInput;
 import org.tillerino.jagger.annotations.JsonOutput;
-import org.tillerino.jagger.converters.JavaTimeInputConverters;
-import org.tillerino.jagger.converters.OptionalInputConverters;
-import org.tillerino.jagger.converters.OptionalOutputConverters;
+import org.tillerino.jagger.converters.AllInputConverters;
+import org.tillerino.jagger.converters.AllOutputConverters;
 import org.tillerino.jagger.tests.model.features.ConvertersModel.OffsetDateTimeRecord;
 import org.tillerino.jagger.tests.model.features.ConvertersModel.OptionalComponentsRecord;
 
-@JsonConfig(uses = {JavaTimeInputConverters.class, OptionalInputConverters.class, OptionalOutputConverters.class})
+@JsonConfig(uses = {AllInputConverters.class, AllOutputConverters.class})
 interface ConvertersSerde {
     @JsonOutput
     void writeOffsetDateTimeRecord(OffsetDateTimeRecord record, JsonGenerator generator) throws Exception;

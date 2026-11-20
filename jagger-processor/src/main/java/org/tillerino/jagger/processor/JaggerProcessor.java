@@ -114,7 +114,13 @@ public class JaggerProcessor extends AbstractProcessor {
         // This is the point of this way of processing the annotations: the order of the methods in generated
         // classes is supposed to be identical to the blueprint.
         for (TypeElement type : types) {
-            JaggerBlueprint blueprint = ctx.blueprint(type);
+            JaggerBlueprint blueprint;
+            try {
+                blueprint = ctx.blueprint(type);
+            } catch (Exception e) {
+                logError(e, type);
+                continue;
+            }
             for (ExecutableElement exec : ElementFilter.methodsIn(type.getEnclosedElements())) {
                 try {
                     InstantiatedMethod instantiated =

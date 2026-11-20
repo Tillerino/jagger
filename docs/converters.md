@@ -4,12 +4,16 @@ Converters are static methods annotated with `@JsonOutputConverter` or `@JsonInp
 They are used to convert types that Jagger cannot serialize directly, e.g. `OffsetDateTime`:
 
 ```java
-// ../jagger-core/src/main/java/org/tillerino/jagger/converters/JavaTimeInputConverters.java#L8-L16
+// ../jagger-core/src/main/java/org/tillerino/jagger/converters/JavaTimeOutputConverters.java#L8-L11
 
 @JsonOutputConverter
 public static String offsetDateTimeToString(OffsetDateTime offsetDateTime) {
     return offsetDateTime.toString();
 }
+```
+
+```java
+// ../jagger-core/src/main/java/org/tillerino/jagger/converters/JavaTimeInputConverters.java#L8-L11
 
 @JsonInputConverter
 public static OffsetDateTime stringToOffsetDateTime(String string) {
@@ -24,11 +28,11 @@ The generated code converts the value before writing it and after reading it.
 An `OffsetDateTime` is written as a `String`:
 
 ```java
-// ../jagger-tests/jackson/target/generated-sources/annotations/org/tillerino/jagger/tests/base/features/ConvertersSerdeImpl.java#L35-L45
+// ../jagger-tests/jackson/target/generated-sources/annotations/org/tillerino/jagger/tests/base/features/ConvertersSerdeImpl.java#L36-L46
 
 OffsetDateTime timestamp = record.timestamp();
 if (timestamp != null) {
-  String converted = JavaTimeInputConverters.offsetDateTimeToString(timestamp);
+  String converted = JavaTimeOutputConverters.offsetDateTimeToString(timestamp);
   if (converted != null) {
     generator.writeStringField("timestamp", converted);
   } else {
@@ -42,7 +46,7 @@ if (timestamp != null) {
 and read back with the reverse converter:
 
 ```java
-// ../jagger-tests/jackson/target/generated-sources/annotations/org/tillerino/jagger/tests/base/features/ConvertersSerdeImpl.java#L69-L81
+// ../jagger-tests/jackson/target/generated-sources/annotations/org/tillerino/jagger/tests/base/features/ConvertersSerdeImpl.java#L70-L82
 
 case "timestamp": {
   final String timestampToConvert;
@@ -84,3 +88,15 @@ This specific case has already been implemented for reuse
 in [OptionalInputConverters](../jagger-core/src/main/java/org/tillerino/jagger/converters/OptionalInputConverters.java)
 and [OptionalOutputConverters](../jagger-core/src/main/java/org/tillerino/jagger/converters/OptionalOutputConverters.java).
 See the [converters](../jagger-core/src/main/java/org/tillerino/jagger/converters) package for more premade converters.
+
+Use
+[AllInputConverters](../jagger-core/src/main/java/org/tillerino/jagger/converters/AllInputConverters.java) and
+[AllOutputConverters](../jagger-core/src/main/java/org/tillerino/jagger/converters/AllOutputConverters.java)
+for all premade converters.
+Add them to `@JsonConfig` to enable all of them at once:
+
+```java
+// ../jagger-tests/jackson/src/main/java/org/tillerino/jagger/tests/base/features/ConvertersSerde.java#L13-L13
+
+@JsonConfig(uses = {AllInputConverters.class, AllOutputConverters.class})
+```

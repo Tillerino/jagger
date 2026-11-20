@@ -8,6 +8,8 @@ import org.tillerino.jagger.annotations.JsonInput;
 import org.tillerino.jagger.annotations.JsonOutput;
 import org.tillerino.jagger.api.DeserializationContext;
 import org.tillerino.jagger.api.SerializationContext;
+import org.tillerino.jagger.converters.AllInputConverters;
+import org.tillerino.jagger.converters.AllOutputConverters;
 import org.tillerino.jagger.converters.UuidInputConverters;
 import org.tillerino.jagger.converters.UuidOutputConverters;
 import org.tillerino.jagger.tests.base.features.DelegationSerde.BoxedScalarsSerde;
@@ -15,7 +17,7 @@ import org.tillerino.jagger.tests.model.features.ReferencesModel.*;
 import org.tillerino.jagger.tests.model.features.ReferencesModel.IntSequenceParent.IntSequenceChild;
 import org.tillerino.jagger.tests.model.features.ReferencesModel.UuidParent.UuidChild;
 
-@JsonConfig(uses = {UuidInputConverters.class, UuidOutputConverters.class})
+@JsonConfig(uses = {AllInputConverters.class, AllOutputConverters.class})
 public interface ReferencesSerde {
     @JsonOutput
     void writeIntSequenceIdRecord(IntSequenceIdRecord hasIntId, JsonGenerator gen, SerializationContext ctx)
@@ -123,7 +125,7 @@ public interface ReferencesSerde {
                 throws Exception;
     }
 
-    @JsonConfig(uses = {UuidInputConverters.class, UuidOutputConverters.class})
+    @JsonConfig(uses = {AllInputConverters.class, AllOutputConverters.class})
     interface PolyWithDelegatorReferencesSerde {
         @JsonOutput
         void writeParent(UuidParent parent, JsonGenerator gen, SerializationContext ctx) throws Exception;
