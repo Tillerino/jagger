@@ -46,4 +46,22 @@ public interface DefaultValuesSerde {
             return new Mixed(null, 0, null, null, null, null);
         }
     }
+
+    class SomeDynamicDefaultValues {
+        @JsonInputDefaultValue
+        public String defaultString() {
+            return "dynamic";
+        }
+
+        @JsonInputDefaultValue
+        public int defaultInt() {
+            return 7;
+        }
+    }
+
+    @JsonConfig(uses = SomeDynamicDefaultValues.class)
+    interface DynamicDefaultValuesSerde {
+        @JsonInput
+        Mixed read(JsonParser parser) throws Exception;
+    }
 }

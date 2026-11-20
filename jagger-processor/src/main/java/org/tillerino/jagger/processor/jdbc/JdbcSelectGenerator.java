@@ -266,7 +266,7 @@ public class JdbcSelectGenerator extends AbstractJdbcGenerator<JdbcSelectGenerat
                         "$T $C = $C",
                         param.type(),
                         var,
-                        ctx.defaultValues.getDefaultValue(prototype, param.type(), propertyConfig));
+                        ctx.defaultValues.getDefaultValue(prototype, param.type(), propertyConfig, generatedClass));
                 continue;
             }
 

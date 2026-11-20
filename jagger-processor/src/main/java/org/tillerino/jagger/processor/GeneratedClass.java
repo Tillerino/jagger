@@ -11,8 +11,12 @@ import java.util.*;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
 import javax.annotation.processing.Filer;
+import javax.lang.model.element.ExecutableElement;
 import javax.lang.model.element.Modifier;
+import javax.lang.model.element.TypeElement;
+import javax.lang.model.type.DeclaredType;
 import javax.lang.model.type.TypeMirror;
+import javax.lang.model.util.ElementFilter;
 import javax.tools.JavaFileObject;
 import org.apache.commons.lang3.StringUtils;
 import org.tillerino.jagger.processor.config.AnyConfig;
@@ -125,9 +129,7 @@ public class GeneratedClass {
                 hasNoArgConstructor = false;
                 return true;
             }
-            GeneratedClass delegate = others.get(delegateeField.blueprint);
-            // this explicitly does not recurse, see comment at call site
-            if (delegate != null && !delegate.hasNoArgConstructor) {
+            if (!delegateeField.hasInitializer(others)) {
                 hasNoArgConstructor = false;
                 return true;
             }
@@ -156,9 +158,10 @@ public class GeneratedClass {
 
     record DelegateeField(String name, JaggerBlueprint blueprint, boolean implAsType, PotentialProviderCall access) {
         private void writeField(TypeSpec.Builder classBuilder, Map<JaggerBlueprint, GeneratedClass> others) {
+            GeneratedClass other = others.get(blueprint);
             TopLevelClassName impl = this.blueprint().className.impl();
             ClassName implName = ClassName.get(impl.packageName(), impl.className());
-            TypeName fieldType = implAsType
+            TypeName fieldType = implAsType && other != null
                     ? implName
                     : TypeName.get(this.blueprint().typeElement.asType());
             if (access.providerCall) {
@@ -166,13 +169,36 @@ public class GeneratedClass {
             }
             Builder builder = FieldSpec.builder(fieldType, this.name()).addModifiers(Modifier.FINAL);
 
-            GeneratedClass other = others.get(blueprint);
-            if (other.hasNoArgConstructor) {
-                builder.initializer("new $T()", implName);
+            if (other != null) {
+                if (other.hasNoArgConstructor) {
+                    builder.initializer("new $T()", implName);
+                }
+            } else if (canInstantiate(blueprint.typeElement.asType())) {
+                builder.initializer("new $T()", TypeName.get(blueprint.typeElement.asType()));
             }
 
             classBuilder.addField(builder.build());
         }
+
+        private boolean hasInitializer(Map<JaggerBlueprint, GeneratedClass> others) {
+            GeneratedClass other = others.get(blueprint);
+            return other != null ? other.hasNoArgConstructor : canInstantiate(blueprint.typeElement.asType());
+        }
+    }
+
+    private static boolean canInstantiate(TypeMirror type) {
+        if (!(type instanceof DeclaredType declaredType)) {
+            return false;
+        }
+        TypeElement typeElement = (TypeElement) declaredType.asElement();
+        if (typeElement.getKind().isInterface() || typeElement.getModifiers().contains(Modifier.ABSTRACT)) {
+            return false;
+        }
+        List<ExecutableElement> constructors = ElementFilter.constructorsIn(typeElement.getEnclosedElements());
+        return constructors.isEmpty()
+                || constructors.stream()
+                        .anyMatch(c ->
+                                c.getParameters().isEmpty() && !c.getModifiers().contains(Modifier.PRIVATE));
     }
 
     public record RequiredField(String name, TypeMirror type) {

@@ -1,6 +1,7 @@
 package org.tillerino.jagger.tests.base.features;
 
 import static net.javacrumbs.jsonunit.assertj.JsonAssertions.assertThatJson;
+import static org.tillerino.jagger.tests.CodeAssertions.assertThatImpl;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import java.time.OffsetDateTime;
@@ -12,12 +13,38 @@ import org.tillerino.jagger.tests.ReferenceTest;
 import org.tillerino.jagger.tests.SerdeUtil;
 import org.tillerino.jagger.tests.TestSettings;
 import org.tillerino.jagger.tests.TestSettingsBase;
+import org.tillerino.jagger.tests.base.features.ConvertersSerde.AbstractConverterSerde;
+import org.tillerino.jagger.tests.base.features.ConvertersSerde.NonStaticConverterSerde;
+import org.tillerino.jagger.tests.base.features.ConvertersSerde.ParameterConverterSerde;
+import org.tillerino.jagger.tests.base.features.ConvertersSerde.SelfConverterSerde;
+import org.tillerino.jagger.tests.base.features.ConvertersSerde.UuidConverter;
 import org.tillerino.jagger.tests.function.Zip;
 import org.tillerino.jagger.tests.model.features.ConvertersModel.OffsetDateTimeRecord;
 import org.tillerino.jagger.tests.model.features.ConvertersModel.OptionalComponentsRecord;
+import org.tillerino.jagger.tests.model.features.ConvertersModel.UuidRecord;
 
 class ConvertersTest extends ReferenceTest {
     ConvertersSerde serde = SerdeUtil.impl(ConvertersSerde.class);
+
+    NonStaticConverterSerde nonStaticConverterSerde = SerdeUtil.impl(NonStaticConverterSerde.class);
+
+    ParameterConverterSerde parameterConverterSerde = SerdeUtil.impl(ParameterConverterSerde.class);
+
+    SelfConverterSerde selfConverterSerde = SerdeUtil.impl(SelfConverterSerde.class);
+
+    UuidConverter uuidConverter = new UuidConverter() {
+        @Override
+        public String uuidToString(UUID uuid) {
+            return uuid.toString();
+        }
+
+        @Override
+        public UUID stringToUuid(String string) {
+            return UUID.fromString(string);
+        }
+    };
+
+    AbstractConverterSerde abstractConverterSerde = new ConvertersSerde$AbstractConverterSerdeImpl(uuidConverter);
 
     @Test
     void offsetDateTimeRecordRoundTrips() throws Exception {
@@ -27,6 +54,65 @@ class ConvertersTest extends ReferenceTest {
         assertThatJson(json).isEqualTo("{\"timestamp\":\"2021-01-01T00:00Z\"}");
         Assertions.assertThat(inputUtils.deserialize(json, serde::readOffsetDateTimeRecord))
                 .isEqualTo(instance);
+    }
+
+    @Test
+    void nonStaticConverterRoundTrips() throws Exception {
+        UuidRecord record = new UuidRecord(UUID.fromString("123e4567-e89b-12d3-a456-426614174000"));
+
+        outputUtils.roundTrip(
+                record,
+                nonStaticConverterSerde::writeUuidRecord,
+                nonStaticConverterSerde::readUuidRecord,
+                new TypeReference<>() {});
+
+        assertThatImpl(NonStaticConverterSerde.class).method("writeUuidRecord").bodyContains("uuidToString");
+        assertThatImpl(NonStaticConverterSerde.class).method("readUuidRecord").bodyContains("stringToUuid");
+    }
+
+    @Test
+    void abstractConverterIsPassedToTheClass() throws Exception {
+        UuidRecord record = new UuidRecord(UUID.fromString("123e4567-e89b-12d3-a456-426614174000"));
+
+        outputUtils.roundTrip(
+                record,
+                abstractConverterSerde::writeUuidRecord,
+                abstractConverterSerde::readUuidRecord,
+                new TypeReference<>() {});
+
+        assertThatImpl(AbstractConverterSerde.class).method("writeUuidRecord").bodyContains("uuidToString");
+        assertThatImpl(AbstractConverterSerde.class).method("readUuidRecord").bodyContains("stringToUuid");
+        assertThatImpl(AbstractConverterSerde.class).singleConstructor().bodyContains("uuidConverter$0$delegate");
+    }
+
+    @Test
+    void converterPassedToThePrototypeIsUsedDirectly() throws Exception {
+        UuidRecord record = new UuidRecord(UUID.fromString("123e4567-e89b-12d3-a456-426614174000"));
+
+        outputUtils.roundTrip2(
+                record,
+                uuidConverter,
+                parameterConverterSerde::writeUuidRecord,
+                parameterConverterSerde::readUuidRecord,
+                new TypeReference<>() {});
+
+        assertThatImpl(ParameterConverterSerde.class).method("writeUuidRecord").bodyContains("converter.uuidToString");
+        assertThatImpl(ParameterConverterSerde.class).method("readUuidRecord").bodyContains("converter.stringToUuid");
+        assertThatImpl(ParameterConverterSerde.class).hasNoConstructor();
+    }
+
+    @Test
+    void converterOnThePrototypeItselfIsCalledOnThis() throws Exception {
+        UuidRecord record = new UuidRecord(UUID.fromString("123e4567-e89b-12d3-a456-426614174000"));
+
+        outputUtils.roundTrip(
+                record,
+                selfConverterSerde::writeUuidRecord,
+                selfConverterSerde::readUuidRecord,
+                new TypeReference<>() {});
+
+        assertThatImpl(SelfConverterSerde.class).method("writeUuidRecord").bodyContains("this.uuidToString");
+        assertThatImpl(SelfConverterSerde.class).method("readUuidRecord").bodyContains("this.stringToUuid");
     }
 
     @Test

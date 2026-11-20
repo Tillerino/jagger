@@ -33,6 +33,7 @@ import org.tillerino.jagger.processor.config.ConfigProperty.LocationKind;
 import org.tillerino.jagger.processor.config.ConfigProperty.PropagationKind;
 import org.tillerino.jagger.processor.ext.PrototypeKind.CodeGeneratorContext;
 import org.tillerino.jagger.processor.features.*;
+import org.tillerino.jagger.processor.features.Converters.InputConverter;
 import org.tillerino.jagger.processor.features.Creators.Creator;
 import org.tillerino.jagger.processor.features.Delegation.Delegatee;
 import org.tillerino.jagger.processor.features.Generics.TypeVar;
@@ -105,19 +106,18 @@ public abstract class AbstractReaderGenerator<SELF extends AbstractReaderGenerat
             });
             return code;
         }
-        Optional<InstantiatedMethod> converter = ctx.converters.findInputConverter(prototype.blueprint(), type, config);
+        Optional<InputConverter> converter = ctx.converters.findInputConverter(prototype, type, config, generatedClass);
         if (converter.isPresent()) {
             lastBranch(branch).withBody(() -> {
-                InstantiatedMethod method = converter.get();
+                InputConverter inputConverter = converter.get();
 
-                LHS.Variable replacementVar =
-                        declareLhsVariable(method.parameters().get(0).type(), pvn + "ToConvert");
+                LHS.Variable replacementVar = declareLhsVariable(inputConverter.typeToConvert(), pvn + "ToConvert");
 
                 AnyConfig nestedConfig = config.propagateTo(PropagationKind.SUBSTITUTE);
                 SELF nested = nest(pvn, replacementVar, nestedConfig, exhaust, alreadyOpen);
 
-                runWithContext("converter", converter.get(), () -> nested.build(IF, nullable));
-                addStatement(lhs.assign(method.callStatic(List.of(replacementVar))));
+                runWithContext("converter", inputConverter, () -> nested.build(IF, nullable));
+                addStatement(lhs.assign(inputConverter.converter().apply(replacementVar)));
             });
 
             return code;
@@ -581,7 +581,8 @@ public abstract class AbstractReaderGenerator<SELF extends AbstractReaderGenerat
             String propertyName = resolvePropertyName(propertyConfig, parameter.name());
 
             LHS.Variable propVar = createLhsVariable(parameter.type(), parameter.name());
-            Code defaultValue = ctx.defaultValues.getDefaultValue(prototype, parameter.type(), propertyConfig);
+            Code defaultValue =
+                    ctx.defaultValues.getDefaultValue(prototype, parameter.type(), propertyConfig, generatedClass);
             addStatement(c("$T $C = $C", parameter.type(), propVar, defaultValue));
 
             SELF nest = nest(

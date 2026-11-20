@@ -1,6 +1,6 @@
 # Converters
 
-Converters are static methods annotated with `@JsonOutputConverter` or `@JsonInputConverter`.
+Converters are methods annotated with `@JsonOutputConverter` or `@JsonInputConverter`.
 They are used to convert types that Jagger cannot serialize directly, e.g. `OffsetDateTime`:
 
 ```java
@@ -23,6 +23,11 @@ public static OffsetDateTime stringToOffsetDateTime(String string) {
 
 Converter methods can be either located in the same class as the `@JsonInput` or `@JsonOutput` method
 or in a separate class and referenced with the `@JsonConfig` `uses` value.
+
+Converters can be static or non-static. Non-static converters declared in the same class are called on the generated
+instance. For converters in a used class, Jagger instantiates the class if it is concrete and has a no-arg constructor,
+or passes it to the generated constructor otherwise. If the converter type is passed as a parameter to the prototype,
+that parameter is used directly.
 
 The generated code converts the value before writing it and after reading it.
 An `OffsetDateTime` is written as a `String`:
@@ -96,7 +101,7 @@ for all premade converters.
 Add them to `@JsonConfig` to enable all of them at once:
 
 ```java
-// ../jagger-tests/jackson/src/main/java/org/tillerino/jagger/tests/base/features/ConvertersSerde.java#L13-L13
+// ../jagger-tests/jackson/src/main/java/org/tillerino/jagger/tests/base/features/ConvertersSerde.java#L17-L17
 
 @JsonConfig(uses = {AllInputConverters.class, AllOutputConverters.class})
 ```

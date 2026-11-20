@@ -5,9 +5,12 @@ import java.util.Optional;
 import java.util.OptionalDouble;
 import java.util.OptionalInt;
 import java.util.OptionalLong;
+import java.util.UUID;
 
 public interface ConvertersModel {
     record OffsetDateTimeRecord(OffsetDateTime timestamp) {}
+
+    record UuidRecord(UUID value) {}
 
     record OptionalComponentsRecord(
             Optional<String> optionalString,

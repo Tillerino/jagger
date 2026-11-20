@@ -112,20 +112,29 @@ public class Delegation {
         if (!(prototype.kind() instanceof TemplatablePrototypeKind)) {
             return Optional.empty();
         }
-        for (InstantiatedVariable parameter : prototype.parameters()) {
-            for (InstantiatedMethod method :
-                    ctx.generics.instantiateMethods(parameter.type(), LocationKind.PROTOTYPE)) {
-                Optional<TemplatablePrototypeKind> prototypeKind = ctx.detectPrototype(method)
-                        .filter(kind -> kind instanceof TemplatablePrototypeKind)
-                        .map(TemplatablePrototypeKind.class::cast)
-                        .filter(kind -> kind.matches(
-                                target, new MatchingOptions(ctx, new LinkedHashMap<>(), method.freeTypeVars(), false)));
-                if (prototypeKind.isPresent()) {
-                    return Optional.of(new Delegatee(parameter, method));
-                }
+        for (ParameterMethod parameterMethod : methodsInParameters(prototype).toList()) {
+            Optional<TemplatablePrototypeKind> prototypeKind = ctx.detectPrototype(parameterMethod.method())
+                    .filter(kind -> kind instanceof TemplatablePrototypeKind)
+                    .map(TemplatablePrototypeKind.class::cast)
+                    .filter(kind -> kind.matches(
+                            target,
+                            new MatchingOptions(
+                                    ctx,
+                                    new LinkedHashMap<>(),
+                                    parameterMethod.method().freeTypeVars(),
+                                    false)));
+            if (prototypeKind.isPresent()) {
+                return Optional.of(new Delegatee(parameterMethod.parameter(), parameterMethod.method()));
             }
         }
         return Optional.empty();
+    }
+
+    /** Lists methods that are available through prototype parameters. */
+    public Stream<ParameterMethod> methodsInParameters(JaggerPrototype prototype) {
+        return prototype.parameters().stream()
+                .flatMap(parameter -> ctx.generics.instantiateMethods(parameter.type(), LocationKind.PROTOTYPE).stream()
+                        .map(method -> new ParameterMethod(parameter, method)));
     }
 
     public List<Expr> findArguments(
@@ -189,6 +198,8 @@ public class Delegation {
             return method.callFindingArguments(fieldOrParameter, caller, additionalParameters, generatedClass);
         }
     }
+
+    public record ParameterMethod(InstantiatedVariable parameter, InstantiatedMethod method) {}
 
     public record InstantiatedPrototype(
             JaggerBlueprint blueprint, JaggerPrototype prototype, InstantiatedMethod method) {}
