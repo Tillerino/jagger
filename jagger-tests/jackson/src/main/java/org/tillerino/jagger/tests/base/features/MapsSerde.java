@@ -1,9 +1,12 @@
 package org.tillerino.jagger.tests.base.features;
 
 import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.core.JsonParser;
 import java.util.Map;
 import org.tillerino.jagger.annotations.JsonConfig;
+import org.tillerino.jagger.annotations.JsonInput;
 import org.tillerino.jagger.annotations.JsonOutput;
+import org.tillerino.jagger.converters.AllInputConverters;
 import org.tillerino.jagger.converters.AllOutputConverters;
 import org.tillerino.jagger.tests.Replacement;
 import org.tillerino.jagger.tests.model.AnEnum;
@@ -16,13 +19,19 @@ import org.tillerino.jagger.tests.variants.Variant;
 import org.tillerino.jagger.tests.variants.Variants;
 
 interface MapsSerde {
-    @JsonConfig(uses = AllOutputConverters.class)
+    @JsonConfig(uses = {AllInputConverters.class, AllOutputConverters.class})
     interface Keys {
         @JsonOutput
         void writeOffsetDateTimeMapRecord(OffsetDateTimeMapRecord record, JsonGenerator generator) throws Exception;
 
+        @JsonInput
+        OffsetDateTimeMapRecord readOffsetDateTimeMapRecord(JsonParser parser) throws Exception;
+
         @JsonOutput
         void writeJsonValueMap(Map<JsonValueChild, String> map, JsonGenerator generator) throws Exception;
+
+        @JsonInput
+        Map<JsonValueChild, String> readJsonValueMap(JsonParser parser) throws Exception;
 
         @JsonOutput
         void writeEnumMap(Map<CustomNamedEnum, String> map, JsonGenerator generator) throws Exception;

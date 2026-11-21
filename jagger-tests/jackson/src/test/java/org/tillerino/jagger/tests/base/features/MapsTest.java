@@ -1,5 +1,8 @@
 package org.tillerino.jagger.tests.base.features;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
+import com.fasterxml.jackson.core.type.TypeReference;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.LinkedHashMap;
@@ -29,14 +32,18 @@ class MapsTest extends ReferenceTest {
             map.put(OffsetDateTime.of(2021, 1, 1, 0, 0, 0, 0, ZoneOffset.UTC), "first");
             map.put(OffsetDateTime.of(2020, 12, 31, 23, 59, 59, 0, ZoneOffset.UTC), "second");
             map.put(OffsetDateTime.of(2019, 6, 15, 12, 0, 0, 0, ZoneOffset.UTC), null);
-            outputUtils.assertIsEqualToDatabind(new OffsetDateTimeMapRecord(map), serde::writeOffsetDateTimeMapRecord);
+            OffsetDateTimeMapRecord record = new OffsetDateTimeMapRecord(map);
+            // databind can't read OffsetDateTime map keys without the JavaTimeModule
+            String json = outputUtils.assertIsEqualToDatabind(record, serde::writeOffsetDateTimeMapRecord);
+            assertThat(inputUtils.deserialize(json, serde::readOffsetDateTimeMapRecord))
+                    .isEqualTo(record);
         }
 
         @Test
         void jsonValueMapKey() throws Exception {
             Map<JsonValueChild, String> map = new LinkedHashMap<>();
             map.put(new JsonValueChild(), "value");
-            outputUtils.assertIsEqualToDatabind(map, serde::writeJsonValueMap);
+            outputUtils.roundTrip(map, serde::writeJsonValueMap, serde::readJsonValueMap, new TypeReference<>() {});
         }
 
         @Test

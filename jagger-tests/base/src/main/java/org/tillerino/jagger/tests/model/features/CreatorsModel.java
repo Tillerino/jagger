@@ -233,7 +233,13 @@ public interface CreatorsModel {
             }
         }
 
-        class JsonValueChild implements JsonValueInterface {}
+        @EqualsAndHashCode
+        class JsonValueChild implements JsonValueInterface {
+            @JsonCreator
+            public static JsonValueChild fromStringValue(String value) {
+                return new JsonValueChild();
+            }
+        }
 
         class GenericJsonValueChild implements GenericJsonValueInterface<Integer> {}
     }

@@ -416,18 +416,16 @@ public abstract class AbstractReaderGenerator<SELF extends AbstractReaderGenerat
                     .values()
                     .toArray(TypeMirror[]::new);
             TypeMirror keyType = typeBindings[0];
-            if (!ctx.types.isSameType(keyType, ctx.commonTypes.string)) {
-                throw new ContextedRuntimeException("Only String keys supported for now.");
-            }
             TypeMirror valueType = typeBindings[1];
             TypeMirror mapType = determineCollectionType();
             Code mapVar = instantiateContainer(mapType);
             iterateOverFields();
             {
                 beginControlFlow(IF, memberCaseCondition());
-                TypedVariable keyVar = createVariable(keyType, "key");
-                readMemberNameInIteration(keyVar.name());
-                LHS.Map lhsValue = new LHS.Map(valueType, mapVar, keyVar);
+                TypedVariable keyString = createVariable(ctx.commonTypes.string, "key");
+                readMemberNameInIteration(keyString.name());
+                Code key = Exceptions.getWithContext("key", keyType, () -> getMapKey(keyType, keyString));
+                LHS.Map lhsValue = new LHS.Map(valueType, mapVar, key);
                 SELF nested =
                         nest("value", lhsValue, config.propagateTo(PropagationKind.PROPERTY), true, Optional.empty());
                 Exceptions.runWithContext("value", valueType, () -> nested.build(Branch.IF, true));
@@ -441,6 +439,29 @@ public abstract class AbstractReaderGenerator<SELF extends AbstractReaderGenerat
                 }
             };
         });
+    }
+
+    /** Converts the map key string into the actual key type. Mirrors the writer's map key handling. */
+    private Code getMapKey(TypeMirror keyType, TypedVariable keyString) {
+        if (ctx.commonTypes.isString(keyType)) {
+            return keyString;
+        }
+
+        AnyConfig mapKeyConfig = new AnyConfig(
+                        List.of(new InstantiatedProperty<>(
+                                Delegation.DELEGATE_FROM, LocationKind.PROPERTY, false, "map key")),
+                        ctx)
+                .merge(config.propagateTo(PropagationKind.SUBSTITUTE));
+
+        Optional<InputConverter> converter = ctx.converters
+                .findInputConverter(prototype, keyType, mapKeyConfig, generatedClass)
+                .filter(it -> ctx.commonTypes.isString(it.typeToConvert()));
+        if (converter.isPresent()) {
+            return converter.get().converter().apply(keyString);
+        }
+
+        throw new ContextedRuntimeException("Map keys must be deserialized from strings")
+                .addContextValue("keyType", keyType);
     }
 
     private void readObject(Branch branch, @Nullable Creator.Properties properties, TypeElement element) {
