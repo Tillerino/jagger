@@ -7,5 +7,11 @@ import org.tillerino.jagger.annotations.JsonConfig;
  *
  * <p>Can be reused with {@code @JsonConfig(uses = AllInputConverters.class)}.
  */
-@JsonConfig(uses = {JavaTimeInputConverters.class, OptionalInputConverters.class, UuidInputConverters.class})
+@JsonConfig(
+        uses = {
+            BigMathInputConverters.class,
+            JavaTimeInputConverters.class,
+            OptionalInputConverters.class,
+            UuidInputConverters.class,
+        })
 public class AllInputConverters {}
