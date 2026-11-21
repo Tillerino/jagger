@@ -243,15 +243,12 @@ public abstract class AbstractReaderGenerator<SELF extends AbstractReaderGenerat
     }
 
     void readNullCheckedObject(Branch branch) {
-        Optional<Creator> jsonCreatorMethod = ctx.creators.findJsonCreatorMethod(type);
-        if (jsonCreatorMethod.isPresent()) {
-            if (jsonCreatorMethod.get() instanceof Creator.Converter c) {
-                readFactory(branch, c.method());
-            } else if (jsonCreatorMethod.get() instanceof Creator.Properties p) {
-                readObject(branch, p, (TypeElement) ((DeclaredType) type).asElement());
-            } else {
-                throw Exceptions.unexpected();
-            }
+        Optional<Creator.Properties> jsonCreatorProperties = ctx.creators
+                .findJsonCreatorMethod(type)
+                .filter(Creator.Properties.class::isInstance)
+                .map(Creator.Properties.class::cast);
+        if (jsonCreatorProperties.isPresent()) {
+            readObject(branch, jsonCreatorProperties.get(), (TypeElement) ((DeclaredType) type).asElement());
         } else if (ctx.commonTypes.isBoxed(type)) {
             PrimitiveType unboxed = ctx.types.unboxedType(type);
             nest(
@@ -278,22 +275,6 @@ public abstract class AbstractReaderGenerator<SELF extends AbstractReaderGenerat
                 throw new ContextedRuntimeException("I don't know what to do with this type: " + type);
             }
             readObject(branch, null, (TypeElement) dt.asElement());
-        }
-    }
-
-    private void readFactory(Branch branch, InstantiatedMethod method) {
-        if (branch == ELSE_IF) {
-            nextControlFlow("else");
-        }
-
-        TypeMirror creatorType = method.parameters().get(0).type();
-        LHS.Variable creatorArg = declareLhsVariable(creatorType, "creator");
-
-        SELF nested = nest(pvn, creatorArg, config.propagateTo(PropagationKind.SUBSTITUTE), exhaust, alreadyOpen);
-        runWithContext("creator", method, () -> nested.build(IF, false));
-        addStatement(lhs.assign(method.callStaticFindingArguments(prototype, List.of(creatorArg), generatedClass)));
-        if (branch == ELSE_IF) {
-            endControlFlow();
         }
     }
 

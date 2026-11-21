@@ -17,6 +17,7 @@ import org.tillerino.jagger.processor.JaggerContext;
 import org.tillerino.jagger.processor.JaggerPrototype;
 import org.tillerino.jagger.processor.config.AnyConfig;
 import org.tillerino.jagger.processor.config.ConfigProperty.LocationKind;
+import org.tillerino.jagger.processor.features.Creators.Creator;
 import org.tillerino.jagger.processor.features.Generics.TypeVar;
 import org.tillerino.jagger.processor.util.Expr;
 import org.tillerino.jagger.processor.util.InstantiatedMethod;
@@ -46,7 +47,16 @@ public class Converters {
                         boundMethod.method().parameters().get(0).type()));
             }
         }
-        return Optional.empty();
+        return ctx.creators
+                .findJsonCreatorMethod(targetType)
+                .filter(Creator.Converter.class::isInstance)
+                .map(creator -> {
+                    InstantiatedMethod method = ((Creator.Converter) creator).method();
+                    return new InputConverter(
+                            toConvert ->
+                                    method.callStaticFindingArguments(prototype, List.of(toConvert), generatedClass),
+                            method.parameters().get(0).type());
+                });
     }
 
     public Optional<OutputConverter> findOutputConverter(
@@ -66,7 +76,8 @@ public class Converters {
                         boundMethod.method().returnType()));
             }
         }
-        return Optional.empty();
+        return findJsonValueMethod(toConvertType, __ -> true)
+                .map(method -> new OutputConverter(method::call, method.returnType()));
     }
 
     /** Boxed types are converted as {@code x -> Objects.toString(x, null)}, enums are serialized via {@link Enums}. */

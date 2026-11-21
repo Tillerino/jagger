@@ -88,11 +88,8 @@ public abstract class AbstractWriterGenerator<SELF extends AbstractWriterGenerat
         if (type.getKind().isPrimitive()) {
             return new Primitive((PrimitiveType) type);
         }
-        Optional<OutputConverter> converter = ctx.converters
-                .findOutputConverter(type, prototype, config, generatedClass)
-                .or(() -> ctx.converters
-                        .findJsonValueMethod(type, __ -> true)
-                        .map(m -> new OutputConverter(m::call, m.returnType())));
+        Optional<OutputConverter> converter =
+                ctx.converters.findOutputConverter(type, prototype, config, generatedClass);
         if (converter.isPresent()) {
             OutputConverter c = converter.get();
             return new Converted(c.converter(), c.convertedType());
