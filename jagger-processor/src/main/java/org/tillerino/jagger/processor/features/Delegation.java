@@ -114,7 +114,7 @@ public class Delegation {
         List<MethodInScope> methods = new ArrayList<>();
         for (InstantiatedVariable parameter : prototype.parameters()) {
             for (InstantiatedMethod method :
-                    ctx.generics.instantiateMethods(parameter.type(), LocationKind.PROTOTYPE)) {
+                    ctx.generics.instantiateAllMethodsFromTypeHierarchy(parameter.type(), LocationKind.PROTOTYPE)) {
                 FromParameter fromParameter = new FromParameter(parameter, method);
                 methods.add(fromParameter);
             }
@@ -126,7 +126,7 @@ public class Delegation {
 
     private static void addBlueprintMethods(List<MethodInScope> methods, JaggerBlueprint blueprint) {
         blueprint.prototypes.forEach(prototype -> methods.add(new MethodInScope.FromPrototype(prototype)));
-        blueprint.declaredMethods.forEach(method -> methods.add(new MethodInScope.FromBlueprint(blueprint, method)));
+        blueprint.allMethods.forEach(method -> methods.add(new MethodInScope.FromBlueprint(blueprint, method)));
     }
 
     public List<Expr> findArguments(

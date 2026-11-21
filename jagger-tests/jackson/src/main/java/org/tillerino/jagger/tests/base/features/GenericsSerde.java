@@ -6,7 +6,10 @@ import java.util.List;
 import java.util.Map;
 import org.tillerino.jagger.annotations.JsonConfig;
 import org.tillerino.jagger.annotations.JsonInput;
+import org.tillerino.jagger.annotations.JsonInputConverter;
+import org.tillerino.jagger.annotations.JsonInputDefaultValue;
 import org.tillerino.jagger.annotations.JsonOutput;
+import org.tillerino.jagger.annotations.JsonOutputConverter;
 import org.tillerino.jagger.tests.base.features.DelegationSerde.BoxedScalarsSerde;
 import org.tillerino.jagger.tests.model.features.GenericsModel.GenericRecord;
 import org.tillerino.jagger.tests.model.features.GenericsModel.PointlessGenericsRecord;
@@ -149,5 +152,84 @@ public interface GenericsSerde {
 
         @JsonInput
         <T> PointlessGenericsRecord<T> read(JsonParser parser) throws Exception;
+    }
+
+    @JsonConfig(implement = JsonConfig.ImplementationMode.DO_NOT_IMPLEMENT)
+    interface GenericBaseSerde<T> {
+        @JsonOutput
+        void writeGenericBase(T obj, JsonGenerator gen) throws Exception;
+
+        @JsonInput
+        T readGenericBase(JsonParser parser) throws Exception;
+    }
+
+    interface GenericMiddleSerde<T> extends GenericBaseSerde<T> {}
+
+    @JsonConfig(implement = JsonConfig.ImplementationMode.DO_IMPLEMENT)
+    interface DeepGenericSerde extends GenericMiddleSerde<String> {}
+
+    interface GenericConvertersSerde {
+        interface InputConverter<F, T> {
+            @JsonInputConverter
+            T convert(F from);
+        }
+
+        interface OutputConverter<T, F> {
+            @JsonOutputConverter
+            F convert(T from);
+        }
+
+        interface DefaultValueInterface<T> {
+            @JsonInputDefaultValue
+            T defaultValue();
+        }
+
+        interface GenericRecordSerde {
+            @JsonInput
+            <T> GenericRecord<T> readGeneric(
+                    JsonParser parser, DefaultValueInterface<T> defaultValue, InputConverter<String, T> converter)
+                    throws Exception;
+
+            @JsonOutput
+            <T> void writeGeneric(
+                    GenericRecord<T> record, JsonGenerator generator, OutputConverter<T, String> converter)
+                    throws Exception;
+        }
+
+        class StringToIntegerConverter implements InputConverter<String, Integer> {
+            @Override
+            public Integer convert(String input) {
+                return Integer.valueOf(input);
+            }
+        }
+
+        class IntegerToStringConverter implements OutputConverter<Integer, String> {
+            @Override
+            public String convert(Integer input) {
+                return input.toString();
+            }
+        }
+
+        class IntegerDefaultValue implements DefaultValueInterface<Integer> {
+            @Override
+            public Integer defaultValue() {
+                return 7;
+            }
+        }
+
+        @JsonConfig(
+                uses = {
+                    GenericRecordSerde.class,
+                    StringToIntegerConverter.class,
+                    IntegerToStringConverter.class,
+                    IntegerDefaultValue.class,
+                })
+        interface ConcreteSerde {
+            @JsonInput
+            UsesGenericRecord read(JsonParser parser) throws Exception;
+
+            @JsonOutput
+            void write(UsesGenericRecord record, JsonGenerator generator) throws Exception;
+        }
     }
 }

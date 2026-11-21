@@ -2,6 +2,7 @@ package org.tillerino.jagger.processor.features;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -13,6 +14,7 @@ import javax.lang.model.type.TypeMirror;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ContextedRuntimeException;
 import org.tillerino.jagger.processor.JaggerContext;
+import org.tillerino.jagger.processor.features.Generics.TypeVar;
 import org.tillerino.jagger.processor.util.Annotations.AnnotationMirrorWrapper;
 import org.tillerino.jagger.processor.util.Annotations.AnnotationValueWrapper;
 
@@ -134,9 +136,11 @@ public record Polymorphism(String discriminator, JsonTypeInfoId id, List<Child> 
     public record Child(TypeMirror type, String name) {}
 
     public static List<DeclaredType> directSupertypes(TypeMirror type, JaggerContext ctx) {
+        Map<TypeVar, TypeMirror> typeBindings =
+                type instanceof DeclaredType declaredType ? ctx.generics.recordTypeBindings(declaredType) : Map.of();
         return ctx.types.directSupertypes(type).stream()
                 .flatMap(t -> t instanceof DeclaredType dt && !t.toString().equals("java.lang.Object")
-                        ? Stream.of(dt)
+                        ? Stream.of((DeclaredType) ctx.generics.applyTypeBindings(dt, typeBindings))
                         : Stream.empty())
                 .toList();
     }

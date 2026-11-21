@@ -3,7 +3,6 @@ package org.tillerino.jagger.processor;
 import java.util.*;
 import javax.lang.model.element.ExecutableElement;
 import javax.lang.model.element.TypeElement;
-import javax.lang.model.type.DeclaredType;
 import javax.lang.model.type.TypeMirror;
 import javax.lang.model.util.ElementFilter;
 import org.tillerino.jagger.processor.config.AnyConfig;
@@ -19,7 +18,7 @@ public final class JaggerBlueprint {
     public final FullyQualifiedClassName className;
     public final TypeElement typeElement;
     public final List<JaggerPrototype> prototypes = new ArrayList<>();
-    public final List<InstantiatedMethod> declaredMethods;
+    public final List<InstantiatedMethod> allMethods;
     public final AnyConfig config;
     public final Map<TypeVar, TypeMirror> typeBindings;
     public final JaggerContext ctx;
@@ -27,13 +26,13 @@ public final class JaggerBlueprint {
     private JaggerBlueprint(
             FullyQualifiedClassName className,
             TypeElement typeElement,
-            List<InstantiatedMethod> declaredMethods,
+            List<InstantiatedMethod> allMethods,
             AnyConfig config,
             Map<TypeVar, TypeMirror> typeBindings,
             JaggerContext ctx) {
         this.className = className;
         this.typeElement = typeElement;
-        this.declaredMethods = declaredMethods;
+        this.allMethods = allMethods;
         this.config = config;
         this.typeBindings = typeBindings;
         this.ctx = ctx;
@@ -41,18 +40,15 @@ public final class JaggerBlueprint {
 
     static JaggerBlueprint of(TypeElement element, JaggerContext ctx) {
         Map<TypeVar, TypeMirror> typeBindings = new LinkedHashMap<>();
-        for (DeclaredType dt : Polymorphism.directSupertypes(element.asType(), ctx)) {
-            typeBindings.putAll(ctx.generics.recordTypeBindings(dt));
-        }
-
-        List<InstantiatedMethod> declaredMethods = ElementFilter.methodsIn(element.getEnclosedElements()).stream()
-                .map(method -> ctx.generics.instantiateMethod(method, typeBindings, LocationKind.PROTOTYPE))
-                .toList();
+        Polymorphism.typeHierarchyBfs(element.asType(), ctx, type -> {
+            typeBindings.putAll(ctx.generics.recordTypeBindings(type));
+            return Optional.empty();
+        });
 
         return new JaggerBlueprint(
                 FullyQualifiedClassName.of(element),
                 element,
-                declaredMethods,
+                ctx.generics.instantiateAllMethodsFromTypeHierarchy(element.asType(), LocationKind.PROTOTYPE),
                 AnyConfig.create(element, ConfigProperty.LocationKind.BLUEPRINT, ctx),
                 typeBindings,
                 ctx);

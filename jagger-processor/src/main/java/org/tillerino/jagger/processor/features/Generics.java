@@ -119,6 +119,23 @@ public class Generics {
         return methods;
     }
 
+    public List<InstantiatedMethod> instantiateAllMethodsFromTypeHierarchy(
+            TypeMirror tm, @Nullable LocationKind locationKind) {
+        if (!(tm instanceof DeclaredType d)) {
+            return List.of();
+        }
+        List<InstantiatedMethod> methods = new ArrayList<>();
+        Polymorphism.typeHierarchyBfs(d, ctx, supertype -> {
+            Map<TypeVar, TypeMirror> typeBindings = recordTypeBindings(supertype);
+            for (ExecutableElement method :
+                    ElementFilter.methodsIn(supertype.asElement().getEnclosedElements())) {
+                methods.add(instantiateMethod(method, typeBindings, locationKind));
+            }
+            return Optional.empty();
+        });
+        return methods;
+    }
+
     public InstantiatedMethod instantiateMethod(
             ExecutableElement methodElement,
             Map<TypeVar, TypeMirror> typeBindings,

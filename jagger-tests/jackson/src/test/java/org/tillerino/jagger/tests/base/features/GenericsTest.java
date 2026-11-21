@@ -1,17 +1,20 @@
 package org.tillerino.jagger.tests.base.features;
 
+import static net.javacrumbs.jsonunit.assertj.JsonAssertions.assertThatJson;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.tillerino.jagger.tests.CodeAssertions.assertThatImpl;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import java.util.List;
 import java.util.Map;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.tillerino.jagger.tests.ReferenceTest;
 import org.tillerino.jagger.tests.SerdeUtil;
 import org.tillerino.jagger.tests.base.features.GenericsSerde.*;
 import org.tillerino.jagger.tests.model.features.GenericsModel.GenericRecord;
 import org.tillerino.jagger.tests.model.features.GenericsModel.PointlessGenericsRecord;
+import org.tillerino.jagger.tests.model.features.GenericsModel.UsesGenericRecord;
 
 class GenericsTest extends ReferenceTest {
     StringSerde stringSerde = SerdeUtil.impl(StringSerde.class);
@@ -27,6 +30,8 @@ class GenericsTest extends ReferenceTest {
     ConcreteContainerSerde concreteContainerSerde = SerdeUtil.impl(ConcreteContainerSerde.class);
 
     PointlessGenericsSerde pointlessGenericsSerde = SerdeUtil.impl(PointlessGenericsSerde.class);
+
+    DeepGenericSerde deepGenericSerde = SerdeUtil.impl(DeepGenericSerde.class);
 
     @Test
     void passGenericImplExplicitly() throws Exception {
@@ -120,6 +125,15 @@ class GenericsTest extends ReferenceTest {
     }
 
     @Test
+    void deepGenericInheritance() throws Exception {
+        outputUtils.roundTrip(
+                "hello",
+                deepGenericSerde::writeGenericBase,
+                deepGenericSerde::readGenericBase,
+                new TypeReference<String>() {});
+    }
+
+    @Test
     void genericArrayDeserialization() throws Exception {
         inputUtils.assertIsEqualToDatabind(
                 "[ \"1\", \"2\" ]",
@@ -134,5 +148,38 @@ class GenericsTest extends ReferenceTest {
                 p -> concreteContainerSerde.readGenericRecord(p, stringSerde, String[].class));
 
         assertThat(deserialized.f()).containsExactly("1", "2");
+    }
+
+    @Nested
+    class GenericConvertersSerdeTest {
+        GenericConvertersSerde.ConcreteSerde serde = SerdeUtil.impl(GenericConvertersSerde.ConcreteSerde.class);
+
+        @Test
+        void genericConverterAndDefaultValueArePassedToTheMethod() throws Exception {
+            UsesGenericRecord record = new UsesGenericRecord(new GenericRecord<>(42));
+
+            String json = outputUtils.serialize(record, serde::write);
+            assertThatJson(json).isEqualTo("{\"gi\":{\"f\":\"42\"}}");
+            assertThat(inputUtils.deserialize(json, serde::read)).isEqualTo(record);
+
+            assertThat(inputUtils.deserialize("{\"gi\":{}}", serde::read))
+                    .isEqualTo(new UsesGenericRecord(new GenericRecord<>(7)));
+            assertThat(inputUtils.deserialize("{\"gi\":null}", serde::read)).isEqualTo(new UsesGenericRecord(null));
+
+            assertThatImpl(GenericConvertersSerde.ConcreteSerde.class)
+                    .method("write")
+                    .bodyContains("writeGeneric");
+            assertThatImpl(GenericConvertersSerde.ConcreteSerde.class)
+                    .method("read")
+                    .bodyContains("readGeneric");
+
+            assertThatImpl(GenericConvertersSerde.GenericRecordSerde.class)
+                    .method("readGeneric")
+                    .bodyContains("defaultValue.defaultValue()")
+                    .bodyContains("converter.convert(fToConvert)");
+            assertThatImpl(GenericConvertersSerde.GenericRecordSerde.class)
+                    .method("writeGeneric")
+                    .bodyContains("converter.convert(f)");
+        }
     }
 }
