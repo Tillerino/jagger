@@ -232,4 +232,25 @@ public interface GenericsSerde {
             void write(UsesGenericRecord record, JsonGenerator generator) throws Exception;
         }
     }
+
+    interface GenericKeyMapSerde {
+        @JsonOutput
+        <K, V> void writeGenericMap(
+                Map<K, V> map,
+                JsonGenerator gen,
+                GenericConvertersSerde.OutputConverter<K, String> keyConverter,
+                GenericOutputSerde<V> valueWriter)
+                throws Exception;
+    }
+
+    @JsonConfig(
+            uses = {
+                GenericKeyMapSerde.class,
+                StringSerde.class,
+                GenericConvertersSerde.IntegerToStringConverter.class,
+            })
+    interface IntegerStringMapSerde {
+        @JsonOutput
+        void writeIntegerStringMap(Map<Integer, String> map, JsonGenerator gen) throws Exception;
+    }
 }

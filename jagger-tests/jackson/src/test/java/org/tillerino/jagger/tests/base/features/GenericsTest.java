@@ -33,6 +33,8 @@ class GenericsTest extends ReferenceTest {
 
     DeepGenericSerde deepGenericSerde = SerdeUtil.impl(DeepGenericSerde.class);
 
+    IntegerStringMapSerde integerStringMapSerde = SerdeUtil.impl(IntegerStringMapSerde.class);
+
     @Test
     void passGenericImplExplicitly() throws Exception {
         outputUtils.roundTrip2(
@@ -113,6 +115,20 @@ class GenericsTest extends ReferenceTest {
                 .method("readStringDoubleMap")
                 .calls("readGenericMap")
                 .references("readBoxedDoubleX");
+    }
+
+    @Test
+    void genericMapWithKeyConverterSerde() throws Exception {
+        outputUtils.assertIsEqualToDatabind(Map.of(1, "a", 2, "b"), integerStringMapSerde::writeIntegerStringMap);
+
+        assertThatImpl(IntegerStringMapSerde.class)
+                .method("writeIntegerStringMap")
+                .calls("writeGenericMap")
+                .bodyContains("integerToStringConverter");
+
+        assertThatImpl(GenericKeyMapSerde.class)
+                .method("writeGenericMap")
+                .bodyContains("keyConverter.convert(entry.getKey())");
     }
 
     @Test
