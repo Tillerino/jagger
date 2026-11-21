@@ -21,6 +21,16 @@ test-shaded args="":
 test-single project args="":
   JAGGER_DEBUG=true {{mvn}} clean spotless:apply test -pl :jagger-tests-{{project}} -am {{args}}
 
+generate-variants-all:
+  just generate-variants jagger-tests/jackson
+  just format
+
+generate-variants project:
+  #!/usr/bin/env sh
+  {{mvn}} -q -pl :jagger-tests-base -am compile dependency:build-classpath -Dmdep.outputFile=target/classpath.txt
+  CP=$(readlink -f jagger-tests/base/target/classes):$(cat jagger-tests/base/target/classpath.txt)
+  cd {{quote(project)}} && java -cp "$CP" org.tillerino.jagger.tests.variants.GenerateVariants
+
 install-processor:
   {{mvn}} clean install -pl :jagger-processor -am
 
