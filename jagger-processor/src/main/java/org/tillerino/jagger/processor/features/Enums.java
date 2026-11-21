@@ -41,6 +41,11 @@ public class Enums {
         return c("$C.name()", enumValue);
     }
 
+    public static Code deserializationCode(GeneratedClass generatedClass, TypeMirror enumType, Expr key) {
+        EnumValuesField enumField = generatedClass.getOrCreateEnumField(enumType);
+        return c("$T.deserialize($L, $C)", EnumHelper.class, enumField.name(), key);
+    }
+
     public EnumValuesField createEnumField(TypeMirror enumType, int nextIndex) {
         String valueFunction = ctx.converters
                 .findJsonValueMethod(enumType, ctx.commonTypes::isString)

@@ -29,6 +29,14 @@ public class EnumHelper {
         return Collections.unmodifiableMap(result);
     }
 
+    public static <T extends Enum<T>> T deserialize(Map<String, T> lookup, String key) {
+        T value = lookup.get(key);
+        if (value == null) {
+            throw new IllegalArgumentException("Unexpected enum value: \"" + key + "\"");
+        }
+        return value;
+    }
+
     public static <T extends Enum<T>> EnumMap<T, String> serializationMap(
             Class<T> enumType, Function<T, String> fallbackMapper, Object[] explicitMappings) {
         EnumMap<T, String> result = new EnumMap<>(enumType);

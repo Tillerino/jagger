@@ -37,11 +37,20 @@ interface MapsSerde {
         @JsonOutput
         void writeEnumMap(Map<CustomNamedEnum, String> map, JsonGenerator generator) throws Exception;
 
+        @JsonInput
+        Map<CustomNamedEnum, String> readEnumMap(JsonParser parser) throws Exception;
+
         @JsonOutput
         void writePlainEnumMap(Map<AnEnum, String> map, JsonGenerator generator) throws Exception;
 
+        @JsonInput
+        Map<AnEnum, String> readPlainEnumMap(JsonParser parser) throws Exception;
+
         @JsonOutput
         void writeJsonValueEnumMap(Map<JsonValueEnum, String> map, JsonGenerator generator) throws Exception;
+
+        @JsonInput
+        Map<JsonValueEnum, String> readJsonValueEnumMap(JsonParser parser) throws Exception;
 
         @ApplyVariantsToChildren
         @Variants({

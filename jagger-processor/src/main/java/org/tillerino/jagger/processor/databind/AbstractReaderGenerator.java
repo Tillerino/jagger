@@ -468,6 +468,10 @@ public abstract class AbstractReaderGenerator<SELF extends AbstractReaderGenerat
             return e(keyType, "$T.valueOf($C)", keyType, keyString);
         }
 
+        if (ctx.commonTypes.isEnum(keyType)) {
+            return Enums.deserializationCode(generatedClass, keyType, keyString);
+        }
+
         throw new ContextedRuntimeException("Map keys must be deserialized from strings")
                 .addContextValue("keyType", keyType);
     }

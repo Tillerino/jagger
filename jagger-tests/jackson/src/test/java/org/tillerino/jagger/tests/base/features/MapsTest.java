@@ -55,7 +55,8 @@ class MapsTest extends ReferenceTest {
             map.put(CustomNamedEnum.VALUE3, "first");
             map.put(CustomNamedEnum.VALUE1, "second");
             map.put(CustomNamedEnum.VALUE2, null);
-            outputUtils.assertIsEqualToDatabind(map, serde::writeEnumMap);
+            outputUtils.roundTrip(
+                    map, serde::writeEnumMap, serde::readEnumMap, new TypeReference<Map<CustomNamedEnum, String>>() {});
         }
 
         @Test
@@ -63,7 +64,11 @@ class MapsTest extends ReferenceTest {
             Map<AnEnum, String> map = new LinkedHashMap<>();
             map.put(AnEnum.ANOTHER_VALUE, "first");
             map.put(AnEnum.SOME_VALUE, null);
-            outputUtils.assertIsEqualToDatabind(map, serde::writePlainEnumMap);
+            outputUtils.roundTrip(
+                    map,
+                    serde::writePlainEnumMap,
+                    serde::readPlainEnumMap,
+                    new TypeReference<Map<AnEnum, String>>() {});
         }
 
         @Test
@@ -71,7 +76,21 @@ class MapsTest extends ReferenceTest {
             Map<JsonValueEnum, String> map = new LinkedHashMap<>();
             map.put(JsonValueEnum.VALUE2, "first");
             map.put(JsonValueEnum.VALUE1, null);
-            outputUtils.assertIsEqualToDatabind(map, serde::writeJsonValueEnumMap);
+            outputUtils.roundTrip(
+                    map,
+                    serde::writeJsonValueEnumMap,
+                    serde::readJsonValueEnumMap,
+                    new TypeReference<Map<JsonValueEnum, String>>() {});
+        }
+
+        @Test
+        void enumMapKeyUnknown() {
+            assertThatThrownBy(() -> inputUtils.deserialize("{\"VALUE1\":\"value\"}", serde::readEnumMap))
+                    .hasMessageContaining("Unexpected enum value: \"VALUE1\"");
+            assertThatThrownBy(() -> inputUtils.deserialize("{\"UNKNOWN\":\"value\"}", serde::readPlainEnumMap))
+                    .hasMessageContaining("Unexpected enum value: \"UNKNOWN\"");
+            assertThatThrownBy(() -> inputUtils.deserialize("{\"VALUE1\":\"value\"}", serde::readJsonValueEnumMap))
+                    .hasMessageContaining("Unexpected enum value: \"VALUE1\"");
         }
 
         @Variants({
