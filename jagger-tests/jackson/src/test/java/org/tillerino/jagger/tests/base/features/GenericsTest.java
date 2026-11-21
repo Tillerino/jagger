@@ -123,7 +123,11 @@ class GenericsTest extends ReferenceTest {
 
     @Test
     void genericMapWithKeyConverterSerde() throws Exception {
-        outputUtils.assertIsEqualToDatabind(Map.of(1, "a", 2, "b"), integerStringMapSerde::writeIntegerStringMap);
+        outputUtils.roundTrip(
+                Map.of(1, "a", 2, "b"),
+                integerStringMapSerde::writeIntegerStringMap,
+                integerStringMapSerde::readIntegerStringMap,
+                new TypeReference<>() {});
 
         assertThatImpl(IntegerStringMapSerde.class)
                 .method("writeIntegerStringMap")
@@ -133,6 +137,13 @@ class GenericsTest extends ReferenceTest {
         assertThatImpl(GenericKeyMapSerde.class)
                 .method("writeGenericMap")
                 .bodyContains("keyConverter.convert(entry.getKey())");
+
+        assertThatImpl(IntegerStringMapSerde.class)
+                .method("readIntegerStringMap")
+                .calls("readGenericMap")
+                .bodyContains("from -> Integer.valueOf(from)");
+
+        assertThatImpl(GenericKeyMapSerde.class).method("readGenericMap").bodyContains("keyConverter.convert(key)");
     }
 
     @Test
@@ -142,12 +153,21 @@ class GenericsTest extends ReferenceTest {
         map.put(CustomNamedEnum.VALUE1, "b");
         map.put(CustomNamedEnum.VALUE2, null);
 
-        outputUtils.assertIsEqualToDatabind(map, customNamedEnumStringMapSerde::writeCustomNamedEnumStringMap);
+        outputUtils.roundTrip(
+                map,
+                customNamedEnumStringMapSerde::writeCustomNamedEnumStringMap,
+                customNamedEnumStringMapSerde::readCustomNamedEnumStringMap,
+                new TypeReference<>() {});
 
         assertThatImpl(CustomNamedEnumStringMapSerde.class)
                 .method("writeCustomNamedEnumStringMap")
                 .calls("writeGenericMap")
                 .bodyContains("$values.get");
+
+        assertThatImpl(CustomNamedEnumStringMapSerde.class)
+                .method("readCustomNamedEnumStringMap")
+                .calls("readGenericMap")
+                .bodyContains("EnumHelper.deserialize");
     }
 
     @Test

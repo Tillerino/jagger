@@ -180,15 +180,20 @@ public class Delegation {
                 return Optional.of(e(null, "$T.class", typeOfClass));
             }
         }
-        // see if we can instantiate a converter for boxed types or enums
+        // see if we can instantiate a lambda from our list of used blueprints
+        Optional<Expr> lambda = ctx.generics.getOrCreateLambda(
+                generatedClass, targetArgument.type(), caller != null ? caller.parameters() : List.of(), 0);
+        if (lambda.isPresent()) {
+            return lambda;
+        }
+        // default string converters have the lowest precedence
         Optional<Expr> toStringConverter =
                 ctx.converters.instantiateToStringConverter(targetArgument.type(), generatedClass);
         if (toStringConverter.isPresent()) {
             return toStringConverter;
         }
-        // see if we can instantiate a lambda from our list of used blueprints
-        return ctx.generics.getOrCreateLambda(
-                generatedClass, targetArgument.type(), caller != null ? caller.parameters() : List.of(), 0);
+        // see if we can instantiate a converter from string for boxed types or enums
+        return ctx.converters.instantiateFromStringConverter(targetArgument.type(), generatedClass);
     }
 
     public record Delegatee(Expr fieldOrParameter, InstantiatedMethod method) {

@@ -12,6 +12,7 @@ import java.util.function.Predicate;
 import javax.lang.model.element.ExecutableElement;
 import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
+import org.tillerino.jagger.helpers.CharacterHelper;
 import org.tillerino.jagger.processor.GeneratedClass;
 import org.tillerino.jagger.processor.JaggerContext;
 import org.tillerino.jagger.processor.JaggerPrototype;
@@ -108,6 +109,44 @@ public class Converters {
                     "$L -> $C",
                     parameterName,
                     Enums.serializationCode(generatedClass, parameterType, enumValue)));
+        }
+        return Optional.empty();
+    }
+
+    /**
+     * Boxed types are converted as {@code x -> Integer.valueOf(x)}, enums are deserialized via the generated lookup map
+     * ({@link Enums}).
+     */
+    public Optional<Expr> instantiateFromStringConverter(TypeMirror targetType, GeneratedClass generatedClass) {
+        if (!ctx.generics.isFunctionalInterface(targetType)) {
+            return Optional.empty();
+        }
+        List<InstantiatedMethod> methods = ctx.generics.instantiateMethods(targetType, LocationKind.PROTOTYPE);
+        if (methods.size() != 1) {
+            return Optional.empty();
+        }
+        InstantiatedMethod method = methods.get(0);
+        if (!isInputConverter(method.element())
+                || method.parameters().size() != 1
+                || !ctx.commonTypes.isString(method.parameters().get(0).type())) {
+            return Optional.empty();
+        }
+        TypeMirror convertedType = method.returnType();
+        String parameterName = method.parameters().get(0).name();
+        if (ctx.commonTypes.isBoxed(convertedType)) {
+            if (ctx.types.isSameType(convertedType, ctx.commonTypes.boxedChar)) {
+                return Optional.of(
+                        e(targetType, "$L -> $T.toCharacter($L)", parameterName, CharacterHelper.class, parameterName));
+            }
+            return Optional.of(e(targetType, "$L -> $T.valueOf($L)", parameterName, convertedType, parameterName));
+        }
+        if (ctx.commonTypes.isEnum(convertedType)) {
+            Expr key = e(ctx.commonTypes.string, "$L", parameterName);
+            return Optional.of(e(
+                    targetType,
+                    "$L -> $C",
+                    parameterName,
+                    Enums.deserializationCode(generatedClass, convertedType, key)));
         }
         return Optional.empty();
     }

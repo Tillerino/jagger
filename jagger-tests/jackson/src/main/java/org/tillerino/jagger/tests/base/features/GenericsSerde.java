@@ -242,6 +242,13 @@ public interface GenericsSerde {
                 GenericConvertersSerde.OutputConverter<K, String> keyConverter,
                 GenericOutputSerde<V> valueWriter)
                 throws Exception;
+
+        @JsonInput
+        <K, V> Map<K, V> readGenericMap(
+                JsonParser parser,
+                GenericConvertersSerde.InputConverter<String, K> keyConverter,
+                GenericInputSerde<V> valueReader)
+                throws Exception;
     }
 
     @JsonConfig(
@@ -252,6 +259,9 @@ public interface GenericsSerde {
     interface IntegerStringMapSerde {
         @JsonOutput
         void writeIntegerStringMap(Map<Integer, String> map, JsonGenerator gen) throws Exception;
+
+        @JsonInput
+        Map<Integer, String> readIntegerStringMap(JsonParser parser) throws Exception;
     }
 
     @JsonConfig(
@@ -262,5 +272,8 @@ public interface GenericsSerde {
     interface CustomNamedEnumStringMapSerde {
         @JsonOutput
         void writeCustomNamedEnumStringMap(Map<CustomNamedEnum, String> map, JsonGenerator gen) throws Exception;
+
+        @JsonInput
+        Map<CustomNamedEnum, String> readCustomNamedEnumStringMap(JsonParser parser) throws Exception;
     }
 }
