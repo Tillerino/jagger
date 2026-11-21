@@ -247,7 +247,6 @@ public interface GenericsSerde {
             uses = {
                 GenericKeyMapSerde.class,
                 StringSerde.class,
-                GenericConvertersSerde.IntegerToStringConverter.class,
             })
     interface IntegerStringMapSerde {
         @JsonOutput

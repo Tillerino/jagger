@@ -1,8 +1,11 @@
 package org.tillerino.jagger.processor.features;
 
+import static org.tillerino.jagger.processor.util.Expr.e;
+
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -64,6 +67,27 @@ public class Converters {
             }
         }
         return Optional.empty();
+    }
+
+    public Optional<Expr> instantiateBoxedToStringConverter(TypeMirror targetType) {
+        if (!ctx.generics.isFunctionalInterface(targetType)) {
+            return Optional.empty();
+        }
+        List<InstantiatedMethod> methods = ctx.generics.instantiateMethods(targetType, LocationKind.PROTOTYPE);
+        if (methods.size() != 1) {
+            return Optional.empty();
+        }
+        InstantiatedMethod method = methods.get(0);
+        if (!isOutputConverter(method.element())
+                || method.parameters().size() != 1
+                || !ctx.commonTypes.isBoxed(method.parameters().get(0).type())
+                || !ctx.commonTypes.isString(method.returnType())) {
+            return Optional.empty();
+        } else {
+            String parameterName = method.parameters().get(0).name();
+            return Optional.of(
+                    e(targetType, "$L -> $T.toString($L, null)", parameterName, Objects.class, parameterName));
+        }
     }
 
     public record OutputConverter(Function<Expr, Expr> converter, TypeMirror convertedType) {}

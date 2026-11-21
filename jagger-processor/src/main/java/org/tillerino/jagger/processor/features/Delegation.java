@@ -180,6 +180,11 @@ public class Delegation {
                 return Optional.of(e(null, "$T.class", typeOfClass));
             }
         }
+        // see if we can instantiate a converter for boxed types
+        Optional<Expr> boxedToStringConverter = ctx.converters.instantiateBoxedToStringConverter(targetArgument.type());
+        if (boxedToStringConverter.isPresent()) {
+            return boxedToStringConverter;
+        }
         // see if we can instantiate a lambda from our list of used blueprints
         return ctx.generics.getOrCreateLambda(
                 generatedClass, targetArgument.type(), caller != null ? caller.parameters() : List.of(), 0);

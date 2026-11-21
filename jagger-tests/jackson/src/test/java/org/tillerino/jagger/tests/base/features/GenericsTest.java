@@ -124,7 +124,7 @@ class GenericsTest extends ReferenceTest {
         assertThatImpl(IntegerStringMapSerde.class)
                 .method("writeIntegerStringMap")
                 .calls("writeGenericMap")
-                .bodyContains("integerToStringConverter");
+                .bodyContains("from -> Objects.toString(from, null)");
 
         assertThatImpl(GenericKeyMapSerde.class)
                 .method("writeGenericMap")
