@@ -2,6 +2,7 @@ package org.tillerino.jagger.tests.base.features;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.tillerino.jagger.tests.TestSettings.SETTINGS;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import java.time.OffsetDateTime;
@@ -23,6 +24,180 @@ import org.tillerino.jagger.tests.variants.Variant;
 import org.tillerino.jagger.tests.variants.Variants;
 
 class MapsTest extends ReferenceTest {
+    @Nested
+    class ScalarValuesTest {
+        MapsSerde.ScalarValues serde = SerdeUtil.impl(MapsSerde.ScalarValues.class);
+
+        @Variants({
+            @Variant({
+                @Replacement(regex = "STRING_INT_MAPS", replacement = "STRING_BOOLEAN_MAPS"),
+                @Replacement(regex = "Integer", replacement = "Boolean")
+            }),
+            @Variant({
+                @Replacement(regex = "STRING_INT_MAPS", replacement = "STRING_BYTE_MAPS"),
+                @Replacement(regex = "Integer", replacement = "Byte")
+            }),
+            @Variant({
+                @Replacement(regex = "STRING_INT_MAPS", replacement = "STRING_SHORT_MAPS"),
+                @Replacement(regex = "Integer", replacement = "Short")
+            }),
+            @Variant({
+                @Replacement(regex = "STRING_INT_MAPS", replacement = "STRING_LONG_MAPS"),
+                @Replacement(regex = "Integer", replacement = "Long")
+            }),
+            @Variant({
+                @Replacement(regex = "STRING_INT_MAPS", replacement = "STRING_CHAR_MAPS"),
+                @Replacement(regex = "Integer", replacement = "Character")
+            }),
+            @Variant({
+                @Replacement(regex = "STRING_INT_MAPS", replacement = "STRING_FLOAT_MAPS"),
+                @Replacement(regex = "Integer", replacement = "Float")
+            }),
+            @Variant({
+                @Replacement(regex = "STRING_INT_MAPS", replacement = "STRING_DOUBLE_MAPS"),
+                @Replacement(regex = "Integer", replacement = "Double")
+            }),
+            @Variant({
+                @Replacement(regex = "STRING_INT_MAPS", replacement = "STRING_STRING_MAPS"),
+                @Replacement(regex = "Integer", replacement = "String")
+            }),
+            @Variant({
+                @Replacement(regex = "STRING_INT_MAPS", replacement = "STRING_ENUM_MAPS"),
+                @Replacement(regex = "Integer", replacement = "AnEnum")
+            })
+        })
+        @Test
+        void testStringIntegerMap() throws Exception {
+            for (Map<String, Integer> object : SETTINGS.javaData().STRING_INT_MAPS) {
+                Map<String, Integer> map = outputUtils.roundTrip(
+                        object, serde::writeStringIntegerMap, serde::readStringIntegerMap, new TypeReference<>() {});
+                if (map != null) {
+                    assertThat(map).isInstanceOf(LinkedHashMap.class);
+                }
+            }
+        }
+
+        /* GENERATED CODE. DO NOT MODIFY BELOW!  STRING_INT_MAPS -> STRING_BOOLEAN_MAPS, Integer -> Boolean */
+        @Test
+        @GeneratedVariant("Variant of testStringIntegerMap")
+        void testStringBooleanMap() throws Exception {
+            for (Map<String, Boolean> object : SETTINGS.javaData().STRING_BOOLEAN_MAPS) {
+                Map<String, Boolean> map = outputUtils.roundTrip(
+                        object, serde::writeStringBooleanMap, serde::readStringBooleanMap, new TypeReference<>() {});
+                if (map != null) {
+                    assertThat(map).isInstanceOf(LinkedHashMap.class);
+                }
+            }
+        }
+
+        /* STRING_INT_MAPS -> STRING_BYTE_MAPS, Integer -> Byte */
+        @Test
+        @GeneratedVariant("Variant of testStringIntegerMap")
+        void testStringByteMap() throws Exception {
+            for (Map<String, Byte> object : SETTINGS.javaData().STRING_BYTE_MAPS) {
+                Map<String, Byte> map = outputUtils.roundTrip(
+                        object, serde::writeStringByteMap, serde::readStringByteMap, new TypeReference<>() {});
+                if (map != null) {
+                    assertThat(map).isInstanceOf(LinkedHashMap.class);
+                }
+            }
+        }
+
+        /* STRING_INT_MAPS -> STRING_SHORT_MAPS, Integer -> Short */
+        @Test
+        @GeneratedVariant("Variant of testStringIntegerMap")
+        void testStringShortMap() throws Exception {
+            for (Map<String, Short> object : SETTINGS.javaData().STRING_SHORT_MAPS) {
+                Map<String, Short> map = outputUtils.roundTrip(
+                        object, serde::writeStringShortMap, serde::readStringShortMap, new TypeReference<>() {});
+                if (map != null) {
+                    assertThat(map).isInstanceOf(LinkedHashMap.class);
+                }
+            }
+        }
+
+        /* STRING_INT_MAPS -> STRING_LONG_MAPS, Integer -> Long */
+        @Test
+        @GeneratedVariant("Variant of testStringIntegerMap")
+        void testStringLongMap() throws Exception {
+            for (Map<String, Long> object : SETTINGS.javaData().STRING_LONG_MAPS) {
+                Map<String, Long> map = outputUtils.roundTrip(
+                        object, serde::writeStringLongMap, serde::readStringLongMap, new TypeReference<>() {});
+                if (map != null) {
+                    assertThat(map).isInstanceOf(LinkedHashMap.class);
+                }
+            }
+        }
+
+        /* STRING_INT_MAPS -> STRING_CHAR_MAPS, Integer -> Character */
+        @Test
+        @GeneratedVariant("Variant of testStringIntegerMap")
+        void testStringCharacterMap() throws Exception {
+            for (Map<String, Character> object : SETTINGS.javaData().STRING_CHAR_MAPS) {
+                Map<String, Character> map = outputUtils.roundTrip(
+                        object,
+                        serde::writeStringCharacterMap,
+                        serde::readStringCharacterMap,
+                        new TypeReference<>() {});
+                if (map != null) {
+                    assertThat(map).isInstanceOf(LinkedHashMap.class);
+                }
+            }
+        }
+
+        /* STRING_INT_MAPS -> STRING_FLOAT_MAPS, Integer -> Float */
+        @Test
+        @GeneratedVariant("Variant of testStringIntegerMap")
+        void testStringFloatMap() throws Exception {
+            for (Map<String, Float> object : SETTINGS.javaData().STRING_FLOAT_MAPS) {
+                Map<String, Float> map = outputUtils.roundTrip(
+                        object, serde::writeStringFloatMap, serde::readStringFloatMap, new TypeReference<>() {});
+                if (map != null) {
+                    assertThat(map).isInstanceOf(LinkedHashMap.class);
+                }
+            }
+        }
+
+        /* STRING_INT_MAPS -> STRING_DOUBLE_MAPS, Integer -> Double */
+        @Test
+        @GeneratedVariant("Variant of testStringIntegerMap")
+        void testStringDoubleMap() throws Exception {
+            for (Map<String, Double> object : SETTINGS.javaData().STRING_DOUBLE_MAPS) {
+                Map<String, Double> map = outputUtils.roundTrip(
+                        object, serde::writeStringDoubleMap, serde::readStringDoubleMap, new TypeReference<>() {});
+                if (map != null) {
+                    assertThat(map).isInstanceOf(LinkedHashMap.class);
+                }
+            }
+        }
+
+        /* STRING_INT_MAPS -> STRING_STRING_MAPS, Integer -> String */
+        @Test
+        @GeneratedVariant("Variant of testStringIntegerMap")
+        void testStringStringMap() throws Exception {
+            for (Map<String, String> object : SETTINGS.javaData().STRING_STRING_MAPS) {
+                Map<String, String> map = outputUtils.roundTrip(
+                        object, serde::writeStringStringMap, serde::readStringStringMap, new TypeReference<>() {});
+                if (map != null) {
+                    assertThat(map).isInstanceOf(LinkedHashMap.class);
+                }
+            }
+        }
+
+        /* STRING_INT_MAPS -> STRING_ENUM_MAPS, Integer -> AnEnum */
+        @Test
+        @GeneratedVariant("Variant of testStringIntegerMap")
+        void testStringAnEnumMap() throws Exception {
+            for (Map<String, AnEnum> object : SETTINGS.javaData().STRING_ENUM_MAPS) {
+                Map<String, AnEnum> map = outputUtils.roundTrip(
+                        object, serde::writeStringAnEnumMap, serde::readStringAnEnumMap, new TypeReference<>() {});
+                if (map != null) {
+                    assertThat(map).isInstanceOf(LinkedHashMap.class);
+                }
+            }
+        }
+    }
+
     @Nested
     class CustomKeysTest {
         MapsSerde.CustomKeys serde = SerdeUtil.impl(MapsSerde.CustomKeys.class);
