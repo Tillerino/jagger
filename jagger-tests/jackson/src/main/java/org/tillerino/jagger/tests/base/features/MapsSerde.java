@@ -14,6 +14,7 @@ import org.tillerino.jagger.tests.model.features.CreatorsModel.ConvertersInherit
 import org.tillerino.jagger.tests.model.features.EnumsModel.CustomNames.CustomNamedEnum;
 import org.tillerino.jagger.tests.model.features.EnumsModel.JsonValueEnum;
 import org.tillerino.jagger.tests.model.features.MapsModel.Keys.OffsetDateTimeMapRecord;
+import org.tillerino.jagger.tests.variants.ApplyVariantsToChildren;
 import org.tillerino.jagger.tests.variants.GeneratedVariant;
 import org.tillerino.jagger.tests.variants.Variant;
 import org.tillerino.jagger.tests.variants.Variants;
@@ -42,79 +43,92 @@ interface MapsSerde {
         @JsonOutput
         void writeJsonValueEnumMap(Map<JsonValueEnum, String> map, JsonGenerator generator) throws Exception;
 
+        @ApplyVariantsToChildren
         @Variants({
-            @Variant({
-                @Replacement(regex = "2", replacement = "Boolean.TRUE"),
-                @Replacement(regex = "1", replacement = "Boolean.FALSE"),
-                @Replacement(regex = "Integer", replacement = "Boolean")
-            }),
-            @Variant({
-                @Replacement(regex = "2", replacement = "(byte) 2"),
-                @Replacement(regex = "1", replacement = "(byte) 1"),
-                @Replacement(regex = "Integer", replacement = "Byte")
-            }),
-            @Variant({
-                @Replacement(regex = "2", replacement = "(short) 2"),
-                @Replacement(regex = "1", replacement = "(short) 1"),
-                @Replacement(regex = "Integer", replacement = "Short")
-            }),
-            @Variant({
-                @Replacement(regex = "2", replacement = "2L"),
-                @Replacement(regex = "1", replacement = "1L"),
-                @Replacement(regex = "Integer", replacement = "Long")
-            }),
-            @Variant({
-                @Replacement(regex = "2", replacement = "Float.NaN"),
-                @Replacement(regex = "1", replacement = "Float.POSITIVE_INFINITY"),
-                @Replacement(regex = "Integer", replacement = "Float")
-            }),
-            @Variant({
-                @Replacement(regex = "2", replacement = "Double.NaN"),
-                @Replacement(regex = "1", replacement = "Double.POSITIVE_INFINITY"),
-                @Replacement(regex = "Integer", replacement = "Double")
-            }),
-            @Variant({
-                @Replacement(regex = "2", replacement = "'2'"),
-                @Replacement(regex = "1", replacement = "'1'"),
-                @Replacement(regex = "Integer", replacement = "Character")
-            })
+            @Variant(@Replacement(regex = "Integer", replacement = "Boolean")),
+            @Variant(@Replacement(regex = "Integer", replacement = "Byte")),
+            @Variant(@Replacement(regex = "Integer", replacement = "Short")),
+            @Variant(@Replacement(regex = "Integer", replacement = "Long")),
+            @Variant(@Replacement(regex = "Integer", replacement = "Float")),
+            @Variant(@Replacement(regex = "Integer", replacement = "Double")),
+            @Variant(@Replacement(regex = "Integer", replacement = "Character"))
         })
-        @JsonOutput
-        void writeMapInteger(Map<Integer, String> map, JsonGenerator generator) throws Exception;
+        interface Boxed {
+            @JsonOutput
+            void writeMapInteger(Map<Integer, String> map, JsonGenerator generator) throws Exception;
 
-        /* GENERATED CODE. DO NOT MODIFY BELOW!  2 -> Boolean.TRUE, 1 -> Boolean.FALSE, Integer -> Boolean */
-        @JsonOutput
-        @GeneratedVariant("Variant of writeMapInteger")
-        void writeMapBoolean(Map<Boolean, String> map, JsonGenerator generator) throws Exception;
+            @JsonInput
+            Map<Integer, String> readMapInteger(JsonParser parser) throws Exception;
 
-        /* 2 -> (byte) 2, 1 -> (byte) 1, Integer -> Byte */
-        @JsonOutput
-        @GeneratedVariant("Variant of writeMapInteger")
-        void writeMapByte(Map<Byte, String> map, JsonGenerator generator) throws Exception;
+            /* GENERATED CODE. DO NOT MODIFY BELOW!  Integer -> Boolean */
+            @JsonOutput
+            @GeneratedVariant("Variant of writeMapInteger")
+            void writeMapBoolean(Map<Boolean, String> map, JsonGenerator generator) throws Exception;
 
-        /* 2 -> (short) 2, 1 -> (short) 1, Integer -> Short */
-        @JsonOutput
-        @GeneratedVariant("Variant of writeMapInteger")
-        void writeMapShort(Map<Short, String> map, JsonGenerator generator) throws Exception;
+            /* Integer -> Boolean */
+            @JsonInput
+            @GeneratedVariant("Variant of readMapInteger")
+            Map<Boolean, String> readMapBoolean(JsonParser parser) throws Exception;
 
-        /* 2 -> 2L, 1 -> 1L, Integer -> Long */
-        @JsonOutput
-        @GeneratedVariant("Variant of writeMapInteger")
-        void writeMapLong(Map<Long, String> map, JsonGenerator generator) throws Exception;
+            /* Integer -> Byte */
+            @JsonOutput
+            @GeneratedVariant("Variant of writeMapInteger")
+            void writeMapByte(Map<Byte, String> map, JsonGenerator generator) throws Exception;
 
-        /* 2 -> Float.NaN, 1 -> Float.POSITIVE_INFINITY, Integer -> Float */
-        @JsonOutput
-        @GeneratedVariant("Variant of writeMapInteger")
-        void writeMapFloat(Map<Float, String> map, JsonGenerator generator) throws Exception;
+            /* Integer -> Byte */
+            @JsonInput
+            @GeneratedVariant("Variant of readMapInteger")
+            Map<Byte, String> readMapByte(JsonParser parser) throws Exception;
 
-        /* 2 -> Double.NaN, 1 -> Double.POSITIVE_INFINITY, Integer -> Double */
-        @JsonOutput
-        @GeneratedVariant("Variant of writeMapInteger")
-        void writeMapDouble(Map<Double, String> map, JsonGenerator generator) throws Exception;
+            /* Integer -> Short */
+            @JsonOutput
+            @GeneratedVariant("Variant of writeMapInteger")
+            void writeMapShort(Map<Short, String> map, JsonGenerator generator) throws Exception;
 
-        /* 2 -> '2', 1 -> '1', Integer -> Character */
-        @JsonOutput
-        @GeneratedVariant("Variant of writeMapInteger")
-        void writeMapCharacter(Map<Character, String> map, JsonGenerator generator) throws Exception;
+            /* Integer -> Short */
+            @JsonInput
+            @GeneratedVariant("Variant of readMapInteger")
+            Map<Short, String> readMapShort(JsonParser parser) throws Exception;
+
+            /* Integer -> Long */
+            @JsonOutput
+            @GeneratedVariant("Variant of writeMapInteger")
+            void writeMapLong(Map<Long, String> map, JsonGenerator generator) throws Exception;
+
+            /* Integer -> Long */
+            @JsonInput
+            @GeneratedVariant("Variant of readMapInteger")
+            Map<Long, String> readMapLong(JsonParser parser) throws Exception;
+
+            /* Integer -> Float */
+            @JsonOutput
+            @GeneratedVariant("Variant of writeMapInteger")
+            void writeMapFloat(Map<Float, String> map, JsonGenerator generator) throws Exception;
+
+            /* Integer -> Float */
+            @JsonInput
+            @GeneratedVariant("Variant of readMapInteger")
+            Map<Float, String> readMapFloat(JsonParser parser) throws Exception;
+
+            /* Integer -> Double */
+            @JsonOutput
+            @GeneratedVariant("Variant of writeMapInteger")
+            void writeMapDouble(Map<Double, String> map, JsonGenerator generator) throws Exception;
+
+            /* Integer -> Double */
+            @JsonInput
+            @GeneratedVariant("Variant of readMapInteger")
+            Map<Double, String> readMapDouble(JsonParser parser) throws Exception;
+
+            /* Integer -> Character */
+            @JsonOutput
+            @GeneratedVariant("Variant of writeMapInteger")
+            void writeMapCharacter(Map<Character, String> map, JsonGenerator generator) throws Exception;
+
+            /* Integer -> Character */
+            @JsonInput
+            @GeneratedVariant("Variant of readMapInteger")
+            Map<Character, String> readMapCharacter(JsonParser parser) throws Exception;
+        }
     }
 }

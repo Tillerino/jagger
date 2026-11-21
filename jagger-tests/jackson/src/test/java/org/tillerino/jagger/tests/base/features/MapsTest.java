@@ -1,6 +1,7 @@
 package org.tillerino.jagger.tests.base.features;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import java.time.OffsetDateTime;
@@ -25,6 +26,8 @@ class MapsTest extends ReferenceTest {
     @Nested
     class KeysTest {
         MapsSerde.Keys serde = SerdeUtil.impl(MapsSerde.Keys.class);
+
+        MapsSerde.Keys.Boxed boxedSerde = SerdeUtil.impl(MapsSerde.Keys.Boxed.class);
 
         @Test
         void offsetDateTimeMapKey() throws Exception {
@@ -113,7 +116,40 @@ class MapsTest extends ReferenceTest {
             Map<Integer, String> map = new LinkedHashMap<>();
             map.put(2, "first");
             map.put(1, null);
-            outputUtils.assertIsEqualToDatabind(map, serde::writeMapInteger);
+            outputUtils.roundTrip(
+                    map,
+                    boxedSerde::writeMapInteger,
+                    boxedSerde::readMapInteger,
+                    new TypeReference<Map<Integer, String>>() {});
+        }
+
+        @Test
+        void mapKeyCharacterMustHaveLengthOne() {
+            assertThatThrownBy(() -> inputUtils.deserialize("{\"ab\":\"value\"}", boxedSerde::readMapCharacter))
+                    .isInstanceOf(IllegalArgumentException.class)
+                    .hasMessageContaining("single character");
+        }
+
+        @Test
+        void mapKeyFloatNegativeInfinity() throws Exception {
+            Map<Float, String> map = new LinkedHashMap<>();
+            map.put(Float.NEGATIVE_INFINITY, "value");
+            outputUtils.roundTrip(
+                    map,
+                    boxedSerde::writeMapFloat,
+                    boxedSerde::readMapFloat,
+                    new TypeReference<Map<Float, String>>() {});
+        }
+
+        @Test
+        void mapKeyDoubleNegativeInfinity() throws Exception {
+            Map<Double, String> map = new LinkedHashMap<>();
+            map.put(Double.NEGATIVE_INFINITY, "value");
+            outputUtils.roundTrip(
+                    map,
+                    boxedSerde::writeMapDouble,
+                    boxedSerde::readMapDouble,
+                    new TypeReference<Map<Double, String>>() {});
         }
 
         /* GENERATED CODE. DO NOT MODIFY BELOW!  2 -> Boolean.TRUE, 1 -> Boolean.FALSE, Integer -> Boolean */
@@ -123,7 +159,11 @@ class MapsTest extends ReferenceTest {
             Map<Boolean, String> map = new LinkedHashMap<>();
             map.put(Boolean.TRUE, "first");
             map.put(Boolean.FALSE, null);
-            outputUtils.assertIsEqualToDatabind(map, serde::writeMapBoolean);
+            outputUtils.roundTrip(
+                    map,
+                    boxedSerde::writeMapBoolean,
+                    boxedSerde::readMapBoolean,
+                    new TypeReference<Map<Boolean, String>>() {});
         }
 
         /* 2 -> (byte) 2, 1 -> (byte) 1, Integer -> Byte */
@@ -133,7 +173,8 @@ class MapsTest extends ReferenceTest {
             Map<Byte, String> map = new LinkedHashMap<>();
             map.put((byte) 2, "first");
             map.put((byte) 1, null);
-            outputUtils.assertIsEqualToDatabind(map, serde::writeMapByte);
+            outputUtils.roundTrip(
+                    map, boxedSerde::writeMapByte, boxedSerde::readMapByte, new TypeReference<Map<Byte, String>>() {});
         }
 
         /* 2 -> (short) 2, 1 -> (short) 1, Integer -> Short */
@@ -143,7 +184,11 @@ class MapsTest extends ReferenceTest {
             Map<Short, String> map = new LinkedHashMap<>();
             map.put((short) 2, "first");
             map.put((short) 1, null);
-            outputUtils.assertIsEqualToDatabind(map, serde::writeMapShort);
+            outputUtils.roundTrip(
+                    map,
+                    boxedSerde::writeMapShort,
+                    boxedSerde::readMapShort,
+                    new TypeReference<Map<Short, String>>() {});
         }
 
         /* 2 -> 2L, 1 -> 1L, Integer -> Long */
@@ -153,7 +198,8 @@ class MapsTest extends ReferenceTest {
             Map<Long, String> map = new LinkedHashMap<>();
             map.put(2L, "first");
             map.put(1L, null);
-            outputUtils.assertIsEqualToDatabind(map, serde::writeMapLong);
+            outputUtils.roundTrip(
+                    map, boxedSerde::writeMapLong, boxedSerde::readMapLong, new TypeReference<Map<Long, String>>() {});
         }
 
         /* 2 -> Float.NaN, 1 -> Float.POSITIVE_INFINITY, Integer -> Float */
@@ -163,7 +209,11 @@ class MapsTest extends ReferenceTest {
             Map<Float, String> map = new LinkedHashMap<>();
             map.put(Float.NaN, "first");
             map.put(Float.POSITIVE_INFINITY, null);
-            outputUtils.assertIsEqualToDatabind(map, serde::writeMapFloat);
+            outputUtils.roundTrip(
+                    map,
+                    boxedSerde::writeMapFloat,
+                    boxedSerde::readMapFloat,
+                    new TypeReference<Map<Float, String>>() {});
         }
 
         /* 2 -> Double.NaN, 1 -> Double.POSITIVE_INFINITY, Integer -> Double */
@@ -173,7 +223,11 @@ class MapsTest extends ReferenceTest {
             Map<Double, String> map = new LinkedHashMap<>();
             map.put(Double.NaN, "first");
             map.put(Double.POSITIVE_INFINITY, null);
-            outputUtils.assertIsEqualToDatabind(map, serde::writeMapDouble);
+            outputUtils.roundTrip(
+                    map,
+                    boxedSerde::writeMapDouble,
+                    boxedSerde::readMapDouble,
+                    new TypeReference<Map<Double, String>>() {});
         }
 
         /* 2 -> '2', 1 -> '1', Integer -> Character */
@@ -183,7 +237,11 @@ class MapsTest extends ReferenceTest {
             Map<Character, String> map = new LinkedHashMap<>();
             map.put('2', "first");
             map.put('1', null);
-            outputUtils.assertIsEqualToDatabind(map, serde::writeMapCharacter);
+            outputUtils.roundTrip(
+                    map,
+                    boxedSerde::writeMapCharacter,
+                    boxedSerde::readMapCharacter,
+                    new TypeReference<Map<Character, String>>() {});
         }
     }
 }

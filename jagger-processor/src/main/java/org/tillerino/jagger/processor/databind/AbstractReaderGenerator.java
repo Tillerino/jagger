@@ -26,6 +26,7 @@ import javax.lang.model.type.TypeMirror;
 import javax.lang.model.util.ElementFilter;
 import lombok.With;
 import org.apache.commons.lang3.exception.ContextedRuntimeException;
+import org.tillerino.jagger.helpers.CharacterHelper;
 import org.tillerino.jagger.input.EmptyArrays;
 import org.tillerino.jagger.processor.config.AnyConfig;
 import org.tillerino.jagger.processor.config.ConfigProperty.InstantiatedProperty;
@@ -458,6 +459,13 @@ public abstract class AbstractReaderGenerator<SELF extends AbstractReaderGenerat
                 .filter(it -> ctx.commonTypes.isString(it.typeToConvert()));
         if (converter.isPresent()) {
             return converter.get().converter().apply(keyString);
+        }
+
+        if (ctx.commonTypes.isBoxed(keyType)) {
+            if (ctx.types.isSameType(keyType, ctx.commonTypes.boxedChar)) {
+                return e(keyType, "$T.toCharacter($C)", CharacterHelper.class, keyString);
+            }
+            return e(keyType, "$T.valueOf($C)", keyType, keyString);
         }
 
         throw new ContextedRuntimeException("Map keys must be deserialized from strings")
