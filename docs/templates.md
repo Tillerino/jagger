@@ -29,7 +29,7 @@ interface GenericOutputSerde<U> {
 
 Annotating your blueprint with
 ```java
-// ../jagger-tests/jackson/src/main/java/org/tillerino/jagger/tests/base/features/TemplatesSerde.java#L15-L17
+// ../jagger-tests/jackson/src/main/java/org/tillerino/jagger/tests/base/features/TemplatesSerde.java#L16-L18
 
 @JaggerTemplate(
         templates = {GenericInputSerde.class, GenericOutputSerde.class},
@@ -57,7 +57,7 @@ public void writeAnEnum(AnEnum obj, JsonGenerator gen) throws Exception {
 
 The generated methods behave exactly as if they were fully specified. In this blueprint:
 ```java
-// ../jagger-tests/jackson/src/main/java/org/tillerino/jagger/tests/base/features/TemplatesSerde.java#L15-L21
+// ../jagger-tests/jackson/src/main/java/org/tillerino/jagger/tests/base/features/TemplatesSerde.java#L16-L22
 
 @JaggerTemplate(
         templates = {GenericInputSerde.class, GenericOutputSerde.class},
@@ -82,7 +82,7 @@ public void writeArrayOfAnEnum(AnEnum[] obj, JsonGenerator gen) throws Exception
 Instead of specifying types manually, you can use `auto = true` to automatically instantiate templates when needed.
 
 ```java
-// ../jagger-tests/jackson/src/main/java/org/tillerino/jagger/tests/base/features/TemplatesSerde.java#L41-L45
+// ../jagger-tests/jackson/src/main/java/org/tillerino/jagger/tests/base/features/TemplatesSerde.java#L42-L46
 
 @JaggerTemplate(
         templates = {GenericInputSerde.class, GenericOutputSerde.class},

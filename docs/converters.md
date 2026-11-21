@@ -4,7 +4,7 @@ Converters are methods annotated with `@JsonOutputConverter` or `@JsonInputConve
 They are used to convert types that Jagger cannot serialize directly, e.g. `OffsetDateTime`:
 
 ```java
-// ../jagger-core/src/main/java/org/tillerino/jagger/converters/JavaTimeOutputConverters.java#L8-L11
+// ../jagger-core/src/main/java/org/tillerino/jagger/converters/JavaTimeOutputConverters.java#L27-L30
 
 @JsonOutputConverter
 public static String offsetDateTimeToString(OffsetDateTime offsetDateTime) {
@@ -13,7 +13,7 @@ public static String offsetDateTimeToString(OffsetDateTime offsetDateTime) {
 ```
 
 ```java
-// ../jagger-core/src/main/java/org/tillerino/jagger/converters/JavaTimeInputConverters.java#L8-L11
+// ../jagger-core/src/main/java/org/tillerino/jagger/converters/JavaTimeInputConverters.java#L27-L30
 
 @JsonInputConverter
 public static OffsetDateTime stringToOffsetDateTime(String string) {
@@ -112,7 +112,7 @@ When a generic prototype requires an output converter to `String`, Jagger can in
 types and enums. This is useful for generic map keys, where the key type varies between prototypes:
 
 ```java
-// ../jagger-tests/jackson/src/main/java/org/tillerino/jagger/tests/base/features/GenericsSerde.java#L237-L245
+// ../jagger-tests/jackson/src/main/java/org/tillerino/jagger/tests/base/features/GenericsSerde.java#L237-L252
 
 interface GenericKeyMapSerde {
     @JsonOutput
@@ -122,13 +122,20 @@ interface GenericKeyMapSerde {
             GenericConvertersSerde.OutputConverter<K, String> keyConverter,
             GenericOutputSerde<V> valueWriter)
             throws Exception;
+
+    @JsonInput
+    <K, V> Map<K, V> readGenericMap(
+            JsonParser parser,
+            GenericConvertersSerde.InputConverter<String, K> keyConverter,
+            GenericInputSerde<V> valueReader)
+            throws Exception;
 }
 ```
 
 The concrete prototype only declares the map. Jagger fills in the key converter:
 
 ```java
-// ../jagger-tests/jackson/src/main/java/org/tillerino/jagger/tests/base/features/GenericsSerde.java#L247-L255
+// ../jagger-tests/jackson/src/main/java/org/tillerino/jagger/tests/base/features/GenericsSerde.java#L254-L265
 
 @JsonConfig(
         uses = {
@@ -138,13 +145,16 @@ The concrete prototype only declares the map. Jagger fills in the key converter:
 interface IntegerStringMapSerde {
     @JsonOutput
     void writeIntegerStringMap(Map<Integer, String> map, JsonGenerator gen) throws Exception;
+
+    @JsonInput
+    Map<Integer, String> readIntegerStringMap(JsonParser parser) throws Exception;
 }
 ```
 
 Boxed types are converted with `Objects.toString(value, null)`:
 
 ```java
-// ../jagger-tests/jackson/target/generated-sources/annotations/org/tillerino/jagger/tests/base/features/GenericsSerde$IntegerStringMapSerdeImpl.java#L18-L21
+// ../jagger-tests/jackson/target/generated-sources/annotations/org/tillerino/jagger/tests/base/features/GenericsSerde$IntegerStringMapSerdeImpl.java#L19-L22
 
 @Override
 public void writeIntegerStringMap(Map<Integer, String> map, JsonGenerator gen) throws Exception {
@@ -155,7 +165,7 @@ public void writeIntegerStringMap(Map<Integer, String> map, JsonGenerator gen) t
 Enums use the same serialization as map keys, including explicit `@JsonProperty` names:
 
 ```java
-// ../jagger-tests/jackson/target/generated-sources/annotations/org/tillerino/jagger/tests/base/features/GenericsSerde$CustomNamedEnumStringMapSerdeImpl.java#L28-L32
+// ../jagger-tests/jackson/target/generated-sources/annotations/org/tillerino/jagger/tests/base/features/GenericsSerde$CustomNamedEnumStringMapSerdeImpl.java#L29-L33
 
 @Override
 public void writeCustomNamedEnumStringMap(Map<EnumsModel.CustomNames.CustomNamedEnum, String> map,
