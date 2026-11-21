@@ -74,6 +74,10 @@ public class Templates implements JaggerPlugin {
         });
     }
 
+    public static boolean hasAutoTemplates(JaggerBlueprint blueprint) {
+        return blueprint.config.resolveProperty(TEMPLATES).value().stream().anyMatch(TemplateAnnotation::auto);
+    }
+
     private static void addTemplatesFromAnnotation(JaggerBlueprint blueprint) {
         for (TemplateAnnotation templateAnnotation :
                 blueprint.config.resolveProperty(TEMPLATES).value()) {
@@ -111,12 +115,8 @@ public class Templates implements JaggerPlugin {
 
     public static Optional<JaggerPrototype> delegateToAutoTemplate(
             JaggerContext ctx, TemplatablePrototypeKind target, JaggerPrototype caller) {
-        for (TemplateAnnotation templateAnnotation :
-                caller.config().resolveProperty(TEMPLATES).value()) {
-            if (!templateAnnotation.auto()) {
-                continue;
-            }
-            for (Template template : templateAnnotation.templates()) {
+        for (AutoTemplate autoTemplate : findAutoTemplates(caller)) {
+            for (Template template : autoTemplate.annotation().templates()) {
                 LinkedHashMap<TypeVar, TypeMirror> typeBindings = new LinkedHashMap<>();
                 Set<TypeVar> freeTypeVars = new LinkedHashSet<>(template.typeVars);
                 if (template.kind.matches(target, new MatchingOptions(ctx, typeBindings, freeTypeVars, true))) {
@@ -125,7 +125,7 @@ public class Templates implements JaggerPlugin {
                     InstantiatedMethod instantiated = ctx.generics
                             .applyTypeBindings(template.method, CollectionUtil.mapLists(template.typeVars, typeList))
                             .withName(protoKind.defaultMethodName());
-                    JaggerBlueprint blueprint = caller.blueprint();
+                    JaggerBlueprint blueprint = autoTemplate.blueprint();
                     JaggerPrototype templatedPototype =
                             JaggerPrototype.of(blueprint, instantiated, protoKind, ctx, false, caller.trigger());
                     blueprint.prototypes.add(templatedPototype);
@@ -135,6 +135,22 @@ public class Templates implements JaggerPlugin {
         }
         return Optional.empty();
     }
+
+    private static List<AutoTemplate> findAutoTemplates(JaggerPrototype caller) {
+        List<AutoTemplate> autoTemplates = new ArrayList<>();
+        // caller takes precedence
+        caller.config().resolveProperty(TEMPLATES).value().stream()
+                .filter(TemplateAnnotation::auto)
+                .forEach(annotation -> autoTemplates.add(new AutoTemplate(caller.blueprint(), annotation)));
+        for (JaggerBlueprint use : caller.config().reversedUses()) {
+            use.config.resolveProperty(TEMPLATES).value().stream()
+                    .filter(TemplateAnnotation::auto)
+                    .forEach(annotation -> autoTemplates.add(new AutoTemplate(use, annotation)));
+        }
+        return autoTemplates;
+    }
+
+    private record AutoTemplate(JaggerBlueprint blueprint, TemplateAnnotation annotation) {}
 
     private record TemplateAnnotation(List<Template> templates, List<List<TypeMirror>> types, boolean auto) {
         private static TemplateAnnotation fromAnnotation(AnnotationMirrorWrapper templateAnnotation) {

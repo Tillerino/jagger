@@ -23,6 +23,7 @@ import org.tillerino.jagger.processor.ext.BlueprintConfigurator;
 import org.tillerino.jagger.processor.ext.JaggerPlugin;
 import org.tillerino.jagger.processor.ext.PrototypeKind.CodeGeneratorContext;
 import org.tillerino.jagger.processor.features.CodeGeneration;
+import org.tillerino.jagger.processor.features.Templates;
 import org.tillerino.jagger.processor.util.Annotations.AnnotationMirrorWrapper;
 import org.tillerino.jagger.processor.util.InstantiatedMethod;
 
@@ -154,10 +155,11 @@ public class JaggerProcessor extends AbstractProcessor {
     }
 
     private void generateCode() {
-        // blueprints are sorted so that the providers from breaking up circles remain in stable places
+        // blueprints are sorted so that the providers from breaking up circles remain in stable places. blueprints
+        // with auto-templates are generated last, since other blueprints may add prototypes to them while generating.
         ArrayList<JaggerBlueprint> blueprintsSorted = new ArrayList<>(ctx.blueprints.values());
-        blueprintsSorted.sort(
-                Comparator.comparing(b -> b.typeElement.getQualifiedName().toString()));
+        blueprintsSorted.sort(Comparator.comparing((JaggerBlueprint b) -> Templates.hasAutoTemplates(b) ? 1 : 0)
+                .thenComparing(b -> b.typeElement.getQualifiedName().toString()));
 
         List<GeneratedClass> toBeWritten = new ArrayList<>();
         for (JaggerBlueprint blueprint : blueprintsSorted) {

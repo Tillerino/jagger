@@ -10,6 +10,8 @@ import org.tillerino.jagger.tests.CodeAssertions.CompileUnitAssert;
 import org.tillerino.jagger.tests.ReferenceTest;
 import org.tillerino.jagger.tests.SerdeUtil;
 import org.tillerino.jagger.tests.base.features.TemplatesSerde.CallsTemplatePrototypes;
+import org.tillerino.jagger.tests.base.features.TemplatesSerde.ForeignAutoSerde.AutoTemplatesGoHereSerde;
+import org.tillerino.jagger.tests.base.features.TemplatesSerde.ForeignAutoSerde.TriggersAutoTemplatesSerde;
 import org.tillerino.jagger.tests.base.features.TemplatesSerde.MultipleTemplateAnnotationsAndOneCustom;
 import org.tillerino.jagger.tests.base.features.TemplatesSerde.TemplatedSerde;
 import org.tillerino.jagger.tests.model.AnEnum;
@@ -92,6 +94,14 @@ class TemplatesTest extends ReferenceTest {
                     serde::writeScalarFieldsRecord,
                     serde::readScalarFieldsRecord,
                     new TypeReference<ScalarFieldsRecord>() {});
+        }
+
+        @Test
+        void autoTemplatesFromUsedBlueprintTrigger() throws Exception {
+            assertThatImpl(AutoTemplatesGoHereSerde.class).method("writeString");
+            assertThatImpl(TriggersAutoTemplatesSerde.class)
+                    .method("writeSimpleRecord")
+                    .bodyContains("autoTemplatesGoHereSerde$0$delegate.writeString");
         }
 
         @Test

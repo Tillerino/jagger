@@ -10,6 +10,7 @@ import org.tillerino.jagger.tests.base.features.GenericsSerde.GenericOutputSerde
 import org.tillerino.jagger.tests.model.AnEnum;
 import org.tillerino.jagger.tests.model.ScalarFieldsRecord;
 import org.tillerino.jagger.tests.model.features.TemplatesModel.HasAnEnumArrayProperty;
+import org.tillerino.jagger.tests.model.features.TemplatesModel.SimpleRecord;
 
 public interface TemplatesSerde {
     @JaggerTemplate(
@@ -43,4 +44,17 @@ public interface TemplatesSerde {
             types = {ScalarFieldsRecord.class},
             auto = true)
     interface AutoTemplatesSerde {}
+
+    interface ForeignAutoSerde {
+        @JaggerTemplate(
+                templates = {GenericOutputSerde.class},
+                auto = true)
+        interface AutoTemplatesGoHereSerde {}
+
+        @JsonConfig(uses = AutoTemplatesGoHereSerde.class)
+        interface TriggersAutoTemplatesSerde {
+            @JsonOutput
+            void writeSimpleRecord(SimpleRecord obj, JsonGenerator gen) throws Exception;
+        }
+    }
 }
