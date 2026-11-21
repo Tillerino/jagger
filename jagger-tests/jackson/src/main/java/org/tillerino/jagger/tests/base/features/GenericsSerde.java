@@ -11,6 +11,7 @@ import org.tillerino.jagger.annotations.JsonInputDefaultValue;
 import org.tillerino.jagger.annotations.JsonOutput;
 import org.tillerino.jagger.annotations.JsonOutputConverter;
 import org.tillerino.jagger.tests.base.features.DelegationSerde.BoxedScalarsSerde;
+import org.tillerino.jagger.tests.model.features.EnumsModel.CustomNames.CustomNamedEnum;
 import org.tillerino.jagger.tests.model.features.GenericsModel.GenericRecord;
 import org.tillerino.jagger.tests.model.features.GenericsModel.PointlessGenericsRecord;
 import org.tillerino.jagger.tests.model.features.GenericsModel.UsesGenericRecord;
@@ -251,5 +252,15 @@ public interface GenericsSerde {
     interface IntegerStringMapSerde {
         @JsonOutput
         void writeIntegerStringMap(Map<Integer, String> map, JsonGenerator gen) throws Exception;
+    }
+
+    @JsonConfig(
+            uses = {
+                GenericKeyMapSerde.class,
+                StringSerde.class,
+            })
+    interface CustomNamedEnumStringMapSerde {
+        @JsonOutput
+        void writeCustomNamedEnumStringMap(Map<CustomNamedEnum, String> map, JsonGenerator gen) throws Exception;
     }
 }

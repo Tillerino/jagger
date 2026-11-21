@@ -69,7 +69,8 @@ public class Converters {
         return Optional.empty();
     }
 
-    public Optional<Expr> instantiateBoxedToStringConverter(TypeMirror targetType) {
+    /** Boxed types are converted as {@code x -> Objects.toString(x, null)}, enums are serialized via {@link Enums}. */
+    public Optional<Expr> instantiateToStringConverter(TypeMirror targetType, GeneratedClass generatedClass) {
         if (!ctx.generics.isFunctionalInterface(targetType)) {
             return Optional.empty();
         }
@@ -80,14 +81,24 @@ public class Converters {
         InstantiatedMethod method = methods.get(0);
         if (!isOutputConverter(method.element())
                 || method.parameters().size() != 1
-                || !ctx.commonTypes.isBoxed(method.parameters().get(0).type())
                 || !ctx.commonTypes.isString(method.returnType())) {
             return Optional.empty();
-        } else {
-            String parameterName = method.parameters().get(0).name();
+        }
+        TypeMirror parameterType = method.parameters().get(0).type();
+        String parameterName = method.parameters().get(0).name();
+        if (ctx.commonTypes.isBoxed(parameterType)) {
             return Optional.of(
                     e(targetType, "$L -> $T.toString($L, null)", parameterName, Objects.class, parameterName));
         }
+        if (ctx.commonTypes.isEnum(parameterType)) {
+            Expr enumValue = e(parameterType, "$L", parameterName);
+            return Optional.of(e(
+                    targetType,
+                    "$L -> $C",
+                    parameterName,
+                    Enums.serializationCode(generatedClass, parameterType, enumValue)));
+        }
+        return Optional.empty();
     }
 
     public record OutputConverter(Function<Expr, Expr> converter, TypeMirror convertedType) {}

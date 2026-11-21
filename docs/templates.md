@@ -9,7 +9,7 @@ The `@JaggerTemplate` annotation allows you to generate many prototypes based on
 Consider these generic interfaces:
 
 ```java
-//../jagger-tests/jackson/src/main/java/org/tillerino/jagger/tests/base/features/GenericsSerde.java#L20-L24
+//../jagger-tests/jackson/src/main/java/org/tillerino/jagger/tests/base/features/GenericsSerde.java#L21-L25
 
 @JsonConfig(implement = JsonConfig.ImplementationMode.DO_NOT_IMPLEMENT)
 interface GenericInputSerde<V> {
@@ -18,7 +18,7 @@ interface GenericInputSerde<V> {
 }
 ```
 ```java
-//../jagger-tests/jackson/src/main/java/org/tillerino/jagger/tests/base/features/GenericsSerde.java#L27-L31
+//../jagger-tests/jackson/src/main/java/org/tillerino/jagger/tests/base/features/GenericsSerde.java#L28-L32
 
 @JsonConfig(implement = JsonConfig.ImplementationMode.DO_NOT_IMPLEMENT)
 interface GenericOutputSerde<U> {

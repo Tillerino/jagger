@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.tillerino.jagger.tests.CodeAssertions.assertThatImpl;
 
 import com.fasterxml.jackson.core.type.TypeReference;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Nested;
@@ -12,6 +13,7 @@ import org.junit.jupiter.api.Test;
 import org.tillerino.jagger.tests.ReferenceTest;
 import org.tillerino.jagger.tests.SerdeUtil;
 import org.tillerino.jagger.tests.base.features.GenericsSerde.*;
+import org.tillerino.jagger.tests.model.features.EnumsModel.CustomNames.CustomNamedEnum;
 import org.tillerino.jagger.tests.model.features.GenericsModel.GenericRecord;
 import org.tillerino.jagger.tests.model.features.GenericsModel.PointlessGenericsRecord;
 import org.tillerino.jagger.tests.model.features.GenericsModel.UsesGenericRecord;
@@ -34,6 +36,8 @@ class GenericsTest extends ReferenceTest {
     DeepGenericSerde deepGenericSerde = SerdeUtil.impl(DeepGenericSerde.class);
 
     IntegerStringMapSerde integerStringMapSerde = SerdeUtil.impl(IntegerStringMapSerde.class);
+
+    CustomNamedEnumStringMapSerde customNamedEnumStringMapSerde = SerdeUtil.impl(CustomNamedEnumStringMapSerde.class);
 
     @Test
     void passGenericImplExplicitly() throws Exception {
@@ -129,6 +133,21 @@ class GenericsTest extends ReferenceTest {
         assertThatImpl(GenericKeyMapSerde.class)
                 .method("writeGenericMap")
                 .bodyContains("keyConverter.convert(entry.getKey())");
+    }
+
+    @Test
+    void genericMapWithEnumKeyConverterSerde() throws Exception {
+        Map<CustomNamedEnum, String> map = new LinkedHashMap<>();
+        map.put(CustomNamedEnum.VALUE3, "a");
+        map.put(CustomNamedEnum.VALUE1, "b");
+        map.put(CustomNamedEnum.VALUE2, null);
+
+        outputUtils.assertIsEqualToDatabind(map, customNamedEnumStringMapSerde::writeCustomNamedEnumStringMap);
+
+        assertThatImpl(CustomNamedEnumStringMapSerde.class)
+                .method("writeCustomNamedEnumStringMap")
+                .calls("writeGenericMap")
+                .bodyContains("$values.get");
     }
 
     @Test

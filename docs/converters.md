@@ -105,3 +105,61 @@ Add them to `@JsonConfig` to enable all of them at once:
 
 @JsonConfig(uses = {AllInputConverters.class, AllOutputConverters.class})
 ```
+
+## Automatically instantiated converters
+
+When a generic prototype requires an output converter to `String`, Jagger can instantiate it automatically for boxed
+types and enums. This is useful for generic map keys, where the key type varies between prototypes:
+
+```java
+// ../jagger-tests/jackson/src/main/java/org/tillerino/jagger/tests/base/features/GenericsSerde.java#L237-L245
+
+interface GenericKeyMapSerde {
+    @JsonOutput
+    <K, V> void writeGenericMap(
+            Map<K, V> map,
+            JsonGenerator gen,
+            GenericConvertersSerde.OutputConverter<K, String> keyConverter,
+            GenericOutputSerde<V> valueWriter)
+            throws Exception;
+}
+```
+
+The concrete prototype only declares the map. Jagger fills in the key converter:
+
+```java
+// ../jagger-tests/jackson/src/main/java/org/tillerino/jagger/tests/base/features/GenericsSerde.java#L247-L255
+
+@JsonConfig(
+        uses = {
+            GenericKeyMapSerde.class,
+            StringSerde.class,
+        })
+interface IntegerStringMapSerde {
+    @JsonOutput
+    void writeIntegerStringMap(Map<Integer, String> map, JsonGenerator gen) throws Exception;
+}
+```
+
+Boxed types are converted with `Objects.toString(value, null)`:
+
+```java
+// ../jagger-tests/jackson/target/generated-sources/annotations/org/tillerino/jagger/tests/base/features/GenericsSerde$IntegerStringMapSerdeImpl.java#L18-L21
+
+@Override
+public void writeIntegerStringMap(Map<Integer, String> map, JsonGenerator gen) throws Exception {
+  genericKeyMapSerde$0$delegate.writeGenericMap(map, gen, from -> Objects.toString(from, null), stringSerde$1$delegate);
+}
+```
+
+Enums use the same serialization as map keys, including explicit `@JsonProperty` names:
+
+```java
+// ../jagger-tests/jackson/target/generated-sources/annotations/org/tillerino/jagger/tests/base/features/GenericsSerde$CustomNamedEnumStringMapSerdeImpl.java#L28-L32
+
+@Override
+public void writeCustomNamedEnumStringMap(Map<EnumsModel.CustomNames.CustomNamedEnum, String> map,
+    JsonGenerator gen) throws Exception {
+  genericKeyMapSerde$0$delegate.writeGenericMap(map, gen, from -> customNamedEnum$0$values.get(from), stringSerde$1$delegate);
+}
+```
