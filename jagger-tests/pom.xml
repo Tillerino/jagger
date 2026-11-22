@@ -4,7 +4,7 @@
     <parent>
         <groupId>org.tillerino.jagger</groupId>
         <artifactId>jagger-parent</artifactId>
-        <version>0.9.0</version>
+        <version>0.9.1-SNAPSHOT</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
     <artifactId>jagger-tests</artifactId>
@@ -34,7 +34,7 @@
         <copy.writerMode>-</copy.writerMode>
         <copy.features>JSON</copy.features>
         <maven.install.skip>true</maven.install.skip>
-        <argLine/>
+        <argLine />
     </properties>
 
     <dependencies>
