@@ -2,6 +2,7 @@ package org.tillerino.jagger.tests.model.features;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIdentityInfo;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.fasterxml.jackson.annotation.JsonTypeInfo.Id;
 import com.fasterxml.jackson.annotation.JsonValue;
@@ -9,6 +10,8 @@ import com.fasterxml.jackson.annotation.ObjectIdGenerators.IntSequenceGenerator;
 import com.fasterxml.jackson.annotation.ObjectIdGenerators.PropertyGenerator;
 import com.fasterxml.jackson.annotation.ObjectIdGenerators.UUIDGenerator;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.ToString;
 
 public interface ReferencesModel {
     @JsonIdentityInfo(generator = IntSequenceGenerator.class)
@@ -20,15 +23,36 @@ public interface ReferencesModel {
         private String prop;
     }
 
+    @JsonIdentityInfo(generator = IntSequenceGenerator.class)
+    @Data
+    @EqualsAndHashCode(exclude = "self")
+    @ToString(exclude = "self")
+    class SelfReferencingIntSequencePojo {
+        private String prop;
+        private SelfReferencingIntSequencePojo self;
+    }
+
+    @JsonIdentityInfo(generator = PropertyGenerator.class, property = "externalProp")
+    @Data
+    @EqualsAndHashCode(exclude = "self")
+    @ToString(exclude = "self")
+    class SelfReferencingPropPojo {
+        private SelfReferencingPropPojo self;
+
+        @JsonProperty("externalProp")
+        private String prop;
+    }
+
     @JsonIdentityInfo(generator = UUIDGenerator.class)
     record UuidIdRecord(String prop) {}
 
     @JsonIdentityInfo(generator = PropertyGenerator.class, property = "prop")
-    record PropertyIdRecord(String prop) {}
+    record PropertyIdRecord(int notProp, String prop) {}
 
     @JsonIdentityInfo(generator = PropertyGenerator.class, property = "prop")
     @Data
     class PropertyIdPojo {
+        int notProp;
         String prop;
     }
 

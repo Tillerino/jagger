@@ -51,6 +51,42 @@ class ReferencesTest extends ReferenceTest {
     }
 
     @Test
+    void writeSelfReferencingPojo() throws Exception {
+        SelfReferencingIntSequencePojo pojo = new SelfReferencingIntSequencePojo();
+        pojo.setProp("bla");
+        pojo.setSelf(pojo);
+        outputUtils.assertIsEqualToDatabind(pojo, serde::writeSelfReferencingPojo);
+    }
+
+    @Test
+    void readSelfReferencingPojo() throws Exception {
+        SelfReferencingIntSequencePojo pojo = inputUtils.deserialize2(
+                "{\"@id\":1,\"prop\":\"bla\",\"self\":1}",
+                new DeserializationContext(),
+                serde::readSelfReferencingPojo);
+        assertThat(pojo.getProp()).isEqualTo("bla");
+        assertThat(pojo.getSelf()).isSameAs(pojo);
+    }
+
+    @Test
+    void writeSelfReferencingPropPojo() throws Exception {
+        SelfReferencingPropPojo pojo = new SelfReferencingPropPojo();
+        pojo.setProp("bla");
+        pojo.setSelf(pojo);
+        outputUtils.assertIsEqualToDatabind(pojo, serde::writeSelfReferencingPropPojo);
+    }
+
+    @Test
+    void readSelfReferencingPropPojo() throws Exception {
+        SelfReferencingPropPojo pojo = inputUtils.deserialize2(
+                "{\"externalProp\":\"bla\",\"self\":\"bla\"}",
+                new DeserializationContext(),
+                serde::readSelfReferencingPropPojo);
+        assertThat(pojo.getProp()).isEqualTo("bla");
+        assertThat(pojo.getSelf()).isSameAs(pojo);
+    }
+
+    @Test
     void writeUuidIdRecord() throws Exception {
         UuidIdRecord bla = new UuidIdRecord("bla");
         String json =
@@ -73,7 +109,7 @@ class ReferencesTest extends ReferenceTest {
 
     @Test
     void writePropertyIdRecord() throws Exception {
-        PropertyIdRecord bla = new PropertyIdRecord("bla");
+        PropertyIdRecord bla = new PropertyIdRecord(1, "bla");
         outputUtils.assertIsEqualToDatabind(List.of(bla, bla), serde::writeListOfPropertyIdRecord);
     }
 
@@ -82,8 +118,10 @@ class ReferencesTest extends ReferenceTest {
         // Jackson throws up here. Something about a fallback setter/field. Probably because it's a record.
         // Jackson works just fine with a POJO, see below.
         List<PropertyIdRecord> list = inputUtils.deserialize2(
-                "[{\"prop\":\"bla\"},\"bla\"]", new DeserializationContext(), serde::readListOfPropertyIdRecord);
-        assertThat(list.get(0)).isEqualTo(new PropertyIdRecord("bla"));
+                "[{\"notProp\":1,\"prop\":\"bla\"},\"bla\"]",
+                new DeserializationContext(),
+                serde::readListOfPropertyIdRecord);
+        assertThat(list.get(0)).isEqualTo(new PropertyIdRecord(1, "bla"));
         assertThat(list.get(0)).isSameAs(list.get(1));
     }
 

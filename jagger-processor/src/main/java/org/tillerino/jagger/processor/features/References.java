@@ -3,6 +3,7 @@ package org.tillerino.jagger.processor.features;
 import static org.tillerino.jagger.processor.util.Code.c;
 import static org.tillerino.jagger.processor.util.Expr.e;
 
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -83,7 +84,7 @@ public class References {
             Optional<TypeMirror> scope) {}
 
     public record Setup(
-            String property,
+            String externalName,
             TypeMirror generator,
             TypeMirror idType,
             TypeMirror resolver,
@@ -122,8 +123,8 @@ public class References {
                     rhs));
         }
 
-        public Optional<Code> rememberId(Code rhs, Code property) {
-            if (!isPropertyBased()) {
+        public Optional<Code> rememberId(Code rhs, Code property, String externalName) {
+            if (!isPropertyBased() || !externalName.equals(this.externalName)) {
                 return Optional.empty();
             }
             return Optional.of(c("$C.rememberId($C, $C)", context(), rhs, property));
@@ -131,6 +132,20 @@ public class References {
 
         public boolean isPropertyBased() {
             return generator.toString().equals("com.fasterxml.jackson.annotation.ObjectIdGenerators.PropertyGenerator");
+        }
+
+        /**
+         * For property-based references, put the ID property first so that self-references can be resolved while
+         * reading. Other property orders are preserved.
+         */
+        public List<Properties.OutputProperty> sortProperties(List<Properties.OutputProperty> properties) {
+            if (!isPropertyBased()) {
+                return properties;
+            }
+            return properties.stream()
+                    .sorted(Comparator.comparing(
+                            (Properties.OutputProperty p) -> !p.externalName().equals(externalName)))
+                    .toList();
         }
 
         public TypeMirror finalIdType(TypeMirror type, JaggerContext ctx) {
@@ -144,14 +159,14 @@ public class References {
                         AnyConfig propertyConfig = AnyConfig.fromAccessorConsideringField(
                                 accessor, accessor.name(), type, canonicalName, ctx);
                         String externalName = PropertyName.resolvePropertyName(propertyConfig, canonicalName);
-                        if (!externalName.equals(property())) {
+                        if (!externalName.equals(externalName())) {
                             return Stream.empty();
                         }
                         return Stream.of(accessor.type());
                     })
                     .findFirst()
                     .orElseThrow(() -> new ContextedRuntimeException(
-                            "Configured property-based ID but property not found: " + property()));
+                            "Configured property-based ID but property not found: " + externalName()));
         }
     }
 }

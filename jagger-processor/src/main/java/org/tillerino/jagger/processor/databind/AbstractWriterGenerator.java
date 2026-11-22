@@ -408,7 +408,7 @@ public abstract class AbstractWriterGenerator<SELF extends AbstractWriterGenerat
         referencesSetup.ifPresent(setup -> setup.generateId(rhs)
                 .ifPresent(id -> nest(
                                 setup.idType(),
-                                new Member(e(ctx.commonTypes.string, "$S", setup.property())),
+                                new Member(e(ctx.commonTypes.string, "$S", setup.externalName())),
                                 "id",
                                 new RHS(id, false),
                                 config.propagateTo(PropagationKind.PROPERTY))
@@ -418,7 +418,11 @@ public abstract class AbstractWriterGenerator<SELF extends AbstractWriterGenerat
         Set<String> ignoredProperties =
                 config.resolveProperty(IgnoreProperties.IGNORED_PROPERTIES).value();
 
-        for (OutputProperty property : ctx.properties.outputProperties(type, this.config)) {
+        List<OutputProperty> properties = ctx.properties.outputProperties(type, this.config);
+        List<OutputProperty> sortedProperties =
+                referencesSetup.map(setup -> setup.sortProperties(properties)).orElseGet(() -> properties);
+
+        for (OutputProperty property : sortedProperties) {
             if (IgnoreProperty.isIgnoredForJson(property.config())
                     || ignoredProperties.contains(property.externalName())) {
                 continue;
@@ -435,7 +439,9 @@ public abstract class AbstractWriterGenerator<SELF extends AbstractWriterGenerat
                     accessorCall,
                     property.config().propagateTo(PropagationKind.PROPERTY));
             Exceptions.runWithContext("property", property.canonicalName(), nested::build);
-            referencesSetup.flatMap(s -> s.rememberId(rhs, accessorCall)).ifPresent(this::addStatement);
+            referencesSetup
+                    .flatMap(s -> s.rememberId(rhs, accessorCall, property.externalName()))
+                    .ifPresent(this::addStatement);
             code.add("\n");
         }
     }

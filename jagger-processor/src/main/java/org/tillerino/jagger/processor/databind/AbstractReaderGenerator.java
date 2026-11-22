@@ -613,7 +613,7 @@ public abstract class AbstractReaderGenerator<SELF extends AbstractReaderGenerat
             nested.add(new NestedProperty(parameter.name(), propertyName, propertyConfig, nest));
         }
 
-        TypedVariable idVar = readProperties(nested);
+        TypedVariable idVar = readProperties(nested, Optional.empty());
         List<Expr> args =
                 nested.stream().<Expr>map(p -> ((LHS.Variable) p.generator.lhs)).toList();
         Expr creatorCall = method.callStatic(args);
@@ -651,15 +651,18 @@ public abstract class AbstractReaderGenerator<SELF extends AbstractReaderGenerat
             nested.add(new NestedProperty(canonicalPropertyName, propertyName, propertyConfig, nest));
         });
 
-        TypedVariable idVar = readProperties(nested);
-        ctx.references.resolveSetup(config, contextParameter()).ifPresent(setup -> {
-            addStatement(setup.bindItem(idVar, objectVar));
-        });
+        // Mutable objects exist before their properties are read, so bind them as soon as the ID is
+        // known. This allows references within the object itself (e.g. a self-reference) to resolve.
+        Optional<Consumer<TypedVariable>> bindItem = ctx.references
+                .resolveSetup(config, contextParameter())
+                .map(setup -> idVar -> addStatement(setup.bindItem(idVar, objectVar)));
+        readProperties(nested, bindItem);
 
         addStatement(lhs.assign("$C", objectVar));
     }
 
-    private TypedVariable readProperties(List<NestedProperty> properties) {
+    private TypedVariable readProperties(
+            List<NestedProperty> properties, Optional<Consumer<TypedVariable>> bindItemWhenIdIsRead) {
         Optional<Setup> referencesSetup = ctx.references.resolveSetup(config, contextParameter());
         TypedVariable idVar = referencesSetup
                 .map(setup -> {
@@ -692,7 +695,7 @@ public abstract class AbstractReaderGenerator<SELF extends AbstractReaderGenerat
             Exceptions.runWithContext("property", nest.serializedName, () -> {
                 if (referencesSetup
                         .filter(setup ->
-                                setup.isPropertyBased() && setup.property().equals(nest.serializedName))
+                                setup.isPropertyBased() && setup.externalName().equals(nest.serializedName))
                         .isPresent()) {
                     SELF tmpNest = nest(
                             nest.generator.pvn,
@@ -702,6 +705,7 @@ public abstract class AbstractReaderGenerator<SELF extends AbstractReaderGenerat
                             Optional.empty());
                     tmpNest.build(IF, true);
                     addStatement(nest.generator.lhs.assign(idVar));
+                    bindItemWhenIdIsRead.ifPresent(c -> c.accept(idVar));
                 } else {
                     nest.generator.build(Branch.IF, true);
                 }
@@ -720,7 +724,7 @@ public abstract class AbstractReaderGenerator<SELF extends AbstractReaderGenerat
             endControlFlow();
         }
         referencesSetup.filter(setup -> !setup.isPropertyBased()).ifPresent(setup -> {
-            beginControlFlow("case $S:", setup.property());
+            beginControlFlow("case $S:", setup.externalName());
             nest(
                             "id",
                             new LHS.Variable(setup.idType(), idVar),
@@ -728,6 +732,7 @@ public abstract class AbstractReaderGenerator<SELF extends AbstractReaderGenerat
                             true,
                             Optional.empty())
                     .build(IF, true);
+            bindItemWhenIdIsRead.ifPresent(c -> c.accept(idVar));
             addStatement("break");
             endControlFlow();
         });

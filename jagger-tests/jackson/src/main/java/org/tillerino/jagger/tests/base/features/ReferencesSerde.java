@@ -49,6 +49,21 @@ public interface ReferencesSerde {
     List<IntSequenceIdPojo> readListOfIntSequenceIdPojo(JsonParser parser, DeserializationContext ctx) throws Exception;
 
     @JsonOutput
+    void writeSelfReferencingPojo(SelfReferencingIntSequencePojo pojo, JsonGenerator gen, SerializationContext ctx)
+            throws Exception;
+
+    @JsonInput
+    SelfReferencingIntSequencePojo readSelfReferencingPojo(JsonParser parser, DeserializationContext ctx)
+            throws Exception;
+
+    @JsonOutput
+    void writeSelfReferencingPropPojo(SelfReferencingPropPojo pojo, JsonGenerator gen, SerializationContext ctx)
+            throws Exception;
+
+    @JsonInput
+    SelfReferencingPropPojo readSelfReferencingPropPojo(JsonParser parser, DeserializationContext ctx) throws Exception;
+
+    @JsonOutput
     void writeUuidIdRecord(UuidIdRecord hasIntId, JsonGenerator gen, SerializationContext ctx) throws Exception;
 
     @JsonInput
