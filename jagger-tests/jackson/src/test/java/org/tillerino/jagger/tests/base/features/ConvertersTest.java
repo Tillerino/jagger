@@ -1,6 +1,10 @@
 package org.tillerino.jagger.tests.base.features;
 
+import static net.javacrumbs.jsonunit.assertj.JsonAssertions.assertThatJson;
+
 import com.fasterxml.jackson.core.type.TypeReference;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.util.*;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -9,10 +13,21 @@ import org.tillerino.jagger.tests.SerdeUtil;
 import org.tillerino.jagger.tests.TestSettings;
 import org.tillerino.jagger.tests.TestSettingsBase;
 import org.tillerino.jagger.tests.function.Zip;
+import org.tillerino.jagger.tests.model.features.ConvertersModel.OffsetDateTimeRecord;
 import org.tillerino.jagger.tests.model.features.ConvertersModel.OptionalComponentsRecord;
 
 class ConvertersTest extends ReferenceTest {
     ConvertersSerde serde = SerdeUtil.impl(ConvertersSerde.class);
+
+    @Test
+    void offsetDateTimeRecordRoundTrips() throws Exception {
+        OffsetDateTimeRecord instance =
+                new OffsetDateTimeRecord(OffsetDateTime.of(2021, 1, 1, 0, 0, 0, 0, ZoneOffset.UTC));
+        String json = outputUtils.serialize(instance, serde::writeOffsetDateTimeRecord);
+        assertThatJson(json).isEqualTo("{\"timestamp\":\"2021-01-01T00:00Z\"}");
+        Assertions.assertThat(inputUtils.deserialize(json, serde::readOffsetDateTimeRecord))
+                .isEqualTo(instance);
+    }
 
     @Test
     void optionalComponentsRecordRountrips() throws Exception {

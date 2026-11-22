@@ -1,11 +1,14 @@
 package org.tillerino.jagger.tests.model.features;
 
+import java.time.OffsetDateTime;
 import java.util.Optional;
 import java.util.OptionalDouble;
 import java.util.OptionalInt;
 import java.util.OptionalLong;
 
 public interface ConvertersModel {
+    record OffsetDateTimeRecord(OffsetDateTime timestamp) {}
+
     record OptionalComponentsRecord(
             Optional<String> optionalString,
             OptionalInt optionalInt,

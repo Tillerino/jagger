@@ -147,47 +147,8 @@ This will work at any level, and you can even declare methods for primitive type
 
 It is impractical to write actual (de-)serialisers for data types which have a simpler representation like a string.
 `@JsonValue` and `@JsonCreator` are supported, but if you cannot (or do not want to) modify the actual types, you can use converters.
-Converters are static methods annotated with `@JsonOutputConverter` or `@JsonInputConverter`.
-See this example for `OffsetDateTime`:
 
-```java
-public class OffsetDateTimeConverters {
-  @JsonOutputConverter
-  public static String offsetDateTimeToString(OffsetDateTime offsetDateTime) {
-    return offsetDateTime.toString();
-  }
-
-  @JsonInputConverter
-  public static OffsetDateTime stringToOffsetDateTime(String string) {
-    return OffsetDateTime.parse(string);
-  }
-}
-```
-
-Converter methods can be either located in the same class as the `@JsonInput` or `@JsonOutput` method
-or in a separate class and referenced with the `@JsonConfig` `uses` value.
-
-Generics are supported for converters, `@JsonValue`, and `@JsonCreator` methods.
-For example, you can write a converter for `Optional<T>`:
-
-```java
-public class OptionalConverters {
-  @JsonOutputConverter
-  public static <T> T optionalToNullable(Optional<T> optional) {
-    return optional.orElse(null);
-  }
-
-  @JsonInputConverter
-  public static <T> Optional<T> nullableToOptional(T value) {
-    return Optional.ofNullable(value);
-  }
-}
-```
-
-This specific case has already been implemented for reuse
-in [OptionalInputConverters](jagger-core/src/main/java/org/tillerino/jagger/converters/OptionalInputConverters.java)
-and [OptionalOutputConverters](jagger-core/src/main/java/org/tillerino/jagger/converters/OptionalOutputConverters.java).
-See the [converters](jagger-core/src/main/java/org/tillerino/jagger/converters) package for more premade converters.
+[more](docs/converters.md)
 
 ### Generics
 
