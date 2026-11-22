@@ -39,8 +39,8 @@ import org.tillerino.jagger.annotations.JsonInput;
 import org.tillerino.jagger.annotations.JsonOutput;
 
 /**
- * We only write all tests for {@link com.fasterxml.jackson.core.JsonGenerator} and
- * {@link com.fasterxml.jackson.core.JsonParser}. These tests are then translated for other libraries.
+ * We only write all tests for {@link tools.jackson.core.JsonGenerator} and {@link tools.jackson.core.JsonParser}. These
+ * tests are then translated for other libraries.
  */
 public class CopyTests {
     private static final String originalPackage = "org.tillerino.jagger.tests.base";
@@ -148,13 +148,13 @@ public class CopyTests {
 
                             @Override
                             public Node visit(ImportDeclaration n, Void arg) {
-                                if (n.getNameAsString().equals("com.fasterxml.jackson.core.JsonGenerator")) {
+                                if (n.getNameAsString().equals("tools.jackson.core.JsonGenerator")) {
                                     n.setName(writer);
-                                } else if (n.getNameAsString().equals("com.fasterxml.jackson.core.JsonParser")) {
+                                } else if (n.getNameAsString().equals("tools.jackson.core.JsonParser")) {
                                     n.setName(reader);
                                 } else if (p.endsWith("src/main/java")
-                                        && n.getNameAsString().startsWith("com.fasterxml.jackson.core")
-                                        && !writer.startsWith("com.fasterxml.jackson")) {
+                                        && n.getNameAsString().startsWith("tools.jackson.core")
+                                        && !writer.startsWith("tools.jackson")) {
                                     return null;
                                 } else {
                                     n.setName(n.getName().asString().replace(originalPackage, targetPackage));

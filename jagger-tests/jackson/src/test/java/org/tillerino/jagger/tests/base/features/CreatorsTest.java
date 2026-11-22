@@ -2,7 +2,6 @@ package org.tillerino.jagger.tests.base.features;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.fasterxml.jackson.core.type.TypeReference;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.tillerino.jagger.tests.ReferenceTest;
@@ -17,6 +16,7 @@ import org.tillerino.jagger.tests.model.features.CreatorsModel.JsonCreatorMethod
 import org.tillerino.jagger.tests.model.features.CreatorsModel.PolyInterface;
 import org.tillerino.jagger.tests.model.features.CreatorsModel.Priority;
 import org.tillerino.jagger.tests.model.features.CreatorsModel.Priority.*;
+import tools.jackson.core.type.TypeReference;
 
 public class CreatorsTest extends ReferenceTest {
     CreatorsSerde serde = SerdeUtil.impl(CreatorsSerde.class);

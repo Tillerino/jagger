@@ -19,6 +19,9 @@
         <module>nanojson</module>
         <module>adapter-jackson</module>
         <module>adapter-jackson-node</module>
+        <module>jackson2</module>
+        <module>adapter-jackson2</module>
+        <module>adapter-jackson2-node</module>
         <module>jdbc</module>
         <module>custom-plugins</module>
     </modules>
@@ -55,19 +58,9 @@
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>com.fasterxml.jackson.core</groupId>
+            <groupId>tools.jackson.core</groupId>
             <artifactId>jackson-databind</artifactId>
             <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>com.fasterxml.jackson.module</groupId>
-            <artifactId>jackson-module-parameter-names</artifactId>
-            <version>${jackson.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>com.fasterxml.jackson.datatype</groupId>
-            <artifactId>jackson-datatype-jdk8</artifactId>
-            <version>${jackson.version}</version>
         </dependency>
         <dependency>
             <groupId>net.javacrumbs.json-unit</groupId>

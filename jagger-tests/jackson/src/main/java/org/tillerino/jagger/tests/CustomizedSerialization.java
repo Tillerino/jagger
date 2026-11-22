@@ -1,11 +1,11 @@
 package org.tillerino.jagger.tests;
 
-import com.fasterxml.jackson.core.JsonGenerator;
-import com.fasterxml.jackson.core.JsonParser;
 import java.io.IOException;
 import java.time.OffsetDateTime;
 import org.tillerino.jagger.annotations.JsonInput;
 import org.tillerino.jagger.annotations.JsonOutput;
+import tools.jackson.core.JsonGenerator;
+import tools.jackson.core.JsonParser;
 
 interface CustomizedSerialization {
     @JsonOutput

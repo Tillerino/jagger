@@ -9,8 +9,8 @@ class OutOfOrderDiscriminatorTest extends ReferenceTest {
     PolymorphismSerde serde = SerdeUtil.impl(PolymorphismSerde.class);
 
     /**
-     * This tests a special case that we can only handle with {@link com.fasterxml.jackson.databind.JsonNode}. The
-     * discriminator is NOT the first field in the object.
+     * This tests a special case that we can only handle with {@link tools.jackson.databind.JsonNode}. The discriminator
+     * is NOT the first field in the object.
      */
     @Test
     void outOfOrderDiscriminator() throws Exception {

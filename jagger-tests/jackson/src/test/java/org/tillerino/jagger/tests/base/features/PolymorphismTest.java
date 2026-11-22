@@ -1,6 +1,5 @@
 package org.tillerino.jagger.tests.base.features;
 
-import com.fasterxml.jackson.core.type.TypeReference;
 import java.util.List;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -8,6 +7,7 @@ import org.tillerino.jagger.tests.ReferenceTest;
 import org.tillerino.jagger.tests.SerdeUtil;
 import org.tillerino.jagger.tests.base.features.PolymorphismSerde.WithDelegate;
 import org.tillerino.jagger.tests.model.features.PolymorphismModel.*;
+import tools.jackson.core.type.TypeReference;
 
 class PolymorphismTest extends ReferenceTest {
     PolymorphismSerde serde = SerdeUtil.impl(PolymorphismSerde.class);

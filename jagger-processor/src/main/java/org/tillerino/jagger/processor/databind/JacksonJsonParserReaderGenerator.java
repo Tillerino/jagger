@@ -54,7 +54,7 @@ public class JacksonJsonParserReaderGenerator extends AbstractReaderGenerator<Ja
 
     @Override
     protected Code memberCaseCondition() {
-        return c("$C.currentToken() == $L", parserVariable, token("FIELD_NAME"));
+        return c("$C.currentToken() == $L", parserVariable, token("PROPERTY_NAME"));
     }
 
     @Override
@@ -161,7 +161,7 @@ public class JacksonJsonParserReaderGenerator extends AbstractReaderGenerator<Ja
     @Override
     protected void throwUnexpected(String expected) {
         addStatement(
-                "throw new $T($S + $C.currentToken() + $S + $C.getCurrentLocation())",
+                "throw new $T($S + $C.currentToken() + $S + $C.currentLocation())",
                 IOException.class,
                 "Expected " + expected + ", got ",
                 parserVariable,
@@ -191,7 +191,7 @@ public class JacksonJsonParserReaderGenerator extends AbstractReaderGenerator<Ja
 
     private String token(String t) {
         generatedClass.fileBuilderMods.add(
-                builder -> builder.addStaticImport(ClassName.get("com.fasterxml.jackson.core", "JsonToken"), "*"));
+                builder -> builder.addStaticImport(ClassName.get("tools.jackson.core", "JsonToken"), "*"));
         return t;
     }
 

@@ -2,7 +2,6 @@ package org.tillerino.jagger.tests;
 
 import static net.javacrumbs.jsonunit.assertj.JsonAssertions.assertThatJson;
 
-import com.fasterxml.jackson.core.type.TypeReference;
 import jakarta.json.stream.JsonGenerator;
 import org.apache.commons.lang3.function.FailableBiConsumer;
 import org.apache.commons.lang3.function.FailableBiFunction;
@@ -10,6 +9,7 @@ import org.apache.commons.lang3.function.FailableConsumer;
 import org.apache.commons.lang3.function.FailableFunction;
 import org.tillerino.jagger.api.SerializationContext;
 import org.tillerino.jagger.helpers.JakartaJsonParserHelper.JsonParserWrapper;
+import tools.jackson.core.type.TypeReference;
 
 public record OutputUtils(InputUtils inputUtils) {
 

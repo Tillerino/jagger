@@ -23,7 +23,7 @@ The required dependency is:
 
 ```xml
 <dependency>
-  <groupId>com.fasterxml.jackson.core</groupId>
+  <groupId>tools.jackson.core</groupId>
   <artifactId>jackson-core</artifactId>
   <version>${jackson.version}</version>
 </dependency>
@@ -42,13 +42,44 @@ The required dependency is:
 
 ```xml
 <dependency>
-  <groupId>com.fasterxml.jackson.core</groupId>
+  <groupId>tools.jackson.core</groupId>
   <artifactId>jackson-databind</artifactId>
   <version>${jackson.version}</version>
 </dependency>
 ```
 
 Overhead: 2111kiB
+
+## Jackson 2 Core (streaming)
+
+`com.fasterxml.jackson.core:jackson-core` provides Jackson 2 `JsonParser` and `JsonGenerator` for reading and writing
+JSON. Jagger generates code for these types directly, just like for Jackson 3. You can also use the
+`Jackson2JsonParserAdapter` and `Jackson2JsonGeneratorAdapter` if you want to pass Jackson 2 parsers and generators
+through the `JaggerReader` and `JaggerWriter` abstractions.
+The required dependency is:
+
+```xml
+<dependency>
+  <groupId>com.fasterxml.jackson.core</groupId>
+  <artifactId>jackson-core</artifactId>
+  <version>${jackson2.version}</version>
+</dependency>
+```
+
+## Jackson 2 Databind (objects)
+
+`com.fasterxml.jackson.core:jackson-databind` provides Jackson 2 `JsonNode` for reading and writing JSON.
+Use `Jackson2JsonNodeReaderAdapter` and `Jackson2JsonNodeWriterAdapter` to write your `@JsonInput` and `@JsonOutput`
+methods, for example when you cannot guarantee that the order of fields in JSON is stable and require polymorphism.
+The required dependency is:
+
+```xml
+<dependency>
+  <groupId>com.fasterxml.jackson.core</groupId>
+  <artifactId>jackson-databind</artifactId>
+  <version>${jackson2.version}</version>
+</dependency>
+```
 
 ## Gson
 

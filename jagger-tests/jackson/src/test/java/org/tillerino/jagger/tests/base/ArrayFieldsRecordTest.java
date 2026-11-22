@@ -1,12 +1,12 @@
 package org.tillerino.jagger.tests.base;
 
-import com.fasterxml.jackson.core.type.TypeReference;
 import org.junit.jupiter.api.Test;
 import org.tillerino.jagger.tests.ReferenceTest;
 import org.tillerino.jagger.tests.SerdeUtil;
 import org.tillerino.jagger.tests.TestSettings;
 import org.tillerino.jagger.tests.model.PrimitiveArrayFieldsRecord;
 import org.tillerino.jagger.tests.model.ReferenceArrayFieldsRecord;
+import tools.jackson.core.type.TypeReference;
 
 class ArrayFieldsRecordTest extends ReferenceTest {
     ArrayFieldsRecordSerde serde = SerdeUtil.impl(ArrayFieldsRecordSerde.class);

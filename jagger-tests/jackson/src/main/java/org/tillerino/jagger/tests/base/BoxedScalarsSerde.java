@@ -1,10 +1,10 @@
 package org.tillerino.jagger.tests.base;
 
-import com.fasterxml.jackson.core.JsonGenerator;
-import com.fasterxml.jackson.core.JsonParser;
 import org.tillerino.jagger.annotations.JsonInput;
 import org.tillerino.jagger.annotations.JsonOutput;
 import org.tillerino.jagger.tests.model.AnEnum;
+import tools.jackson.core.JsonGenerator;
+import tools.jackson.core.JsonParser;
 
 /**
  * This interface must be separated from {@link PrimitiveScalarsSerde} because otherwise the boxed writers delegate to

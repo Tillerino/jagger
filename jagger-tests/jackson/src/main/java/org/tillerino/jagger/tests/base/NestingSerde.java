@@ -1,13 +1,13 @@
 package org.tillerino.jagger.tests.base;
 
-import com.fasterxml.jackson.core.JsonGenerator;
-import com.fasterxml.jackson.core.JsonParser;
 import java.util.List;
 import java.util.Map;
 import org.tillerino.jagger.annotations.JsonInput;
 import org.tillerino.jagger.annotations.JsonOutput;
 import org.tillerino.jagger.tests.model.ListFieldWithAdder;
 import org.tillerino.jagger.tests.model.NestingModel;
+import tools.jackson.core.JsonGenerator;
+import tools.jackson.core.JsonParser;
 
 public class NestingSerde {
     interface OuterRecordSerde {

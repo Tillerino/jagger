@@ -2,10 +2,6 @@ package org.tillerino.jagger.tests;
 
 import static net.javacrumbs.jsonunit.assertj.JsonAssertions.assertThatJson;
 
-import com.fasterxml.jackson.core.JsonEncoding;
-import com.fasterxml.jackson.core.JsonFactory;
-import com.fasterxml.jackson.core.JsonGenerator;
-import com.fasterxml.jackson.core.type.TypeReference;
 import java.io.ByteArrayOutputStream;
 import java.nio.charset.StandardCharsets;
 import org.apache.commons.lang3.function.FailableBiConsumer;
@@ -15,6 +11,10 @@ import org.apache.commons.lang3.function.FailableFunction;
 import org.tillerino.jagger.adapters.JacksonJsonGeneratorAdapter;
 import org.tillerino.jagger.adapters.JacksonJsonParserAdapter;
 import org.tillerino.jagger.api.SerializationContext;
+import tools.jackson.core.JsonEncoding;
+import tools.jackson.core.JsonGenerator;
+import tools.jackson.core.json.JsonFactory;
+import tools.jackson.core.type.TypeReference;
 
 public record OutputUtils(InputUtils inputUtils) {
     public String withWriter(FailableConsumer<JacksonJsonGeneratorAdapter, Exception> output) throws Exception {

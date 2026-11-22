@@ -32,7 +32,7 @@ public class JacksonJsonGeneratorWriterGenerator extends AbstractWriterGenerator
     @Override
     protected void writeNull() {
         if (lhs instanceof Member f) {
-            addStatement("$C.writeNullField($C)", generatorVariable, f);
+            addStatement("$C.writeNullProperty($C)", generatorVariable, f);
         } else {
             addStatement("$C.writeNull()", generatorVariable);
         }
@@ -42,10 +42,10 @@ public class JacksonJsonGeneratorWriterGenerator extends AbstractWriterGenerator
     protected void writeString(StringKind stringKind) {
         if (lhs instanceof Member f) {
             if (stringKind == StringKind.STRING) {
-                addStatement("$C.writeStringField($C, $C)", generatorVariable, f, rhs);
+                addStatement("$C.writeStringProperty($C, $C)", generatorVariable, f, rhs);
                 return;
             } else {
-                addStatement("$C.writeFieldName($C)", generatorVariable, f);
+                addStatement("$C.writeName($C)", generatorVariable, f);
             }
         }
         switch (stringKind) {
@@ -64,7 +64,7 @@ public class JacksonJsonGeneratorWriterGenerator extends AbstractWriterGenerator
 
     private boolean addFieldNameIfRequired() {
         if (lhs instanceof Member f) {
-            addStatement("$C.writeFieldName($C)", generatorVariable, f);
+            addStatement("$C.writeName($C)", generatorVariable, f);
             return true;
         }
         return false;
@@ -74,11 +74,11 @@ public class JacksonJsonGeneratorWriterGenerator extends AbstractWriterGenerator
     public void writePrimitive(PrimitiveType typeMirror) {
         if (lhs instanceof Member f) {
             if (typeMirror.getKind() == TypeKind.BOOLEAN) {
-                addStatement("$C.writeBooleanField($C, $C)", generatorVariable, f, rhs);
+                addStatement("$C.writeBooleanProperty($C, $C)", generatorVariable, f, rhs);
             } else if (typeMirror.getKind() == TypeKind.CHAR) {
-                addStatement("$C.writeStringField($C, String.valueOf($C))", generatorVariable, f, rhs);
+                addStatement("$C.writeStringProperty($C, String.valueOf($C))", generatorVariable, f, rhs);
             } else {
-                addStatement("$C.writeNumberField($C, $C)", generatorVariable, f, rhs);
+                addStatement("$C.writeNumberProperty($C, $C)", generatorVariable, f, rhs);
             }
         } else {
             if (typeMirror.getKind() == TypeKind.BOOLEAN) {

@@ -26,10 +26,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 import org.tillerino.jagger.tests.variants.GenerateVariants.VariantValue.ReplacementValue;
 
-/**
- * We only write all tests for {@link com.fasterxml.jackson.core.JsonGenerator} and
- * {@link com.fasterxml.jackson.core.JsonParser}. These tests are then translated for other libraries.
- */
+/** Run to generate variants of tests. See annotations like {@link Variants}. Started from justfile. */
 public class GenerateVariants {
     private static final LexicalPreservingPrinter printer = new LexicalPreservingPrinter();
 

@@ -20,6 +20,6 @@ public class UnknownProperties {
                     PropagationKind.all());
 
     public static boolean shouldThrow(AnyConfig config) {
-        return config.resolveProperty(UNKNOWN_PROPERTIES).value() != JsonConfig.UnknownPropertiesMode.IGNORE;
+        return config.resolveProperty(UNKNOWN_PROPERTIES).value() == JsonConfig.UnknownPropertiesMode.THROW;
     }
 }

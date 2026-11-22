@@ -1,19 +1,19 @@
 package org.tillerino.jagger.adapters;
 
-import com.fasterxml.jackson.core.JsonToken;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import java.util.*;
 import org.tillerino.jagger.api.JaggerReader;
+import tools.jackson.core.JsonToken;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.node.ObjectNode;
 
 /**
  * Adapter around {@link JsonNode}. Usually, you could get away with wrapping
- * {@link com.fasterxml.jackson.core.TreeNode#traverse()} in {@link JacksonJsonParserAdapter}. However, there is one use
- * case where this doesn't suffice.
+ * {@link tools.jackson.core.TreeNode#traverse(tools.jackson.core.ObjectReadContext)} in
+ * {@link JacksonJsonParserAdapter}. However, there is one use case where this doesn't suffice.
  *
- * <p>The only real use case for deserializing from {@link JsonNode} over {@link com.fasterxml.jackson.core.JsonParser}
- * is when the discriminator is not necessarily the first field in the Object. This can happen if the JSON storage does
- * not preserve field order.
+ * <p>The only real use case for deserializing from {@link JsonNode} over {@link tools.jackson.core.JsonParser} is when
+ * the discriminator is not necessarily the first field in the Object. This can happen if the JSON storage does not
+ * preserve field order.
  */
 public class JacksonJsonNodeReaderAdapter implements JaggerReader<RuntimeException> {
     protected final Stack<State> node = new Stack<>();
@@ -30,7 +30,8 @@ public class JacksonJsonNodeReaderAdapter implements JaggerReader<RuntimeExcepti
         State current = node.peek();
         JsonNode jsonNode = ((NodeState) current).node;
         if (advance == Advance.CONSUME) {
-            MemberIterator memberIterator = new MemberIterator(jsonNode.fields(), (NodeState) current);
+            MemberIterator memberIterator =
+                    new MemberIterator(jsonNode.properties().iterator(), (NodeState) current);
             node.push(memberIterator);
             Member next = memberIterator.next();
             if (next != null) {
@@ -57,7 +58,7 @@ public class JacksonJsonNodeReaderAdapter implements JaggerReader<RuntimeExcepti
         State current = node.peek();
         JsonNode jsonNode = ((NodeState) current).node;
         if (advance == Advance.CONSUME) {
-            ArrayIterator arrayIterator = new ArrayIterator(jsonNode.elements());
+            ArrayIterator arrayIterator = new ArrayIterator(jsonNode.values().iterator());
             node.push(arrayIterator);
             if (arrayIterator.arrayIterator.hasNext()) {
                 node.push(new NodeState(arrayIterator.arrayIterator.next()));
@@ -101,7 +102,7 @@ public class JacksonJsonNodeReaderAdapter implements JaggerReader<RuntimeExcepti
 
     @Override
     public boolean isFieldName() throws RuntimeException {
-        return currentToken() == JsonToken.FIELD_NAME;
+        return currentToken() == JsonToken.PROPERTY_NAME;
     }
 
     @Override
@@ -185,7 +186,7 @@ public class JacksonJsonNodeReaderAdapter implements JaggerReader<RuntimeExcepti
     public String getText(Advance advance) throws RuntimeException {
         State current = node.peek();
         if (current instanceof NodeState) {
-            String text = ((NodeState) current).node.asText();
+            String text = ((NodeState) current).node.asString();
             advance(advance);
             return text;
         }
@@ -224,7 +225,7 @@ public class JacksonJsonNodeReaderAdapter implements JaggerReader<RuntimeExcepti
                 }
                 parent.hideField = expectedName;
             }
-            return parentNode.get(expectedName).asText();
+            return parentNode.get(expectedName).asString();
         }
         throw unexpectedToken("field name");
     }
@@ -319,7 +320,7 @@ public class JacksonJsonNodeReaderAdapter implements JaggerReader<RuntimeExcepti
             if (node.isNumber()) {
                 return JsonToken.VALUE_NUMBER_INT;
             }
-            if (node.isTextual()) {
+            if (node.isString()) {
                 return JsonToken.VALUE_STRING;
             }
             throw new IllegalStateException();
@@ -368,7 +369,7 @@ public class JacksonJsonNodeReaderAdapter implements JaggerReader<RuntimeExcepti
 
         @Override
         public JsonToken asToken() {
-            return JsonToken.FIELD_NAME;
+            return JsonToken.PROPERTY_NAME;
         }
     }
 

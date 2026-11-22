@@ -2,13 +2,13 @@ package org.tillerino.jagger.tests.base;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.fasterxml.jackson.core.type.TypeReference;
 import java.util.LinkedHashSet;
 import java.util.Set;
 import java.util.TreeSet;
 import org.junit.jupiter.api.Test;
 import org.tillerino.jagger.tests.ReferenceTest;
 import org.tillerino.jagger.tests.SerdeUtil;
+import tools.jackson.core.type.TypeReference;
 
 class ScalarCollectionsReaderTest extends ReferenceTest {
     ScalarCollectionsReader impl = SerdeUtil.impl(ScalarCollectionsReader.class);

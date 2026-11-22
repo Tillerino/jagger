@@ -2,10 +2,6 @@ package org.tillerino.jagger.tests.base.features;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ArrayNode;
 import java.util.List;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -15,10 +11,13 @@ import org.tillerino.jagger.tests.ReferenceTest;
 import org.tillerino.jagger.tests.SerdeUtil;
 import org.tillerino.jagger.tests.base.features.ReferencesSerde.PolyWithDelegatorReferencesSerde;
 import org.tillerino.jagger.tests.base.features.ReferencesSerde.ReferenceInheritanceSerde;
-import org.tillerino.jagger.tests.base.features.ReferencesSerde.WithJsonValueAndJsonCreatorReferencesSerde;
 import org.tillerino.jagger.tests.model.features.ReferencesModel.*;
 import org.tillerino.jagger.tests.model.features.ReferencesModel.IntSequenceParent.IntSequenceChild;
 import org.tillerino.jagger.tests.model.features.ReferencesModel.UuidParent.UuidChild;
+import tools.jackson.core.type.TypeReference;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.node.ArrayNode;
 
 class ReferencesTest extends ReferenceTest {
     ReferencesSerde serde = SerdeUtil.impl(ReferencesSerde.class);
@@ -184,27 +183,6 @@ class ReferencesTest extends ReferenceTest {
             UuidParent parent = new UuidChild();
             String json = outputUtils.serialize2(parent, new SerializationContext(), serde::writeParent);
             UuidParent deser = inputUtils.deserialize2(json, new DeserializationContext(), serde::readParent);
-        }
-    }
-
-    @Nested
-    class WithJsonValueAndJsonCreatorReferencesTest {
-        WithJsonValueAndJsonCreatorReferencesSerde serde =
-                SerdeUtil.impl(WithJsonValueAndJsonCreatorReferencesSerde.class);
-
-        @Test
-        void roundTrip() throws Exception {
-            String json = outputUtils.assertIsEqualToDatabind2(
-                    List.of(
-                            new UuidIdConvertedRecord("a"),
-                            new UuidIdConvertedRecord("a"),
-                            new UuidIdConvertedRecord("b")),
-                    new SerializationContext(),
-                    serde::writeList);
-            List<UuidIdConvertedRecord> deser = inputUtils.assertIsEqualToDatabind2(
-                    json, new DeserializationContext(), serde::readList, new TypeReference<>() {});
-            // references not supported here
-            assertThat(deser.get(0)).isEqualTo(deser.get(1)).isNotSameAs(deser.get(1));
         }
     }
 }

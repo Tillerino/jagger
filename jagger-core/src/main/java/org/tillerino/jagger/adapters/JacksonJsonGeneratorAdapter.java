@@ -1,8 +1,8 @@
 package org.tillerino.jagger.adapters;
 
-import com.fasterxml.jackson.core.JsonGenerator;
 import java.io.IOException;
 import org.tillerino.jagger.api.JaggerWriter;
+import tools.jackson.core.JsonGenerator;
 
 public class JacksonJsonGeneratorAdapter implements JaggerWriter<IOException> {
     protected final JsonGenerator generator;
@@ -11,7 +11,7 @@ public class JacksonJsonGeneratorAdapter implements JaggerWriter<IOException> {
      * Create a new JacksonJsonGeneratorAdapter.
      *
      * @param generator you can easily create a {@link JsonGenerator} through
-     *     {@link com.fasterxml.jackson.core.JsonFactory#createGenerator(java.io.OutputStream)} and similar methods.
+     *     {@link tools.jackson.core.json.JsonFactory#createGenerator(java.io.OutputStream)} and similar methods.
      */
     public JacksonJsonGeneratorAdapter(JsonGenerator generator) {
         this.generator = generator;
@@ -84,6 +84,6 @@ public class JacksonJsonGeneratorAdapter implements JaggerWriter<IOException> {
 
     @Override
     public void writeFieldName(String name) throws IOException {
-        generator.writeFieldName(name);
+        generator.writeName(name);
     }
 }

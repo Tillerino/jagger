@@ -1,10 +1,11 @@
 package org.tillerino.jagger.tests.base.features;
 
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.DeserializationFeature;
 import org.junit.jupiter.api.Test;
 import org.tillerino.jagger.tests.ReferenceTest;
 import org.tillerino.jagger.tests.SerdeUtil;
+import org.tillerino.jagger.tests.model.features.UnknownPropertiesModel.JsonConfigThrow;
+import tools.jackson.core.type.TypeReference;
+import tools.jackson.databind.DeserializationFeature;
 
 class UnknownPropertiesTest extends ReferenceTest {
 
@@ -36,7 +37,11 @@ class UnknownPropertiesTest extends ReferenceTest {
 
     @Test
     void jsonConfigIgnoreStringProperty() throws Exception {
-        inputUtils.objectMapper.disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
+        inputUtils.objectMapper = inputUtils
+                .objectMapper
+                .rebuild()
+                .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
+                .build();
         inputUtils.assertIsEqualToDatabind(
                 "{ \"name\": \"Moopsy\", \"unknown\": \"blergh\", \"value\": 123 }",
                 serde::readJsonConfigIgnoreUnknown,
@@ -45,7 +50,11 @@ class UnknownPropertiesTest extends ReferenceTest {
 
     @Test
     void jsonConfigIgnoreObjectProperty() throws Exception {
-        inputUtils.objectMapper.disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
+        inputUtils.objectMapper = inputUtils
+                .objectMapper
+                .rebuild()
+                .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
+                .build();
         inputUtils.assertIsEqualToDatabind(
                 "{ \"name\": \"Moopsy\", \"unknown\": { \"hello\": 456 }, \"value\": 123 }",
                 serde::readJsonConfigIgnoreUnknown,
@@ -54,10 +63,29 @@ class UnknownPropertiesTest extends ReferenceTest {
 
     @Test
     void jsonConfigIgnoreArrayProperty() throws Exception {
-        inputUtils.objectMapper.disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
+        inputUtils.objectMapper = inputUtils
+                .objectMapper
+                .rebuild()
+                .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
+                .build();
         inputUtils.assertIsEqualToDatabind(
                 "{ \"name\": \"Moopsy\", \"unknown\": [ \"blergh\" ], \"value\": 123 }",
                 serde::readJsonConfigIgnoreUnknown,
                 new TypeReference<>() {});
+    }
+
+    @Test
+    void jsonConfigThrowUnknownProperty() {
+        inputUtils.objectMapper = inputUtils
+                .objectMapper
+                .rebuild()
+                .enable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
+                .build();
+        inputUtils.assertException(
+                "{ \"name\": \"Moopsy\", \"unknown\": \"blergh\", \"value\": 123 }",
+                serde::readJsonConfigThrow,
+                new TypeReference<JsonConfigThrow>() {},
+                "Unrecognized field \"unknown\"",
+                "Unrecognized property \"unknown\"");
     }
 }

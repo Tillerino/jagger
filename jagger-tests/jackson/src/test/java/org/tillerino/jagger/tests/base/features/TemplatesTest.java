@@ -2,7 +2,6 @@ package org.tillerino.jagger.tests.base.features;
 
 import static org.tillerino.jagger.tests.CodeAssertions.assertThatImpl;
 
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.github.javaparser.ast.nodeTypes.NodeWithSimpleName;
 import java.util.List;
 import org.junit.jupiter.api.Nested;
@@ -19,6 +18,7 @@ import org.tillerino.jagger.tests.base.features.TemplatesSerde.UsesAutoTemplates
 import org.tillerino.jagger.tests.model.AnEnum;
 import org.tillerino.jagger.tests.model.ScalarFieldsRecord;
 import org.tillerino.jagger.tests.model.features.TemplatesModel.SimpleRecord;
+import tools.jackson.core.type.TypeReference;
 
 class TemplatesTest extends ReferenceTest {
     TemplatedSerde templatedSerde = SerdeUtil.impl(TemplatedSerde.class);

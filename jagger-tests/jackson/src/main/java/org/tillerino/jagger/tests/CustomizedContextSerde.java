@@ -1,7 +1,5 @@
 package org.tillerino.jagger.tests;
 
-import com.fasterxml.jackson.core.JsonGenerator;
-import com.fasterxml.jackson.core.JsonParser;
 import java.io.IOException;
 import java.util.List;
 import org.apache.commons.lang3.Validate;
@@ -10,6 +8,8 @@ import org.tillerino.jagger.annotations.JsonInput;
 import org.tillerino.jagger.annotations.JsonOutput;
 import org.tillerino.jagger.api.DeserializationContext;
 import org.tillerino.jagger.api.SerializationContext;
+import tools.jackson.core.JsonGenerator;
+import tools.jackson.core.JsonParser;
 
 @JsonConfig(uses = CustomizedContextSerde.WeirdIntSerde.class)
 public interface CustomizedContextSerde {

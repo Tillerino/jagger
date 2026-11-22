@@ -1,7 +1,5 @@
 package org.tillerino.jagger.tests.base.features;
 
-import com.fasterxml.jackson.core.JsonGenerator;
-import com.fasterxml.jackson.core.JsonParser;
 import java.util.List;
 import org.tillerino.jagger.annotations.JaggerTemplate;
 import org.tillerino.jagger.annotations.JsonConfig;
@@ -13,6 +11,8 @@ import org.tillerino.jagger.tests.model.AnEnum;
 import org.tillerino.jagger.tests.model.ScalarFieldsRecord;
 import org.tillerino.jagger.tests.model.features.TemplatesModel.HasAnEnumArrayProperty;
 import org.tillerino.jagger.tests.model.features.TemplatesModel.SimpleRecord;
+import tools.jackson.core.JsonGenerator;
+import tools.jackson.core.JsonParser;
 
 public interface TemplatesSerde {
     @JaggerTemplate(

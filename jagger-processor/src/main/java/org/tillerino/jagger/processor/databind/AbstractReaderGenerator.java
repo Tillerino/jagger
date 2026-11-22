@@ -109,6 +109,9 @@ public abstract class AbstractReaderGenerator<SELF extends AbstractReaderGenerat
         }
         Optional<InputConverter> converter = ctx.converters.findInputConverter(prototype, type, config, generatedClass);
         if (converter.isPresent()) {
+            if (ctx.references.isConfigured(type)) {
+                throw References.converterConflict(type);
+            }
             lastBranch(branch).withBody(() -> {
                 InputConverter inputConverter = converter.get();
 
@@ -688,7 +691,7 @@ public abstract class AbstractReaderGenerator<SELF extends AbstractReaderGenerat
 
         beginControlFlow("switch($C)", nameVar);
         for (NestedProperty nest : properties) {
-            if (ignoredProperties.contains(nest.serializedName)) {
+            if (ignoredProperties.contains(nest.serializedName) || ignoredProperties.contains(nest.canonicalName)) {
                 continue;
             }
             beginControlFlow("case $C:", Aliases.cases(nest));
@@ -717,8 +720,14 @@ public abstract class AbstractReaderGenerator<SELF extends AbstractReaderGenerat
             addStatement("break");
             endControlFlow();
         }
-        if (!ignoredProperties.isEmpty()) {
-            beginControlFlow(c("case $C:", IgnoreProperties.cases(ignoredProperties)));
+        Set<String> skippedProperties = new LinkedHashSet<>(ignoredProperties);
+        for (NestedProperty nest : properties) {
+            if (ignoredProperties.contains(nest.canonicalName)) {
+                skippedProperties.add(nest.serializedName);
+            }
+        }
+        if (!skippedProperties.isEmpty()) {
+            beginControlFlow(c("case $C:", IgnoreProperties.cases(skippedProperties)));
             skipValue();
             addStatement("break");
             endControlFlow();

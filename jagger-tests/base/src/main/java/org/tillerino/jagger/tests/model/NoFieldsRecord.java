@@ -1,7 +1,7 @@
 package org.tillerino.jagger.tests.model;
 
-import com.fasterxml.jackson.core.JsonParser;
 import org.tillerino.jagger.annotations.JsonInput;
+import tools.jackson.core.JsonParser;
 
 public record NoFieldsRecord() {
     interface Input {

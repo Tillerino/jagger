@@ -1,9 +1,9 @@
 package org.tillerino.jagger.adapters;
 
-import com.fasterxml.jackson.core.JsonParser;
-import com.fasterxml.jackson.core.JsonToken;
 import java.io.IOException;
 import org.tillerino.jagger.api.JaggerReader;
+import tools.jackson.core.JsonParser;
+import tools.jackson.core.JsonToken;
 
 public class JacksonJsonParserAdapter implements JaggerReader<IOException> {
     protected final JsonParser parser;
@@ -12,7 +12,7 @@ public class JacksonJsonParserAdapter implements JaggerReader<IOException> {
      * Create a new JacksonJsonParserAdapter.
      *
      * @param parser you can easily create a {@link JsonParser} through
-     *     {@link com.fasterxml.jackson.core.JsonFactory#createParser(java.io.InputStream)} and similar methods.
+     *     {@link tools.jackson.core.json.JsonFactory#createParser(java.io.InputStream)} and similar methods.
      * @throws IOException when retrieving the first token fails
      */
     public JacksonJsonParserAdapter(JsonParser parser) throws IOException {
@@ -72,7 +72,7 @@ public class JacksonJsonParserAdapter implements JaggerReader<IOException> {
 
     @Override
     public boolean isFieldName() throws IOException {
-        return parser.currentToken() == JsonToken.FIELD_NAME;
+        return parser.currentToken() == JsonToken.PROPERTY_NAME;
     }
 
     @Override

@@ -3,7 +3,6 @@ package org.tillerino.jagger.tests.base.features;
 import static net.javacrumbs.jsonunit.assertj.JsonAssertions.assertThatJson;
 import static org.tillerino.jagger.tests.CodeAssertions.assertThatImpl;
 
-import com.fasterxml.jackson.core.type.TypeReference;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.*;
@@ -22,6 +21,7 @@ import org.tillerino.jagger.tests.function.Zip;
 import org.tillerino.jagger.tests.model.features.ConvertersModel.OffsetDateTimeRecord;
 import org.tillerino.jagger.tests.model.features.ConvertersModel.OptionalComponentsRecord;
 import org.tillerino.jagger.tests.model.features.ConvertersModel.UuidRecord;
+import tools.jackson.core.type.TypeReference;
 
 class ConvertersTest extends ReferenceTest {
     ConvertersSerde serde = SerdeUtil.impl(ConvertersSerde.class);

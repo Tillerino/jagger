@@ -1,7 +1,5 @@
 package org.tillerino.jagger.tests.base.features;
 
-import com.fasterxml.jackson.core.JsonGenerator;
-import com.fasterxml.jackson.core.JsonParser;
 import java.util.List;
 import org.tillerino.jagger.annotations.JsonConfig;
 import org.tillerino.jagger.annotations.JsonInput;
@@ -10,12 +8,12 @@ import org.tillerino.jagger.api.DeserializationContext;
 import org.tillerino.jagger.api.SerializationContext;
 import org.tillerino.jagger.converters.AllInputConverters;
 import org.tillerino.jagger.converters.AllOutputConverters;
-import org.tillerino.jagger.converters.UuidInputConverters;
-import org.tillerino.jagger.converters.UuidOutputConverters;
 import org.tillerino.jagger.tests.base.features.DelegationSerde.BoxedScalarsSerde;
 import org.tillerino.jagger.tests.model.features.ReferencesModel.*;
 import org.tillerino.jagger.tests.model.features.ReferencesModel.IntSequenceParent.IntSequenceChild;
 import org.tillerino.jagger.tests.model.features.ReferencesModel.UuidParent.UuidChild;
+import tools.jackson.core.JsonGenerator;
+import tools.jackson.core.JsonParser;
 
 @JsonConfig(uses = {AllInputConverters.class, AllOutputConverters.class})
 public interface ReferencesSerde {
@@ -153,20 +151,5 @@ public interface ReferencesSerde {
 
         @JsonInput
         UuidChild readChild(JsonParser parser, DeserializationContext ctx) throws Exception;
-    }
-
-    @JsonConfig(uses = {UuidInputConverters.class, UuidOutputConverters.class})
-    interface WithJsonValueAndJsonCreatorReferencesSerde {
-        @JsonOutput
-        void write(UuidIdConvertedRecord record, JsonGenerator gen, SerializationContext ctx) throws Exception;
-
-        @JsonInput
-        UuidIdConvertedRecord read(JsonParser parser, DeserializationContext ctx) throws Exception;
-
-        @JsonOutput
-        void writeList(List<UuidIdConvertedRecord> list, JsonGenerator gen, SerializationContext ctx) throws Exception;
-
-        @JsonInput
-        List<UuidIdConvertedRecord> readList(JsonParser parser, DeserializationContext ctx) throws Exception;
     }
 }

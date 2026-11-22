@@ -63,9 +63,9 @@ interface GenericRecordSerde {
 The code generated for these generic prototypes will then delegate to the prototypes passed as a parameter:
 
 ```java
-// ../jagger-tests/jackson/target/generated-sources/annotations/org/tillerino/jagger/tests/base/features/GenericsSerde$GenericRecordSerdeImpl.java#L56-L57
+// ../jagger-tests/jackson/target/generated-sources/annotations/org/tillerino/jagger/tests/base/features/GenericsSerde$GenericRecordSerdeImpl.java#L57-L58
 
-gen.writeFieldName("f");
+gen.writeName("f");
 fieldSerde.writeOnGenericInterface(obj.f(), gen);
 ```
 
@@ -225,7 +225,7 @@ automatically calls the generic prototype:
 ```java
 // ../jagger-tests/jackson/target/generated-sources/annotations/org/tillerino/jagger/tests/base/features/GenericsSerde$UsesGenericRecordSerdeImpl.java#L27-L28
 
-gen.writeFieldName("gi");
+gen.writeName("gi");
 genericRecordSerde$0$delegate.writeGenericRecord(usesGenericRecord.gi(), gen, boxedScalarsSerde$1$delegate::writeBoxedIntX);
 ```
 

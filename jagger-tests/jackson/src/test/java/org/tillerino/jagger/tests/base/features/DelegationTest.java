@@ -5,7 +5,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.tillerino.jagger.tests.CodeAssertions.assertThatImpl;
 import static org.tillerino.jagger.tests.TestSettings.SETTINGS;
 
-import com.fasterxml.jackson.core.type.TypeReference;
 import java.util.*;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -15,6 +14,7 @@ import org.tillerino.jagger.tests.SerdeUtil;
 import org.tillerino.jagger.tests.base.features.DelegationSerde.*;
 import org.tillerino.jagger.tests.model.features.DelegationModel;
 import org.tillerino.jagger.tests.model.features.DelegationModel.SelfReferencingRecord;
+import tools.jackson.core.type.TypeReference;
 
 public class DelegationTest extends ReferenceTest {
 

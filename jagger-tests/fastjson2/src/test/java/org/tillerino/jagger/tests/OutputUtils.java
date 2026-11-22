@@ -4,7 +4,6 @@ import static net.javacrumbs.jsonunit.assertj.JsonAssertions.assertThatJson;
 
 import com.alibaba.fastjson2.JSONReader;
 import com.alibaba.fastjson2.JSONWriter;
-import com.fasterxml.jackson.core.type.TypeReference;
 import java.io.ByteArrayOutputStream;
 import java.nio.charset.StandardCharsets;
 import org.apache.commons.lang3.function.FailableBiConsumer;
@@ -12,6 +11,7 @@ import org.apache.commons.lang3.function.FailableBiFunction;
 import org.apache.commons.lang3.function.FailableConsumer;
 import org.apache.commons.lang3.function.FailableFunction;
 import org.tillerino.jagger.api.SerializationContext;
+import tools.jackson.core.type.TypeReference;
 
 public record OutputUtils(InputUtils inputUtils) {
 

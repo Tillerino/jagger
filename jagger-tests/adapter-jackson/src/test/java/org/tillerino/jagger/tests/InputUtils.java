@@ -3,25 +3,22 @@ package org.tillerino.jagger.tests;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import com.fasterxml.jackson.core.JsonFactory;
-import com.fasterxml.jackson.core.JsonParser;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
-import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
-import com.fasterxml.jackson.module.paramnames.ParameterNamesModule;
 import org.apache.commons.lang3.function.FailableBiFunction;
 import org.apache.commons.lang3.function.FailableFunction;
 import org.assertj.core.api.recursive.comparison.RecursiveComparisonConfiguration;
 import org.tillerino.jagger.adapters.JacksonJsonParserAdapter;
 import org.tillerino.jagger.api.DeserializationContext;
+import tools.jackson.core.JsonParser;
+import tools.jackson.core.json.JsonFactory;
+import tools.jackson.core.type.TypeReference;
+import tools.jackson.databind.SerializationFeature;
+import tools.jackson.databind.json.JsonMapper;
 
 public class InputUtils {
 
-    public ObjectMapper objectMapper = new ObjectMapper()
-            .registerModule(new ParameterNamesModule())
-            .registerModule(new Jdk8Module())
-            .disable(SerializationFeature.FAIL_ON_EMPTY_BEANS);
+    public JsonMapper objectMapper = JsonMapper.builder()
+            .disable(SerializationFeature.FAIL_ON_EMPTY_BEANS)
+            .build();
 
     public <T> T withReader(String json, FailableFunction<JacksonJsonParserAdapter, T, Exception> consumer)
             throws Exception {

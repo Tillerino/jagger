@@ -1,8 +1,5 @@
 package org.tillerino.jagger.tests.base.cases;
 
-import com.fasterxml.jackson.core.JsonGenerator;
-import com.fasterxml.jackson.core.JsonParser;
-import com.fasterxml.jackson.core.JsonToken;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -11,6 +8,9 @@ import org.tillerino.jagger.annotations.JsonInput;
 import org.tillerino.jagger.annotations.JsonOutput;
 import org.tillerino.jagger.api.SerializationContext;
 import org.tillerino.jagger.tests.model.features.DelegationModel.SelfReferencingRecord;
+import tools.jackson.core.JsonGenerator;
+import tools.jackson.core.JsonParser;
+import tools.jackson.core.JsonToken;
 
 public interface InjectionSerde {
     @JsonOutput

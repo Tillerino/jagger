@@ -1,7 +1,5 @@
 package org.tillerino.jagger.tests.base.features;
 
-import com.fasterxml.jackson.core.JsonGenerator;
-import com.fasterxml.jackson.core.JsonParser;
 import java.util.List;
 import java.util.Map;
 import java.util.Queue;
@@ -19,6 +17,8 @@ import org.tillerino.jagger.tests.model.features.DelegationModel.GenericInterfac
 import org.tillerino.jagger.tests.model.features.DelegationModel.SelfReferencingRecord;
 import org.tillerino.jagger.tests.model.features.DelegationModel.UsesGenericInterfaceRaw;
 import org.tillerino.jagger.tests.model.features.DelegationModel.UsesGenericInterfaceWildcard;
+import tools.jackson.core.JsonGenerator;
+import tools.jackson.core.JsonParser;
 
 public interface DelegationSerde {
     interface SimpleDelegationSerde {

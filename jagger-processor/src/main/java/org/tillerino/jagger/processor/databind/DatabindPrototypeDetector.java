@@ -20,8 +20,11 @@ import org.tillerino.jagger.processor.util.InstantiatedMethod.InstantiatedVariab
 import org.tillerino.jagger.processor.util.PlainTypeName;
 
 public class DatabindPrototypeDetector implements PrototypeDetector {
-    static final String JACKSON_JSON_GENERATOR = "com.fasterxml.jackson.core.JsonGenerator";
-    static final String JACKSON_JSON_PARSER = "com.fasterxml.jackson.core.JsonParser";
+    static final String JACKSON_JSON_GENERATOR = "tools.jackson.core.JsonGenerator";
+    static final String JACKSON_JSON_PARSER = "tools.jackson.core.JsonParser";
+
+    static final String JACKSON2_JSON_GENERATOR = "com.fasterxml.jackson.core.JsonGenerator";
+    static final String JACKSON2_JSON_PARSER = "com.fasterxml.jackson.core.JsonParser";
 
     static final String GSON_JSON_READER = "com.google.gson.stream.JsonReader";
     static final String GSON_JSON_WRITER = "com.google.gson.stream.JsonWriter";
@@ -45,6 +48,9 @@ public class DatabindPrototypeDetector implements PrototypeDetector {
     public final TypeMirror jacksonJsonGenerator;
     public final TypeMirror jacksonJsonParser;
 
+    public final TypeMirror jackson2JsonGenerator;
+    public final TypeMirror jackson2JsonParser;
+
     public final TypeMirror gsonJsonReader;
     public final TypeMirror gsonJsonWriter;
 
@@ -67,6 +73,9 @@ public class DatabindPrototypeDetector implements PrototypeDetector {
 
         jacksonJsonGenerator = ctx.commonTypes.nullableTypeMirror(JACKSON_JSON_GENERATOR);
         jacksonJsonParser = ctx.commonTypes.nullableTypeMirror(JACKSON_JSON_PARSER);
+
+        jackson2JsonGenerator = ctx.commonTypes.nullableTypeMirror(JACKSON2_JSON_GENERATOR);
+        jackson2JsonParser = ctx.commonTypes.nullableTypeMirror(JACKSON2_JSON_PARSER);
 
         gsonJsonReader = ctx.commonTypes.nullableTypeMirror(GSON_JSON_READER);
         gsonJsonWriter = ctx.commonTypes.nullableTypeMirror(GSON_JSON_WRITER);
@@ -106,7 +115,12 @@ public class DatabindPrototypeDetector implements PrototypeDetector {
                 && !m.parameters().isEmpty()) {
             return PrototypeKind.detect(
                     PrototypeKind.nullableTypeList(
-                            jacksonJsonParser, gsonJsonReader, fastjson2JsonReader, jakartaJsonParser, jaggerReader),
+                            jacksonJsonParser,
+                            jackson2JsonParser,
+                            gsonJsonReader,
+                            fastjson2JsonReader,
+                            jakartaJsonParser,
+                            jaggerReader),
                     m,
                     ctx,
                     (externalType, externalParameter, otherParameters) -> new DatabindPrototypeKind(
@@ -125,6 +139,7 @@ public class DatabindPrototypeDetector implements PrototypeDetector {
             return PrototypeKind.detect(
                     PrototypeKind.nullableTypeList(
                             jacksonJsonGenerator,
+                            jackson2JsonGenerator,
                             gsonJsonWriter,
                             fastjson2JsonWriter,
                             jakartaJsonGenerator,
@@ -162,6 +177,7 @@ public class DatabindPrototypeDetector implements PrototypeDetector {
             if (specialization == Direction.INPUT) {
                 return switch (types().get(1).toString()) {
                     case JACKSON_JSON_PARSER -> new JacksonJsonParserReaderGenerator(context).build();
+                    case JACKSON2_JSON_PARSER -> new Jackson2JsonParserReaderGenerator(context).build();
                     case GSON_JSON_READER -> new GsonJsonReaderReaderGenerator(context).build();
                     case FASTJSON_2_JSONREADER -> new Fastjson2ReaderGenerator(context).build();
                     case JAKARTA_JSON_PARSER -> new JakartaJsonParserGenerator(context).build();
@@ -172,6 +188,7 @@ public class DatabindPrototypeDetector implements PrototypeDetector {
 
             return switch (types().get(1).toString()) {
                 case JACKSON_JSON_GENERATOR -> new JacksonJsonGeneratorWriterGenerator(context).build();
+                case JACKSON2_JSON_GENERATOR -> new Jackson2JsonGeneratorWriterGenerator(context).build();
                 case GSON_JSON_WRITER -> new GsonJsonWriterWriterGenerator(context).build();
                 case FASTJSON_2_JSONWRITER -> new Fastjson2WriterGenerator(context).build();
                 case JAKARTA_JSON_GENERATOR -> new JakartaJsonGeneratorGenerator(context).build();

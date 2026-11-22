@@ -107,7 +107,7 @@ public @interface JsonConfig {
     enum UnknownPropertiesMode {
         THROW,
         IGNORE,
-        /** Defaults to {@link #THROW} */
+        /** Defaults to {@link #IGNORE} */
         DEFAULT,
         ;
     }

@@ -1,6 +1,5 @@
 package org.tillerino.jagger.tests.base.features;
 
-import com.fasterxml.jackson.core.JsonParser;
 import java.util.Arrays;
 import java.util.List;
 import org.tillerino.jagger.annotations.JsonConfig;
@@ -9,6 +8,7 @@ import org.tillerino.jagger.annotations.JsonInputDefaultValue;
 import org.tillerino.jagger.tests.base.features.DefaultValuesSerde.SomeDefaultValues;
 import org.tillerino.jagger.tests.model.AnEnum;
 import org.tillerino.jagger.tests.model.features.DefaultValuesModel.Mixed;
+import tools.jackson.core.JsonParser;
 
 @JsonConfig(uses = SomeDefaultValues.class)
 public interface DefaultValuesSerde {

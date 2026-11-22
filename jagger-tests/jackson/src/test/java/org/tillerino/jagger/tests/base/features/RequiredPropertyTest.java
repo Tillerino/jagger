@@ -2,13 +2,13 @@ package org.tillerino.jagger.tests.base.features;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import com.fasterxml.jackson.core.type.TypeReference;
 import org.junit.jupiter.api.Test;
 import org.tillerino.jagger.tests.ReferenceTest;
 import org.tillerino.jagger.tests.SerdeUtil;
 import org.tillerino.jagger.tests.model.features.RequiredPropertyModel.MixedFields;
 import org.tillerino.jagger.tests.model.features.RequiredPropertyModel.RequiredFields;
 import org.tillerino.jagger.tests.model.features.RequiredPropertyModel.RequiredPropertyWithSetter;
+import tools.jackson.core.type.TypeReference;
 
 class RequiredPropertyTest extends ReferenceTest {
     RequiredPropertySerde serde = SerdeUtil.impl(RequiredPropertySerde.class);

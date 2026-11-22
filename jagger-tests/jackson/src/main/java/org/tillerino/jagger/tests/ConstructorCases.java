@@ -1,7 +1,5 @@
 package org.tillerino.jagger.tests;
 
-import com.fasterxml.jackson.core.JsonGenerator;
-import com.fasterxml.jackson.core.JsonParser;
 import java.util.List;
 import org.tillerino.jagger.annotations.JsonConfig;
 import org.tillerino.jagger.annotations.JsonInput;
@@ -9,6 +7,8 @@ import org.tillerino.jagger.annotations.JsonOutput;
 import org.tillerino.jagger.tests.ConstructorCases.MutualNoArgA.MutualRecordA;
 import org.tillerino.jagger.tests.ConstructorCases.MutualNoArgB.MutualRecordB;
 import org.tillerino.jagger.tests.model.ScalarFieldsRecord;
+import tools.jackson.core.JsonGenerator;
+import tools.jackson.core.JsonParser;
 
 public interface ConstructorCases {
     /** An implementation of this class must receive a matching constructor. */

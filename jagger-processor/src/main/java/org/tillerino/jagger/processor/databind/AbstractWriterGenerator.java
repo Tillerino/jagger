@@ -36,6 +36,7 @@ import org.tillerino.jagger.processor.features.IgnoreProperties;
 import org.tillerino.jagger.processor.features.IgnoreProperty;
 import org.tillerino.jagger.processor.features.Polymorphism;
 import org.tillerino.jagger.processor.features.Properties.OutputProperty;
+import org.tillerino.jagger.processor.features.References;
 import org.tillerino.jagger.processor.features.References.Setup;
 import org.tillerino.jagger.processor.features.Verification.ProtoAndProps;
 import org.tillerino.jagger.processor.util.Code;
@@ -91,6 +92,9 @@ public abstract class AbstractWriterGenerator<SELF extends AbstractWriterGenerat
         Optional<OutputConverter> converter =
                 ctx.converters.findOutputConverter(type, prototype, config, generatedClass);
         if (converter.isPresent()) {
+            if (ctx.references.isConfigured(type)) {
+                throw References.converterConflict(type);
+            }
             OutputConverter c = converter.get();
             return new Converted(c.converter(), c.convertedType());
         }
@@ -424,7 +428,8 @@ public abstract class AbstractWriterGenerator<SELF extends AbstractWriterGenerat
 
         for (OutputProperty property : sortedProperties) {
             if (IgnoreProperty.isIgnoredForJson(property.config())
-                    || ignoredProperties.contains(property.externalName())) {
+                    || ignoredProperties.contains(property.externalName())
+                    || ignoredProperties.contains(property.canonicalName())) {
                 continue;
             }
             verificationForDto.addProperty(

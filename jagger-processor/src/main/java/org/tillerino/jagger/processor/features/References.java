@@ -77,6 +77,23 @@ public class References {
                 context));
     }
 
+    public boolean isConfigured(AnyConfig anyConfig) {
+        return anyConfig.resolveProperty(REFERENCES).value() != null;
+    }
+
+    public boolean isConfigured(TypeMirror type) {
+        if (type instanceof DeclaredType dt && dt.asElement() != null) {
+            return isConfigured(AnyConfig.create(dt.asElement(), LocationKind.DTO, ctx));
+        }
+        return false;
+    }
+
+    public static ContextedRuntimeException converterConflict(TypeMirror type) {
+        return new ContextedRuntimeException(
+                        "Combining references (e.g. @JsonIdentityInfo) with converters is not supported")
+                .addContextValue("type", type);
+    }
+
     public record Config(
             Optional<String> property,
             TypeMirror generator,

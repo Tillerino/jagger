@@ -2,8 +2,6 @@ package org.tillerino.jagger.api;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.fasterxml.jackson.core.JsonGenerator;
-import com.fasterxml.jackson.core.JsonParser;
 import java.lang.reflect.Type;
 import java.util.List;
 import java.util.Optional;
@@ -15,6 +13,8 @@ import org.tillerino.jagger.tests.SerdeUtil;
 import org.tillerino.jagger.tests.base.ScalarFieldsRecordSerde;
 import org.tillerino.jagger.tests.model.AnEnum;
 import org.tillerino.jagger.tests.model.ScalarFieldsRecord;
+import tools.jackson.core.JsonGenerator;
+import tools.jackson.core.JsonParser;
 
 class ReflectionBridgeTest extends ReferenceTest {
     Type type = JaxRsInterfaceOrSomething.class.getMethods()[0].getGenericReturnType();

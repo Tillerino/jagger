@@ -12,9 +12,10 @@ It has several advantages over most traditional libraries:
 
 Jagger does not include any parsers or formatters and requires external ones.
 Various JSON libraries are supported out-of-the-box, including:
-- Jackson streaming (`JsonParser` and `JsonGenerator`). This gives you support of many additional input and output formats
+- Jackson 3 streaming (`JsonParser` and `JsonGenerator`). This gives you support of many additional input and output formats
   through existing extensions of these classes like YAML, CBOR, Smile, and more.
-- Jackson objects (`JsonNode`)
+- Jackson 3 objects (`JsonNode`)
+- Jackson 2 streaming and objects (directly, or via the `Jackson2*` adapters)
 - Gson (`JsonParser` and `JsonWriter`)
 - JSON-P
 - Fastjson2 (`JSONReader` and `JSONWriter`)
@@ -113,7 +114,7 @@ The context parameters can be omitted if they are not explicitly needed.
 The `@JaggerTemplate` annotation allows you to specify prototypes from templates without specifying each as a separate method.
 
 ```java
-// jagger-tests/jackson/src/main/java/org/tillerino/jagger/tests/base/features/TemplatesSerde.java#L16-L18
+// jagger-tests/jackson/src/main/java/org/tillerino/jagger/tests/base/features/TemplatesSerde.java#L18-L20
 
 @JaggerTemplate(
         templates = {GenericInputSerde.class, GenericOutputSerde.class},
@@ -313,7 +314,7 @@ The `@JsonConfig` annotation provides several configuration options:
 - `uses`: References other classes containing serializers/deserializers for delegation
 - `implement`: Controls whether methods should be implemented (`DO_IMPLEMENT`, `DO_NOT_IMPLEMENT`)
 - `delegateTo`: Controls whether methods can be called from other serializers (`DELEGATE_TO`, `DO_NOT_DELEGATE_TO`)
-- `unknownProperties`: Controls handling of unknown properties (`THROW`, `IGNORE`)
+- `unknownProperties`: Controls handling of unknown properties (`THROW`, `IGNORE`, default `IGNORE`)
 
 ### Jackson Annotation Compatibility
 
@@ -383,8 +384,11 @@ Some of Jackson's annotations are supported, but not all and not each supported 
 
 - With polymorphism, Jackson will always write and require a discriminator, even when explicitly limiting the type to a specific subtype.
   Jagger will not write or require a discriminator when the subtype is known.
-- Jackson requires `ParameterNamesModule` and compilation with the `-parameters` flag to support creator-based deserialization without
-  @JsonProperty annotations. Jagger does not require this since this information is always present during annotation processing.
+- `@JsonIdentityInfo` cannot be combined with converters (e.g. `@JsonValue`/`@JsonCreator` or Jagger converters) for the same type.
+  Jackson silently ignores identity in this case; Jagger reports a compilation error.
+- Jackson requires compilation with the `-parameters` flag to support creator-based deserialization without
+  @JsonProperty annotations (Jackson 2 additionally required `ParameterNamesModule`).
+  Jagger does not require this since this information is always present during annotation processing.
 - Jagger will assign the default value of the property type to absent properties even when converters are used.
   Jackson will always use the converter and invoke it with its default argument - _I think_.
   An example of this is that Jagger will initialize an absent `Optional<Optional<T>>` property with `Optional.empty()`
@@ -408,7 +412,8 @@ A checkmark indicates _basic_ compatibility, although there can be edge cases wh
 - [ ] JsonFilter
 - [ ] JsonFormat
 - [ ] JsonGetter
-- [X] JsonIdentityInfo (regular generators and property-based IDs (`PropertyGenerator`) are supported. JSOG not supported)
+- [X] JsonIdentityInfo (regular generators and property-based IDs (`PropertyGenerator`) are supported.
+      JSOG and converters on the same type are not supported)
 - [ ] JsonIdentityReference
 - [X] JsonIgnore
 - [X] JsonIgnoreProperties (`value` and `ignoreUnknown` properties)

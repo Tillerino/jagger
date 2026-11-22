@@ -1,6 +1,5 @@
 package org.tillerino.jagger.tests.base;
 
-import com.fasterxml.jackson.core.type.TypeReference;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
@@ -8,6 +7,7 @@ import org.tillerino.jagger.tests.ReferenceTest;
 import org.tillerino.jagger.tests.SerdeUtil;
 import org.tillerino.jagger.tests.base.NestingSerde.*;
 import org.tillerino.jagger.tests.model.NestingModel;
+import tools.jackson.core.type.TypeReference;
 
 /**
  * We test ways of nesting JSON objects (Java records, plain Java objects, and Java Maps) and JSON arrays (Java arrays,

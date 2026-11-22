@@ -1,13 +1,13 @@
 package org.tillerino.jagger.tests.base.features;
 
-import com.fasterxml.jackson.core.JsonGenerator;
-import com.fasterxml.jackson.core.JsonParser;
 import org.tillerino.jagger.annotations.JsonInput;
 import org.tillerino.jagger.annotations.JsonOutput;
 import org.tillerino.jagger.tests.model.features.JsonAliasModel;
 import org.tillerino.jagger.tests.model.features.JsonAliasModel.InnerJsonAlias;
 import org.tillerino.jagger.tests.model.features.JsonAliasModel.JsonAliasValue;
 import org.tillerino.jagger.tests.model.features.JsonAliasModel.NestedJsonAlias;
+import tools.jackson.core.JsonGenerator;
+import tools.jackson.core.JsonParser;
 
 public interface JsonAliasSerde {
     @JsonInput

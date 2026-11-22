@@ -1,11 +1,11 @@
 package org.tillerino.jagger.adapters;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.JsonNodeFactory;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import java.util.Stack;
 import org.tillerino.jagger.api.JaggerWriter;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.node.ArrayNode;
+import tools.jackson.databind.node.JsonNodeFactory;
+import tools.jackson.databind.node.ObjectNode;
 
 public class JacksonJsonNodeWriterAdapter implements JaggerWriter<RuntimeException> {
     protected final JsonNodeFactory factory;
@@ -178,7 +178,7 @@ public class JacksonJsonNodeWriterAdapter implements JaggerWriter<RuntimeExcepti
     @Override
     public void write(String value) throws RuntimeException {
         if (root == null) {
-            root = factory.textNode(value);
+            root = factory.stringNode(value);
         } else if (pendingFieldName != null) {
             ((ObjectNode) node.peek()).put(pendingFieldName, value);
             pendingFieldName = null;

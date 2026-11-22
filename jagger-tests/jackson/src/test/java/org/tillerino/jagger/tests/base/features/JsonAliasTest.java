@@ -1,6 +1,5 @@
 package org.tillerino.jagger.tests.base.features;
 
-import com.fasterxml.jackson.core.type.TypeReference;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.tillerino.jagger.tests.ReferenceTest;
@@ -9,6 +8,7 @@ import org.tillerino.jagger.tests.model.features.JsonAliasModel;
 import org.tillerino.jagger.tests.model.features.JsonAliasModel.InnerJsonAlias;
 import org.tillerino.jagger.tests.model.features.JsonAliasModel.JsonAliasValue;
 import org.tillerino.jagger.tests.model.features.JsonAliasModel.NestedJsonAlias;
+import tools.jackson.core.type.TypeReference;
 
 class JsonAliasTest extends ReferenceTest {
     JsonAliasSerde serde = SerdeUtil.impl(JsonAliasSerde.class);

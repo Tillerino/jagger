@@ -1,7 +1,5 @@
 package org.tillerino.jagger.tests.base.edgecases;
 
-import com.fasterxml.jackson.core.JsonGenerator;
-import com.fasterxml.jackson.core.JsonParser;
 import java.util.List;
 import java.util.Map;
 import java.util.Queue;
@@ -9,6 +7,8 @@ import org.tillerino.jagger.annotations.JsonInput;
 import org.tillerino.jagger.annotations.JsonOutput;
 import org.tillerino.jagger.api.DeserializationContext;
 import org.tillerino.jagger.api.SerializationContext;
+import tools.jackson.core.JsonGenerator;
+import tools.jackson.core.JsonParser;
 
 /**
  * We're testing if we can declare parameters of databind prototypes in any order. The only restriction is that for

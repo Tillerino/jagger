@@ -1,8 +1,8 @@
 package org.tillerino.jagger.tests.base.features;
 
-import com.fasterxml.jackson.core.JsonGenerator;
 import org.tillerino.jagger.annotations.JsonOutput;
 import org.tillerino.jagger.tests.model.features.IgnorePropertyModel.*;
+import tools.jackson.core.JsonGenerator;
 
 public interface IgnorePropertySerde {
     @JsonOutput

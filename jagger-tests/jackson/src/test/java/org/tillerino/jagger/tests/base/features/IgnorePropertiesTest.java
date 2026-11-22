@@ -1,12 +1,12 @@
 package org.tillerino.jagger.tests.base.features;
 
-import com.fasterxml.jackson.core.type.TypeReference;
 import org.junit.jupiter.api.Test;
 import org.tillerino.jagger.tests.ReferenceTest;
 import org.tillerino.jagger.tests.SerdeUtil;
 import org.tillerino.jagger.tests.model.features.IgnorePropertiesModel.InnerJsonIgnoreProperties;
 import org.tillerino.jagger.tests.model.features.IgnorePropertiesModel.JsonIgnorePropertiesValue;
 import org.tillerino.jagger.tests.model.features.IgnorePropertiesModel.OuterJsonIgnoreProperties;
+import tools.jackson.core.type.TypeReference;
 
 class IgnorePropertiesTest extends ReferenceTest {
 

@@ -3,13 +3,13 @@ package org.tillerino.jagger.tests.base;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.tillerino.jagger.tests.TestSettings.SETTINGS;
 
-import com.fasterxml.jackson.core.type.TypeReference;
 import java.util.ArrayList;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.tillerino.jagger.tests.ReferenceTest;
 import org.tillerino.jagger.tests.SerdeUtil;
 import org.tillerino.jagger.tests.model.AnEnum;
+import tools.jackson.core.type.TypeReference;
 
 class ScalarListsSerdeTest extends ReferenceTest {
     ScalarListsSerde impl = SerdeUtil.impl(ScalarListsSerde.class);

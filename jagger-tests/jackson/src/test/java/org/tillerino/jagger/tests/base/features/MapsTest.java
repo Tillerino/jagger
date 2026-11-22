@@ -4,7 +4,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.tillerino.jagger.tests.TestSettings.SETTINGS;
 
-import com.fasterxml.jackson.core.type.TypeReference;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.LinkedHashMap;
@@ -22,6 +21,7 @@ import org.tillerino.jagger.tests.model.features.MapsModel.CustomKeys.OffsetDate
 import org.tillerino.jagger.tests.variants.GeneratedVariant;
 import org.tillerino.jagger.tests.variants.Variant;
 import org.tillerino.jagger.tests.variants.Variants;
+import tools.jackson.core.type.TypeReference;
 
 class MapsTest extends ReferenceTest {
     @Nested

@@ -1,6 +1,5 @@
 package org.tillerino.jagger.tests.base;
 
-import com.fasterxml.jackson.core.type.TypeReference;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.tillerino.jagger.tests.ReferenceTest;
@@ -9,6 +8,7 @@ import org.tillerino.jagger.tests.model.AnEnum;
 import org.tillerino.jagger.tests.model.ScalarAccessorsClass;
 import org.tillerino.jagger.tests.model.ScalarFieldsClass;
 import org.tillerino.jagger.tests.model.ScalarFieldsRecord;
+import tools.jackson.core.type.TypeReference;
 
 class ScalarFieldsSerdeTest extends ReferenceTest {
 
@@ -115,11 +115,8 @@ class ScalarFieldsSerdeTest extends ReferenceTest {
     void testUnknownPropertiesDefault() throws Exception {
         ScalarFieldsRecordSerde impl = SerdeUtil.impl(ScalarFieldsRecordSerde.class);
 
-        inputUtils.assertException(
-                "{ \"whatIsThis\": 1 }",
-                impl::read,
-                new TypeReference<ScalarFieldsRecord>() {},
-                "Unrecognized field \"whatIsThis\"",
-                "Unrecognized field \"whatIsThis\"");
+        // Jackson 3 ignores unknown properties by default, and Jagger now matches that default.
+        inputUtils.assertIsEqualToDatabind(
+                "{ \"whatIsThis\": 1 }", impl::read, new TypeReference<ScalarFieldsRecord>() {});
     }
 }

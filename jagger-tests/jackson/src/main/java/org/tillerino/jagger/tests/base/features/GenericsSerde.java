@@ -1,7 +1,5 @@
 package org.tillerino.jagger.tests.base.features;
 
-import com.fasterxml.jackson.core.JsonGenerator;
-import com.fasterxml.jackson.core.JsonParser;
 import java.util.List;
 import java.util.Map;
 import org.tillerino.jagger.annotations.JsonConfig;
@@ -15,6 +13,8 @@ import org.tillerino.jagger.tests.model.features.EnumsModel.CustomNames.CustomNa
 import org.tillerino.jagger.tests.model.features.GenericsModel.GenericRecord;
 import org.tillerino.jagger.tests.model.features.GenericsModel.PointlessGenericsRecord;
 import org.tillerino.jagger.tests.model.features.GenericsModel.UsesGenericRecord;
+import tools.jackson.core.JsonGenerator;
+import tools.jackson.core.JsonParser;
 
 public interface GenericsSerde {
     // use 'V' instead of 'T' to make sure that we actually instantiate the type

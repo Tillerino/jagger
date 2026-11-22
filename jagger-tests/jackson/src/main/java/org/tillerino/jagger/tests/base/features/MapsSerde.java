@@ -1,7 +1,5 @@
 package org.tillerino.jagger.tests.base.features;
 
-import com.fasterxml.jackson.core.JsonGenerator;
-import com.fasterxml.jackson.core.JsonParser;
 import java.util.Map;
 import org.tillerino.jagger.annotations.JsonConfig;
 import org.tillerino.jagger.annotations.JsonInput;
@@ -18,6 +16,8 @@ import org.tillerino.jagger.tests.variants.ApplyVariantsToChildren;
 import org.tillerino.jagger.tests.variants.GeneratedVariant;
 import org.tillerino.jagger.tests.variants.Variant;
 import org.tillerino.jagger.tests.variants.Variants;
+import tools.jackson.core.JsonGenerator;
+import tools.jackson.core.JsonParser;
 
 interface MapsSerde {
     @ApplyVariantsToChildren

@@ -1,11 +1,11 @@
 package org.tillerino.jagger.tests.base.features;
 
-import com.fasterxml.jackson.core.type.TypeReference;
 import org.junit.jupiter.api.Test;
 import org.tillerino.jagger.tests.ReferenceTest;
 import org.tillerino.jagger.tests.SerdeUtil;
 import org.tillerino.jagger.tests.model.features.PropertyNameModel.JsonPropertyCustomName;
 import org.tillerino.jagger.tests.model.features.PropertyNameModel.JsonPropertyCustomNameWithSetter;
+import tools.jackson.core.type.TypeReference;
 
 class PropertyNameTest extends ReferenceTest {
     PropertyNameSerde serde = SerdeUtil.impl(PropertyNameSerde.class);

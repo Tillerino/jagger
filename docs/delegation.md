@@ -28,7 +28,7 @@ List<ScalarFieldsRecord> deserializeList(JsonParser parser) throws Exception;
 
 `deserializeList` will then refer to `deserializeSingle` instead of repeating the entire deserialization of `ScalarFieldsRecord`.
 ```java
-// ../jagger-tests/jackson/target/generated-sources/annotations/org/tillerino/jagger/tests/base/features/DelegationSerde$SimpleDelegationSerdeImpl.java#L332-L348
+// ../jagger-tests/jackson/target/generated-sources/annotations/org/tillerino/jagger/tests/base/features/DelegationSerde$SimpleDelegationSerdeImpl.java#L333-L349
 
 @Override
 public List<ScalarFieldsRecord> deserializeList(JsonParser parser) throws Exception {
@@ -44,7 +44,7 @@ public List<ScalarFieldsRecord> deserializeList(JsonParser parser) throws Except
     }
     return container;
   } else {
-    throw new IOException("Expected array, got " + parser.currentToken() + " at " + parser.getCurrentLocation());
+    throw new IOException("Expected array, got " + parser.currentToken() + " at " + parser.currentLocation());
   }
 }
 ```
@@ -130,12 +130,12 @@ public Float[] readBoxedFloatArray(JsonParser parser) throws Exception {
         array[len++] = parser.getFloatValue();
         parser.nextToken();
       } else {
-        throw new IOException("Expected number, got " + parser.currentToken() + " at " + parser.getCurrentLocation());
+        throw new IOException("Expected number, got " + parser.currentToken() + " at " + parser.currentLocation());
       }
     }
     return Arrays.copyOf(array, len, Float[].class);
   } else {
-    throw new IOException("Expected array, got " + parser.currentToken() + " at " + parser.getCurrentLocation());
+    throw new IOException("Expected array, got " + parser.currentToken() + " at " + parser.currentLocation());
   }
 }
 ```

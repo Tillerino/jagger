@@ -1,12 +1,12 @@
 package org.tillerino.jagger.tests.base.features;
 
-import com.fasterxml.jackson.core.JsonGenerator;
 import lombok.RequiredArgsConstructor;
 import org.tillerino.jagger.annotations.JsonConfig;
 import org.tillerino.jagger.annotations.JsonOutput;
 import org.tillerino.jagger.tests.model.AnAnnotation;
 import org.tillerino.jagger.tests.model.AnotherAnnotation;
 import org.tillerino.jagger.tests.model.NoFieldsRecord;
+import tools.jackson.core.JsonGenerator;
 
 public interface CodeGenerationSerde {
     interface DefaultBehaviourOnInterface {

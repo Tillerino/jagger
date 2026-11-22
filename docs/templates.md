@@ -29,7 +29,7 @@ interface GenericOutputSerde<U> {
 
 Annotating your blueprint with
 ```java
-// ../jagger-tests/jackson/src/main/java/org/tillerino/jagger/tests/base/features/TemplatesSerde.java#L16-L18
+// ../jagger-tests/jackson/src/main/java/org/tillerino/jagger/tests/base/features/TemplatesSerde.java#L18-L20
 
 @JaggerTemplate(
         templates = {GenericInputSerde.class, GenericOutputSerde.class},
@@ -57,7 +57,7 @@ public void writeAnEnum(AnEnum obj, JsonGenerator gen) throws Exception {
 
 The generated methods behave exactly as if they were fully specified. In this blueprint:
 ```java
-// ../jagger-tests/jackson/src/main/java/org/tillerino/jagger/tests/base/features/TemplatesSerde.java#L16-L22
+// ../jagger-tests/jackson/src/main/java/org/tillerino/jagger/tests/base/features/TemplatesSerde.java#L18-L24
 
 @JaggerTemplate(
         templates = {GenericInputSerde.class, GenericOutputSerde.class},
@@ -82,7 +82,7 @@ public void writeArrayOfAnEnum(AnEnum[] obj, JsonGenerator gen) throws Exception
 Instead of specifying types manually, you can use `auto = true` to automatically instantiate templates when needed.
 
 ```java
-// ../jagger-tests/jackson/src/main/java/org/tillerino/jagger/tests/base/features/TemplatesSerde.java#L42-L46
+// ../jagger-tests/jackson/src/main/java/org/tillerino/jagger/tests/base/features/TemplatesSerde.java#L44-L48
 
 @JaggerTemplate(
         templates = {GenericInputSerde.class, GenericOutputSerde.class},
@@ -109,7 +109,7 @@ case "dd": {
 `readDouble` itself only does a null-check and then delegates to `readPrimitiveDouble`:
 
 ```java
-// ../jagger-tests/jackson/target/generated-sources/annotations/org/tillerino/jagger/tests/base/features/TemplatesSerde$AutoTemplatesSerdeImpl.java#L426-L435
+// ../jagger-tests/jackson/target/generated-sources/annotations/org/tillerino/jagger/tests/base/features/TemplatesSerde$AutoTemplatesSerdeImpl.java#L427-L436
 
 public Double readDouble(JsonParser parser) throws Exception {
   if (!parser.hasCurrentToken()) {

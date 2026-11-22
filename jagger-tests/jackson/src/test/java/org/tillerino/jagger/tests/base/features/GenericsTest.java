@@ -4,7 +4,6 @@ import static net.javacrumbs.jsonunit.assertj.JsonAssertions.assertThatJson;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.tillerino.jagger.tests.CodeAssertions.assertThatImpl;
 
-import com.fasterxml.jackson.core.type.TypeReference;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -17,6 +16,7 @@ import org.tillerino.jagger.tests.model.features.EnumsModel.CustomNames.CustomNa
 import org.tillerino.jagger.tests.model.features.GenericsModel.GenericRecord;
 import org.tillerino.jagger.tests.model.features.GenericsModel.PointlessGenericsRecord;
 import org.tillerino.jagger.tests.model.features.GenericsModel.UsesGenericRecord;
+import tools.jackson.core.type.TypeReference;
 
 class GenericsTest extends ReferenceTest {
     StringSerde stringSerde = SerdeUtil.impl(StringSerde.class);

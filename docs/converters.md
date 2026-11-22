@@ -39,12 +39,12 @@ OffsetDateTime timestamp = record.timestamp();
 if (timestamp != null) {
   String converted = JavaTimeOutputConverters.offsetDateTimeToString(timestamp);
   if (converted != null) {
-    generator.writeStringField("timestamp", converted);
+    generator.writeStringProperty("timestamp", converted);
   } else {
-    generator.writeNullField("timestamp");
+    generator.writeNullProperty("timestamp");
   }
 } else {
-  generator.writeNullField("timestamp");
+  generator.writeNullProperty("timestamp");
 }
 ```
 
@@ -61,7 +61,7 @@ case "timestamp": {
     timestampToConvert = parser.getText();
     parser.nextToken();
   } else {
-    throw new IOException("Expected string, got " + parser.currentToken() + " at " + parser.getCurrentLocation());
+    throw new IOException("Expected string, got " + parser.currentToken() + " at " + parser.currentLocation());
   }
   timestamp = JavaTimeInputConverters.stringToOffsetDateTime(timestampToConvert);
   break;

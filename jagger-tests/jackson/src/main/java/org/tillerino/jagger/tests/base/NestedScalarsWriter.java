@@ -1,9 +1,9 @@
 package org.tillerino.jagger.tests.base;
 
-import com.fasterxml.jackson.core.JsonGenerator;
 import java.util.List;
 import java.util.Map;
 import org.tillerino.jagger.annotations.JsonOutput;
+import tools.jackson.core.JsonGenerator;
 
 interface NestedScalarsWriter {
     @JsonOutput

@@ -9,4 +9,7 @@ public interface UnknownPropertiesModel {
 
     @JsonConfig(unknownProperties = JsonConfig.UnknownPropertiesMode.IGNORE)
     record JsonConfigIgnoreUnknown(String name, int value) {}
+
+    @JsonConfig(unknownProperties = JsonConfig.UnknownPropertiesMode.THROW)
+    record JsonConfigThrow(String name, int value) {}
 }
