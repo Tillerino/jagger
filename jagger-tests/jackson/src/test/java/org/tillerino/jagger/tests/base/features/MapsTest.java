@@ -280,6 +280,11 @@ class MapsTest extends ReferenceTest {
                 @Replacement(regex = "2", replacement = "'2'"),
                 @Replacement(regex = "1", replacement = "'1'"),
                 @Replacement(regex = "Integer", replacement = "Character")
+            }),
+            @Variant({
+                @Replacement(regex = "put\\(2", replacement = "put(\"2\""),
+                @Replacement(regex = "put\\(1", replacement = "put(\"1\""),
+                @Replacement(regex = "Integer", replacement = "String")
             })
         })
         @Test
@@ -422,6 +427,16 @@ class MapsTest extends ReferenceTest {
             map.put('2', "first");
             map.put('1', null);
             outputUtils.roundTrip(map, serde::writeMapCharacter, serde::readMapCharacter, new TypeReference<>() {});
+        }
+
+        /* put\(2 -> put("2", put\(1 -> put("1", Integer -> String */
+        @Test
+        @GeneratedVariant("Variant of mapKeyInteger")
+        void mapKeyString() throws Exception {
+            Map<String, String> map = new LinkedHashMap<>();
+            map.put("2", "first");
+            map.put("1", null);
+            outputUtils.roundTrip(map, serde::writeMapString, serde::readMapString, new TypeReference<>() {});
         }
     }
 }

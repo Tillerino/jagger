@@ -39,6 +39,8 @@ class GenericsTest extends ReferenceTest {
 
     CustomNamedEnumStringMapSerde customNamedEnumStringMapSerde = SerdeUtil.impl(CustomNamedEnumStringMapSerde.class);
 
+    StringStringMapSerde stringStringMapSerde = SerdeUtil.impl(StringStringMapSerde.class);
+
     @Test
     void passGenericImplExplicitly() throws Exception {
         outputUtils.roundTrip2(
@@ -168,6 +170,29 @@ class GenericsTest extends ReferenceTest {
                 .method("readCustomNamedEnumStringMap")
                 .calls("readGenericMap")
                 .bodyContains("EnumHelper.deserialize");
+    }
+
+    @Test
+    void genericMapWithStringKeyConverterSerde() throws Exception {
+        Map<String, String> map = new LinkedHashMap<>();
+        map.put("a", "first");
+        map.put("b", null);
+
+        outputUtils.roundTrip(
+                map,
+                stringStringMapSerde::writeStringStringMap,
+                stringStringMapSerde::readStringStringMap,
+                new TypeReference<>() {});
+
+        assertThatImpl(StringStringMapSerde.class)
+                .method("writeStringStringMap")
+                .calls("writeGenericMap")
+                .bodyContains("from -> from");
+
+        assertThatImpl(StringStringMapSerde.class)
+                .method("readStringStringMap")
+                .calls("readGenericMap")
+                .bodyContains("from -> from");
     }
 
     @Test

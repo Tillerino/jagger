@@ -81,7 +81,10 @@ public class Converters {
                 .map(method -> new OutputConverter(method::call, method.returnType()));
     }
 
-    /** Boxed types are converted as {@code x -> Objects.toString(x, null)}, enums are serialized via {@link Enums}. */
+    /**
+     * String is passed through, boxed types are converted as {@code x -> Objects.toString(x, null)}, enums are
+     * serialized via {@link Enums}.
+     */
     public Optional<Expr> instantiateToStringConverter(TypeMirror targetType, GeneratedClass generatedClass) {
         if (!ctx.generics.isFunctionalInterface(targetType)) {
             return Optional.empty();
@@ -98,6 +101,9 @@ public class Converters {
         }
         TypeMirror parameterType = method.parameters().get(0).type();
         String parameterName = method.parameters().get(0).name();
+        if (ctx.commonTypes.isString(parameterType)) {
+            return Optional.of(e(targetType, "$L -> $L", parameterName, parameterName));
+        }
         if (ctx.commonTypes.isBoxed(parameterType)) {
             return Optional.of(
                     e(targetType, "$L -> $T.toString($L, null)", parameterName, Objects.class, parameterName));
@@ -114,8 +120,8 @@ public class Converters {
     }
 
     /**
-     * Boxed types are converted as {@code x -> Integer.valueOf(x)}, enums are deserialized via the generated lookup map
-     * ({@link Enums}).
+     * String is passed through, boxed types are converted as {@code x -> Integer.valueOf(x)}, enums are deserialized
+     * via the generated lookup map ({@link Enums}).
      */
     public Optional<Expr> instantiateFromStringConverter(TypeMirror targetType, GeneratedClass generatedClass) {
         if (!ctx.generics.isFunctionalInterface(targetType)) {
@@ -133,6 +139,9 @@ public class Converters {
         }
         TypeMirror convertedType = method.returnType();
         String parameterName = method.parameters().get(0).name();
+        if (ctx.commonTypes.isString(convertedType)) {
+            return Optional.of(e(targetType, "$L -> $L", parameterName, parameterName));
+        }
         if (ctx.commonTypes.isBoxed(convertedType)) {
             if (ctx.types.isSameType(convertedType, ctx.commonTypes.boxedChar)) {
                 return Optional.of(

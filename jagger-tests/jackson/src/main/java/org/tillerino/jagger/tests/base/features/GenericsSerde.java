@@ -276,4 +276,17 @@ public interface GenericsSerde {
         @JsonInput
         Map<CustomNamedEnum, String> readCustomNamedEnumStringMap(JsonParser parser) throws Exception;
     }
+
+    @JsonConfig(
+            uses = {
+                GenericKeyMapSerde.class,
+                StringSerde.class,
+            })
+    interface StringStringMapSerde {
+        @JsonOutput
+        void writeStringStringMap(Map<String, String> map, JsonGenerator gen) throws Exception;
+
+        @JsonInput
+        Map<String, String> readStringStringMap(JsonParser parser) throws Exception;
+    }
 }

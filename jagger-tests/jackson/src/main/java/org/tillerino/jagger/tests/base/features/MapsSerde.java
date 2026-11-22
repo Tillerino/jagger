@@ -143,7 +143,8 @@ interface MapsSerde {
         @Variant(@Replacement(regex = "Integer", replacement = "Long")),
         @Variant(@Replacement(regex = "Integer", replacement = "Float")),
         @Variant(@Replacement(regex = "Integer", replacement = "Double")),
-        @Variant(@Replacement(regex = "Integer", replacement = "Character"))
+        @Variant(@Replacement(regex = "Integer", replacement = "Character")),
+        @Variant(@Replacement(regex = "Integer", replacement = "String"))
     })
     interface CustomKeys {
         @JsonOutput
@@ -267,5 +268,15 @@ interface MapsSerde {
         @JsonInput
         @GeneratedVariant("Variant of readMapInteger")
         Map<Character, String> readMapCharacter(JsonParser parser) throws Exception;
+
+        /* Integer -> String */
+        @JsonOutput
+        @GeneratedVariant("Variant of writeMapInteger")
+        void writeMapString(Map<String, String> map, JsonGenerator generator) throws Exception;
+
+        /* Integer -> String */
+        @JsonInput
+        @GeneratedVariant("Variant of readMapInteger")
+        Map<String, String> readMapString(JsonParser parser) throws Exception;
     }
 }
