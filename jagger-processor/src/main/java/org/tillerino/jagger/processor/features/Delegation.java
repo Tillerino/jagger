@@ -183,6 +183,16 @@ public class Delegation {
         // see if we can instantiate a lambda from our list of used blueprints
         Optional<Expr> lambda = ctx.generics.getOrCreateLambda(
                 generatedClass, targetArgument.type(), caller != null ? caller.parameters() : List.of(), 0);
+        if (lambda.isEmpty() && caller != null) {
+            // auto-templates may be able to provide a prototype that the lambda can delegate to
+            ctx.generics.instantiateMethods(targetArgument.type(), LocationKind.PROTOTYPE).stream()
+                    .findFirst()
+                    .flatMap(ctx::detectPrototype)
+                    .filter(TemplatablePrototypeKind.class::isInstance)
+                    .map(TemplatablePrototypeKind.class::cast)
+                    .flatMap(target -> Templates.delegateToAutoTemplate(ctx, target, caller));
+            lambda = ctx.generics.getOrCreateLambda(generatedClass, targetArgument.type(), caller.parameters(), 0);
+        }
         if (lambda.isPresent()) {
             return lambda;
         }

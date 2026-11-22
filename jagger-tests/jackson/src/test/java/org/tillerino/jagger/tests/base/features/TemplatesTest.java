@@ -4,6 +4,7 @@ import static org.tillerino.jagger.tests.CodeAssertions.assertThatImpl;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.github.javaparser.ast.nodeTypes.NodeWithSimpleName;
+import java.util.List;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.tillerino.jagger.tests.CodeAssertions.CompileUnitAssert;
@@ -14,8 +15,10 @@ import org.tillerino.jagger.tests.base.features.TemplatesSerde.ForeignAutoSerde.
 import org.tillerino.jagger.tests.base.features.TemplatesSerde.ForeignAutoSerde.TriggersAutoTemplatesSerde;
 import org.tillerino.jagger.tests.base.features.TemplatesSerde.MultipleTemplateAnnotationsAndOneCustom;
 import org.tillerino.jagger.tests.base.features.TemplatesSerde.TemplatedSerde;
+import org.tillerino.jagger.tests.base.features.TemplatesSerde.UsesAutoTemplatesForGenericContainers;
 import org.tillerino.jagger.tests.model.AnEnum;
 import org.tillerino.jagger.tests.model.ScalarFieldsRecord;
+import org.tillerino.jagger.tests.model.features.TemplatesModel.SimpleRecord;
 
 class TemplatesTest extends ReferenceTest {
     TemplatedSerde templatedSerde = SerdeUtil.impl(TemplatedSerde.class);
@@ -57,6 +60,26 @@ class TemplatesTest extends ReferenceTest {
                 .methods()
                 .extracting(NodeWithSimpleName::getNameAsString)
                 .containsExactly("writeAnEnumList", "writeAnEnum", "readAnEnum");
+    }
+
+    @Nested
+    class AutoTemplatesForGenericContainers {
+        @Test
+        void delegatesToAutoTemplatesForGenericContainerComponents() throws Exception {
+            CompileUnitAssert assertThat = assertThatImpl(UsesAutoTemplatesForGenericContainers.class);
+            assertThat.method("writeSimpleRecords").calls("writeList").references("writeSimpleRecord");
+            assertThat.method("readSimpleRecords").calls("readList").references("readSimpleRecord");
+        }
+
+        @Test
+        void roundTrip() throws Exception {
+            UsesAutoTemplatesForGenericContainers serde = SerdeUtil.impl(UsesAutoTemplatesForGenericContainers.class);
+            outputUtils.roundTrip(
+                    List.of(new SimpleRecord("first"), new SimpleRecord("second")),
+                    serde::writeSimpleRecords,
+                    serde::readSimpleRecords,
+                    new TypeReference<List<SimpleRecord>>() {});
+        }
     }
 
     @Nested
