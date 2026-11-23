@@ -424,7 +424,7 @@ public abstract class AbstractWriterGenerator<SELF extends AbstractWriterGenerat
 
         List<OutputProperty> properties = ctx.properties.outputProperties(type, this.config);
         List<OutputProperty> sortedProperties =
-                referencesSetup.map(setup -> setup.sortProperties(properties)).orElseGet(() -> properties);
+                referencesSetup.map(setup -> setup.sortProperties(properties)).orElse(properties);
 
         for (OutputProperty property : sortedProperties) {
             if (IgnoreProperty.isIgnoredForJson(property.config())

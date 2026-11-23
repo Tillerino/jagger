@@ -15,6 +15,7 @@ import jakarta.annotation.Nullable;
 import java.io.IOException;
 import java.util.*;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.function.Supplier;
 import javax.lang.model.element.ElementKind;
 import javax.lang.model.element.Modifier;
@@ -32,6 +33,16 @@ import org.tillerino.jagger.processor.config.AnyConfig;
 import org.tillerino.jagger.processor.config.ConfigProperty.InstantiatedProperty;
 import org.tillerino.jagger.processor.config.ConfigProperty.LocationKind;
 import org.tillerino.jagger.processor.config.ConfigProperty.PropagationKind;
+import org.tillerino.jagger.processor.databind.AbstractReaderGenerator.ReadType.Array;
+import org.tillerino.jagger.processor.databind.AbstractReaderGenerator.ReadType.Boxed;
+import org.tillerino.jagger.processor.databind.AbstractReaderGenerator.ReadType.Converted;
+import org.tillerino.jagger.processor.databind.AbstractReaderGenerator.ReadType.Delegated;
+import org.tillerino.jagger.processor.databind.AbstractReaderGenerator.ReadType.EnumValue;
+import org.tillerino.jagger.processor.databind.AbstractReaderGenerator.ReadType.IterableValue;
+import org.tillerino.jagger.processor.databind.AbstractReaderGenerator.ReadType.MapValue;
+import org.tillerino.jagger.processor.databind.AbstractReaderGenerator.ReadType.ObjectValue;
+import org.tillerino.jagger.processor.databind.AbstractReaderGenerator.ReadType.Primitive;
+import org.tillerino.jagger.processor.databind.AbstractReaderGenerator.ReadType.Text;
 import org.tillerino.jagger.processor.ext.PrototypeKind.CodeGeneratorContext;
 import org.tillerino.jagger.processor.features.*;
 import org.tillerino.jagger.processor.features.Converters.InputConverter;
@@ -55,12 +66,15 @@ public abstract class AbstractReaderGenerator<SELF extends AbstractReaderGenerat
 
     protected final boolean exhaust;
 
+    protected final ReadType rt;
+
     protected Optional<TypedVariable> alreadyOpen;
 
     AbstractReaderGenerator(CodeGeneratorContext generatorContext) {
         super(generatorContext, generatorContext.prototype().returnType());
         lhs = new LHS.Return(generatorContext.prototype().returnType());
         exhaust = true;
+        rt = detect();
     }
 
     protected AbstractReaderGenerator(
@@ -69,6 +83,7 @@ public abstract class AbstractReaderGenerator<SELF extends AbstractReaderGenerat
         this.lhs = lhs;
         this.exhaust = exhaust;
         this.alreadyOpen = lhs instanceof LHS.Return ? parent.alreadyOpen : Optional.empty();
+        rt = detect();
     }
 
     protected AbstractReaderGenerator(@Nonnull SELF parent, Props props) {
@@ -76,6 +91,69 @@ public abstract class AbstractReaderGenerator<SELF extends AbstractReaderGenerat
         this.lhs = props.lhs;
         this.exhaust = props.exhaust;
         this.alreadyOpen = props.alreadyOpen;
+        rt = detect();
+    }
+
+    private ReadType detect() {
+        // delegate to any of the used blueprints
+        Optional<Delegatee> delegate = ctx.delegation.findDelegatee(
+                kind.withTypesPrefix(List.of(type)),
+                prototype,
+                !(lhs instanceof LHS.Return),
+                stackDepth() > 1,
+                config,
+                generatedClass);
+        if (delegate.isPresent()) {
+            return new Delegated(delegate.get());
+        }
+        Optional<InputConverter> converter = ctx.converters.findInputConverter(prototype, type, config, generatedClass);
+        if (converter.isPresent()) {
+            if (ctx.references.isConfigured(type)) {
+                throw References.converterConflict(type);
+            }
+            InputConverter c = converter.get();
+            return new Converted(c.converter(), c.typeToConvert());
+        }
+        detectSelfReferencingType();
+        if (type.getKind().isPrimitive()) {
+            return new Primitive((PrimitiveType) type);
+        }
+        Optional<Creator.Properties> jsonCreatorProperties = ctx.creators
+                .findJsonCreatorMethod(type)
+                .filter(Creator.Properties.class::isInstance)
+                .map(Creator.Properties.class::cast);
+        if (jsonCreatorProperties.isPresent()) {
+            return new ObjectValue((DeclaredType) type, jsonCreatorProperties.get());
+        }
+        if (ctx.commonTypes.isBoxed(type)) {
+            return new Boxed(ctx.types.unboxedType(type));
+        }
+        if (ctx.commonTypes.isString(type) || ctx.commonTypes.isArrayOf(type, TypeKind.CHAR)) {
+            return new Text(ctx.commonTypes.isString(type) ? StringKind.STRING : StringKind.CHAR_ARRAY);
+        }
+        if (ctx.commonTypes.isEnum(type)) {
+            return new EnumValue();
+        }
+        if (type.getKind() == TypeKind.ARRAY) {
+            return new Array(ctx.commonTypes.getArrayComponentType(type));
+        }
+        if (ctx.commonTypes.isIterableOrArray(type)) {
+            return new IterableValue(ctx.commonTypes.getComponentType(type, Iterable.class));
+        }
+        if (ctx.commonTypes.isErasureAssignableTo(type, Map.class)) {
+            TypeMirror[] typeBindings = ctx.generics
+                    .recordTypeBindingsFor((DeclaredType) type, ctx.commonTypes.elem(Map.class))
+                    .values()
+                    .toArray(TypeMirror[]::new);
+            return new MapValue(typeBindings[0], typeBindings[1]);
+        }
+        if (type.getKind() == TypeKind.TYPEVAR) {
+            throw new ContextedRuntimeException("Missing deserializer for type variable " + type);
+        }
+        if (!(type instanceof DeclaredType declaredType)) {
+            throw new ContextedRuntimeException("I don't know what to do with this type: " + type);
+        }
+        return new ObjectValue(declaredType, null);
     }
 
     public CodeBlock.Builder build() {
@@ -94,45 +172,28 @@ public abstract class AbstractReaderGenerator<SELF extends AbstractReaderGenerat
             resolveId(branch, resolveSetup.get());
             branch = ELSE_IF;
         }
-        Optional<Delegatee> delegate = ctx.delegation.findDelegatee(
-                kind.withTypesPrefix(List.of(type)),
-                prototype,
-                !(lhs instanceof LHS.Return),
-                stackDepth() > 1,
-                config,
-                generatedClass);
-        if (delegate.isPresent()) {
+        if (rt instanceof Delegated delegated) {
             lastBranch(branch).withBody(() -> {
-                addStatement(lhs.assign(delegate.get().call(prototype, List.of(), generatedClass)));
+                addStatement(lhs.assign(delegated.delegatee().call(prototype, List.of(), generatedClass)));
             });
-            return code;
-        }
-        Optional<InputConverter> converter = ctx.converters.findInputConverter(prototype, type, config, generatedClass);
-        if (converter.isPresent()) {
-            if (ctx.references.isConfigured(type)) {
-                throw References.converterConflict(type);
-            }
-            lastBranch(branch).withBody(() -> {
-                InputConverter inputConverter = converter.get();
-
-                LHS.Variable replacementVar = declareLhsVariable(inputConverter.typeToConvert(), pvn + "ToConvert");
-
-                AnyConfig nestedConfig = config.propagateTo(PropagationKind.SUBSTITUTE);
-                SELF nested = nest(pvn, replacementVar, nestedConfig, exhaust, alreadyOpen);
-
-                runWithContext("converter", inputConverter, () -> nested.build(IF, nullable));
-                addStatement(lhs.assign(inputConverter.converter().apply(replacementVar)));
-            });
-
-            return code;
-        }
-        detectSelfReferencingType();
-        if (type.getKind().isPrimitive()) {
-            readPrimitive(branch, type);
+        } else if (rt instanceof Converted converted) {
+            lastBranch(branch).withBody(() -> readConverted(converted, nullable));
+        } else if (rt instanceof Primitive primitive) {
+            readPrimitive(branch, primitive.pt());
         } else {
             readNullable(branch, nullable);
         }
         return code;
+    }
+
+    private void readConverted(Converted converted, boolean nullable) {
+        LHS.Variable replacementVar = declareLhsVariable(converted.typeToConvert(), pvn + "ToConvert");
+
+        AnyConfig nestedConfig = config.propagateTo(PropagationKind.SUBSTITUTE);
+        SELF nested = nest(pvn, replacementVar, nestedConfig, exhaust, alreadyOpen);
+
+        runWithContext("converter", converted, () -> nested.build(IF, nullable));
+        addStatement(lhs.assign(converted.converter().apply(replacementVar)));
     }
 
     private LHS.Variable declareLhsVariable(TypeMirror replacementType, String name) {
@@ -147,7 +208,7 @@ public abstract class AbstractReaderGenerator<SELF extends AbstractReaderGenerat
 
         // We cannot call a delegator from this nested serializer or an else-branch is forced!
         AnyConfig nestedConfig = new AnyConfig(
-                        List.of(new InstantiatedProperty(
+                        List.of(new InstantiatedProperty<>(
                                 Delegation.DELEGATE_FROM, LocationKind.PROPERTY, false, "(internal)")),
                         ctx)
                 .merge(config.propagateTo(PropagationKind.PROPERTY));
@@ -247,38 +308,29 @@ public abstract class AbstractReaderGenerator<SELF extends AbstractReaderGenerat
     }
 
     void readNullCheckedObject(Branch branch) {
-        Optional<Creator.Properties> jsonCreatorProperties = ctx.creators
-                .findJsonCreatorMethod(type)
-                .filter(Creator.Properties.class::isInstance)
-                .map(Creator.Properties.class::cast);
-        if (jsonCreatorProperties.isPresent()) {
-            readObject(branch, jsonCreatorProperties.get(), (TypeElement) ((DeclaredType) type).asElement());
-        } else if (ctx.commonTypes.isBoxed(type)) {
-            PrimitiveType unboxed = ctx.types.unboxedType(type);
+        if (rt instanceof Boxed boxed) {
             nest(
                             pvn,
-                            lhs.withInternalType(unboxed),
+                            lhs.withInternalType(boxed.unboxed()),
                             config.propagateTo(PropagationKind.SUBSTITUTE),
                             exhaust,
                             alreadyOpen)
                     .build(branch, true);
-        } else if (ctx.commonTypes.isString(type) || ctx.commonTypes.isArrayOf(type, TypeKind.CHAR)) {
-            readString(branch, ctx.commonTypes.isString(type) ? StringKind.STRING : StringKind.CHAR_ARRAY);
-        } else if (ctx.commonTypes.isEnum(type)) {
+        } else if (rt instanceof Text text) {
+            readString(branch, text.kind());
+        } else if (rt instanceof EnumValue) {
             readEnum(branch);
-        } else if (type.getKind() == TypeKind.ARRAY) {
-            readArray(branch);
-        } else if (ctx.commonTypes.isIterableOrArray(type)) {
-            readCollection(branch);
-        } else if (ctx.commonTypes.isErasureAssignableTo(type, Map.class)) {
-            readMap(branch);
-        } else if (type.getKind() == TypeKind.TYPEVAR) {
-            throw new ContextedRuntimeException("Missing deserializer for type variable " + type);
+        } else if (rt instanceof Array array) {
+            readArray(branch, array.componentType());
+        } else if (rt instanceof IterableValue iterable) {
+            readCollection(branch, iterable.componentType());
+        } else if (rt instanceof MapValue map) {
+            readMap(branch, map.keyType(), map.valueType());
+        } else if (rt instanceof ObjectValue object) {
+            readObject(branch, object.creator(), (TypeElement)
+                    object.declaredType().asElement());
         } else {
-            if (!(type instanceof DeclaredType dt)) {
-                throw new ContextedRuntimeException("I don't know what to do with this type: " + type);
-            }
-            readObject(branch, null, (TypeElement) dt.asElement());
+            throw Exceptions.unexpected();
         }
     }
 
@@ -302,8 +354,7 @@ public abstract class AbstractReaderGenerator<SELF extends AbstractReaderGenerat
         elseThrowUnexpected("string");
     }
 
-    private void readArray(Branch branch) {
-        TypeMirror componentType = ctx.commonTypes.getArrayComponentType(type);
+    private void readArray(Branch branch, TypeMirror componentType) {
         beginControlFlow(branch, arrayCaseCondition());
         {
             TypeMirror rawComponentType = ctx.types.erasure(componentType);
@@ -364,10 +415,9 @@ public abstract class AbstractReaderGenerator<SELF extends AbstractReaderGenerat
         elseThrowUnexpected("array");
     }
 
-    private void readCollection(Branch branch) {
+    private void readCollection(Branch branch, TypeMirror componentType) {
         beginControlFlow(branch, arrayCaseCondition());
         {
-            TypeMirror componentType = ctx.commonTypes.getComponentType(type, Iterable.class);
             TypeMirror collectionType = determineCollectionType();
             Code containerVar = instantiateContainer(collectionType);
 
@@ -413,14 +463,8 @@ public abstract class AbstractReaderGenerator<SELF extends AbstractReaderGenerat
         }
     }
 
-    private void readMap(Branch branch) {
+    private void readMap(Branch branch, TypeMirror keyType, TypeMirror valueType) {
         inGuardedObject(branch, () -> {
-            TypeMirror[] typeBindings = ctx.generics
-                    .recordTypeBindingsFor((DeclaredType) type, ctx.commonTypes.elem(Map.class))
-                    .values()
-                    .toArray(TypeMirror[]::new);
-            TypeMirror keyType = typeBindings[0];
-            TypeMirror valueType = typeBindings[1];
             TypeMirror mapType = determineCollectionType();
             Code mapVar = instantiateContainer(mapType);
             iterateOverFields();
@@ -447,31 +491,23 @@ public abstract class AbstractReaderGenerator<SELF extends AbstractReaderGenerat
 
     /** Converts the map key string into the actual key type. Mirrors the writer's map key handling. */
     private Code getMapKey(TypeMirror keyType, TypedVariable keyString) {
-        if (ctx.commonTypes.isString(keyType)) {
-            return keyString;
-        }
-
         AnyConfig mapKeyConfig = new AnyConfig(
                         List.of(new InstantiatedProperty<>(
                                 Delegation.DELEGATE_FROM, LocationKind.PROPERTY, false, "map key")),
                         ctx)
                 .merge(config.propagateTo(PropagationKind.SUBSTITUTE));
 
-        Optional<InputConverter> converter = ctx.converters
-                .findInputConverter(prototype, keyType, mapKeyConfig, generatedClass)
-                .filter(it -> ctx.commonTypes.isString(it.typeToConvert()));
-        if (converter.isPresent()) {
-            return converter.get().converter().apply(keyString);
-        }
-
-        if (ctx.commonTypes.isBoxed(keyType)) {
+        ReadType keyReadType = nest("key", new LHS.Return(keyType), mapKeyConfig, exhaust, alreadyOpen).rt;
+        if (keyReadType instanceof Text text && text.kind() == StringKind.STRING) {
+            return keyString;
+        } else if (keyReadType instanceof Boxed) {
             if (ctx.types.isSameType(keyType, ctx.commonTypes.boxedChar)) {
                 return e(keyType, "$T.toCharacter($C)", CharacterHelper.class, keyString);
             }
             return e(keyType, "$T.valueOf($C)", keyType, keyString);
-        }
-
-        if (ctx.commonTypes.isEnum(keyType)) {
+        } else if (keyReadType instanceof Converted converted && ctx.commonTypes.isString(converted.typeToConvert())) {
+            return converted.converter().apply(keyString);
+        } else if (keyReadType instanceof EnumValue) {
             return Enums.deserializationCode(generatedClass, keyType, keyString);
         }
 
@@ -489,9 +525,7 @@ public abstract class AbstractReaderGenerator<SELF extends AbstractReaderGenerat
         if (properties != null) {
             readCreator(properties.method());
         } else {
-            Polymorphism.of(element, ctx)
-                    .ifPresentOrElse(
-                            polymorphism -> readPolymorphicObject(polymorphism), () -> readObjectFields(element));
+            Polymorphism.of(element, ctx).ifPresentOrElse(this::readPolymorphicObject, () -> readObjectFields(element));
         }
 
         elseThrowUnexpected("object");
@@ -893,7 +927,7 @@ public abstract class AbstractReaderGenerator<SELF extends AbstractReaderGenerat
             }
         }
 
-        default void assignAnd(Expr rhs, AbstractCodeGeneratorStack stack, Consumer<Code> tmpAction) {
+        default void assignAnd(Expr rhs, AbstractCodeGeneratorStack<?> stack, Consumer<Code> tmpAction) {
             if (this instanceof Variable v) {
                 stack.addStatement(assign(rhs));
                 tmpAction.accept(v);
@@ -971,6 +1005,33 @@ public abstract class AbstractReaderGenerator<SELF extends AbstractReaderGenerat
         }
 
         record Setter(@With TypeMirror internalType, Code objectVar, String methodName) implements LHS {}
+    }
+
+    protected sealed interface ReadType {
+        record Delegated(Delegatee delegatee) implements ReadType {}
+
+        record Primitive(PrimitiveType pt) implements ReadType {}
+
+        /** The value is converted after reading. The converter is applied to the nested value. */
+        record Converted(Function<Expr, Expr> converter, TypeMirror typeToConvert) implements ReadType {}
+
+        /** A boxed primitive that is read as its {@code unboxed} primitive type. */
+        record Boxed(PrimitiveType unboxed) implements ReadType {}
+
+        /** A {@link String} or {@code char[]} read from a string. */
+        record Text(StringKind kind) implements ReadType {}
+
+        record EnumValue() implements ReadType {}
+
+        record Array(TypeMirror componentType) implements ReadType {}
+
+        record IterableValue(TypeMirror componentType) implements ReadType {}
+
+        record MapValue(TypeMirror keyType, TypeMirror valueType) implements ReadType {}
+
+        /** A declared type read from an object, using the given creator if present. */
+        record ObjectValue(
+                DeclaredType declaredType, @Nullable Creator.Properties creator) implements ReadType {}
     }
 
     protected record Props(

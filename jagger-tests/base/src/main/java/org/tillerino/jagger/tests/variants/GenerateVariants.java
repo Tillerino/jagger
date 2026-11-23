@@ -28,7 +28,6 @@ import org.tillerino.jagger.tests.variants.GenerateVariants.VariantValue.Replace
 
 /** Run to generate variants of tests. See annotations like {@link Variants}. Started from justfile. */
 public class GenerateVariants {
-    private static final LexicalPreservingPrinter printer = new LexicalPreservingPrinter();
 
     public static void main(String[] args) throws Exception {
         copy();
