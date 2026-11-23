@@ -15,6 +15,7 @@ import org.tillerino.jagger.tests.base.features.GenericsSerde.*;
 import org.tillerino.jagger.tests.model.features.EnumsModel.CustomNames.CustomNamedEnum;
 import org.tillerino.jagger.tests.model.features.GenericsModel.GenericRecord;
 import org.tillerino.jagger.tests.model.features.GenericsModel.PointlessGenericsRecord;
+import org.tillerino.jagger.tests.model.features.GenericsModel.ToStringSelfConverter;
 import org.tillerino.jagger.tests.model.features.GenericsModel.UsesGenericRecord;
 import tools.jackson.core.type.TypeReference;
 
@@ -40,6 +41,9 @@ class GenericsTest extends ReferenceTest {
     CustomNamedEnumStringMapSerde customNamedEnumStringMapSerde = SerdeUtil.impl(CustomNamedEnumStringMapSerde.class);
 
     StringStringMapSerde stringStringMapSerde = SerdeUtil.impl(StringStringMapSerde.class);
+
+    ToStringSelfConverterStringMapSerde toStringSelfConverterStringMapSerde =
+            SerdeUtil.impl(ToStringSelfConverterStringMapSerde.class);
 
     @Test
     void passGenericImplExplicitly() throws Exception {
@@ -143,7 +147,7 @@ class GenericsTest extends ReferenceTest {
         assertThatImpl(IntegerStringMapSerde.class)
                 .method("readIntegerStringMap")
                 .calls("readGenericMap")
-                .bodyContains("from -> Integer.valueOf(from)");
+                .bodyContains("Integer::valueOf");
 
         assertThatImpl(GenericKeyMapSerde.class).method("readGenericMap").bodyContains("keyConverter.convert(key)");
     }
@@ -193,6 +197,31 @@ class GenericsTest extends ReferenceTest {
                 .method("readStringStringMap")
                 .calls("readGenericMap")
                 .bodyContains("from -> from");
+    }
+
+    @Test
+    void genericToStringSelfConverterStringMapSerde() throws Exception {
+        outputUtils.roundTrip(
+                Map.of(new ToStringSelfConverter("1"), "a", new ToStringSelfConverter("2"), "b"),
+                toStringSelfConverterStringMapSerde::writeToStringSelfConverterStringMap,
+                toStringSelfConverterStringMapSerde::readToStringSelfConverterStringMap,
+                new TypeReference<>() {});
+
+        assertThatImpl(ToStringSelfConverterStringMapSerde.class)
+                .method("writeToStringSelfConverterStringMap")
+                .calls("writeGenericMap")
+                .bodyContains("ToStringSelfConverter::asString");
+
+        assertThatImpl(GenericKeyMapSerde.class)
+                .method("writeGenericMap")
+                .bodyContains("keyConverter.convert(entry.getKey())");
+
+        assertThatImpl(ToStringSelfConverterStringMapSerde.class)
+                .method("readToStringSelfConverterStringMap")
+                .calls("readGenericMap")
+                .bodyContains("ToStringSelfConverter::fromString");
+
+        assertThatImpl(GenericKeyMapSerde.class).method("readGenericMap").bodyContains("keyConverter.convert(key)");
     }
 
     @Test

@@ -73,7 +73,8 @@ public class CodeGeneration {
     }
 
     public static boolean shouldImplement(JaggerPrototype prototype) {
-        return (prototype.element().getModifiers().contains(Modifier.ABSTRACT)
+        return prototype.kind().isGenerated()
+                && (prototype.element().getModifiers().contains(Modifier.ABSTRACT)
                         || prototype.kind().decorates(prototype.config()))
                 && shouldImplement(prototype.config());
     }

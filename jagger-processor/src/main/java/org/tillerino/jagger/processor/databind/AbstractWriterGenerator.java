@@ -29,7 +29,7 @@ import org.tillerino.jagger.processor.databind.AbstractWriterGenerator.WrittenTy
 import org.tillerino.jagger.processor.databind.AbstractWriterGenerator.WrittenType.Text;
 import org.tillerino.jagger.processor.ext.PrototypeKind.CodeGeneratorContext;
 import org.tillerino.jagger.processor.ext.PrototypeKind.TemplatablePrototypeKind;
-import org.tillerino.jagger.processor.features.Converters.OutputConverter;
+import org.tillerino.jagger.processor.features.Converters.Converter;
 import org.tillerino.jagger.processor.features.Delegation;
 import org.tillerino.jagger.processor.features.Delegation.Delegatee;
 import org.tillerino.jagger.processor.features.Enums;
@@ -90,14 +90,15 @@ public abstract class AbstractWriterGenerator<SELF extends AbstractWriterGenerat
         if (type.getKind().isPrimitive()) {
             return new Primitive((PrimitiveType) type);
         }
-        Optional<OutputConverter> converter =
-                ctx.converters.findOutputConverter(type, prototype, config, generatedClass);
+        Optional<Converter> converter = ctx.converters
+                .findOutputConverter(type, prototype, config, generatedClass)
+                .or(() -> ctx.creators.findJsonValueMethod(type));
         if (converter.isPresent()) {
             if (ctx.references.isConfigured(type)) {
                 throw References.converterConflict(type);
             }
-            OutputConverter c = converter.get();
-            return new Converted(c.converter(), c.convertedType());
+            Converter c = converter.get();
+            return new Converted(c.converter(), c.externalType());
         }
         if (ctx.commonTypes.isBoxed(type)) {
             return new Boxed(ctx.types.unboxedType(type));

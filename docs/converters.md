@@ -112,7 +112,7 @@ When a generic prototype requires an output converter to `String`, Jagger can in
 types and enums. This is useful for generic map keys, where the key type varies between prototypes:
 
 ```java
-// ../jagger-tests/jackson/src/main/java/org/tillerino/jagger/tests/base/features/GenericsSerde.java#L237-L252
+// ../jagger-tests/jackson/src/main/java/org/tillerino/jagger/tests/base/features/GenericsSerde.java#L238-L253
 
 interface GenericKeyMapSerde {
     @JsonOutput
@@ -135,7 +135,7 @@ interface GenericKeyMapSerde {
 The concrete prototype only declares the map. Jagger fills in the key converter:
 
 ```java
-// ../jagger-tests/jackson/src/main/java/org/tillerino/jagger/tests/base/features/GenericsSerde.java#L254-L265
+// ../jagger-tests/jackson/src/main/java/org/tillerino/jagger/tests/base/features/GenericsSerde.java#L255-L266
 
 @JsonConfig(
         uses = {

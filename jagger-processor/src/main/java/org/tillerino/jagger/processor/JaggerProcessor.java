@@ -18,14 +18,12 @@ import javax.lang.model.SourceVersion;
 import javax.lang.model.element.*;
 import javax.lang.model.util.ElementFilter;
 import org.tillerino.jagger.annotations.JsonConfig;
-import org.tillerino.jagger.processor.config.ConfigProperty.LocationKind;
 import org.tillerino.jagger.processor.ext.BlueprintConfigurator;
 import org.tillerino.jagger.processor.ext.JaggerPlugin;
 import org.tillerino.jagger.processor.ext.PrototypeKind.CodeGeneratorContext;
 import org.tillerino.jagger.processor.features.CodeGeneration;
 import org.tillerino.jagger.processor.features.Templates;
 import org.tillerino.jagger.processor.util.Annotations.AnnotationMirrorWrapper;
-import org.tillerino.jagger.processor.util.InstantiatedMethod;
 
 @AutoService(Processor.class)
 public class JaggerProcessor extends AbstractProcessor {
@@ -84,22 +82,7 @@ public class JaggerProcessor extends AbstractProcessor {
                 return;
             }
             try {
-                JaggerBlueprint blueprint = ctx.blueprint(type);
-                for (ExecutableElement exec : ElementFilter.methodsIn(ctx.elements.getAllMembers(type))) {
-                    if (!exec.getEnclosingElement().equals(element)) {
-                        InstantiatedMethod instantiated =
-                                ctx.generics.instantiateMethod(exec, blueprint.typeBindings, LocationKind.PROTOTYPE);
-                        ctx.detectPrototype(instantiated).ifPresent(kind -> {
-                            JaggerPrototype prototype =
-                                    JaggerPrototype.of(blueprint, instantiated, kind, ctx, true, new Trigger(element));
-                            // should actually check if super method is not being generated and THIS is being
-                            // generated
-                            if (CodeGeneration.shouldImplement(prototype)) {
-                                blueprint.prototypes.add(prototype);
-                            }
-                        });
-                    }
-                }
+                ctx.blueprint(type);
             } catch (Exception e) {
                 logError(e, element);
             }
@@ -112,28 +95,11 @@ public class JaggerProcessor extends AbstractProcessor {
                 .filter(elem -> elem.getKind() == ElementKind.METHOD)
                 .map(el -> (TypeElement) el.getEnclosingElement())
                 .collect(Collectors.toCollection(LinkedHashSet::new));
-        // This is the point of this way of processing the annotations: the order of the methods in generated
-        // classes is supposed to be identical to the blueprint.
         for (TypeElement type : types) {
-            JaggerBlueprint blueprint;
             try {
-                blueprint = ctx.blueprint(type);
+                ctx.blueprint(type);
             } catch (Exception e) {
                 logError(e, type);
-                continue;
-            }
-            for (ExecutableElement exec : ElementFilter.methodsIn(type.getEnclosedElements())) {
-                try {
-                    InstantiatedMethod instantiated =
-                            ctx.generics.instantiateMethod(exec, blueprint.typeBindings, LocationKind.PROTOTYPE);
-                    ctx.detectPrototype(instantiated).ifPresent(kind -> {
-                        JaggerPrototype method =
-                                JaggerPrototype.of(blueprint, instantiated, kind, ctx, true, new Trigger(exec));
-                        blueprint.prototypes.add(method);
-                    });
-                } catch (Exception e) {
-                    logError(e, exec);
-                }
             }
         }
     }
@@ -166,7 +132,8 @@ public class JaggerProcessor extends AbstractProcessor {
             if (!generatedClasses.add(blueprint.generatedClassName())) {
                 continue;
             }
-            if (CodeGeneration.shouldImplement(blueprint.config) && !blueprint.prototypes.isEmpty()) {
+            if (CodeGeneration.shouldImplement(blueprint.config)
+                    && blueprint.prototypes.stream().anyMatch(p -> p.kind().isGenerated())) {
                 try {
                     toBeWritten.add(generateMethods(blueprint));
                 } catch (Exception e) {

@@ -45,7 +45,7 @@ import org.tillerino.jagger.processor.databind.AbstractReaderGenerator.ReadType.
 import org.tillerino.jagger.processor.databind.AbstractReaderGenerator.ReadType.Text;
 import org.tillerino.jagger.processor.ext.PrototypeKind.CodeGeneratorContext;
 import org.tillerino.jagger.processor.features.*;
-import org.tillerino.jagger.processor.features.Converters.InputConverter;
+import org.tillerino.jagger.processor.features.Converters.Converter;
 import org.tillerino.jagger.processor.features.Creators.Creator;
 import org.tillerino.jagger.processor.features.Delegation.Delegatee;
 import org.tillerino.jagger.processor.features.Generics.TypeVar;
@@ -106,22 +106,21 @@ public abstract class AbstractReaderGenerator<SELF extends AbstractReaderGenerat
         if (delegate.isPresent()) {
             return new Delegated(delegate.get());
         }
-        Optional<InputConverter> converter = ctx.converters.findInputConverter(prototype, type, config, generatedClass);
+        Optional<Converter> converter = ctx.converters
+                .findInputConverter(prototype, type, config, generatedClass)
+                .or(() -> ctx.creators.findConverterStyle(type, prototype, generatedClass));
         if (converter.isPresent()) {
             if (ctx.references.isConfigured(type)) {
                 throw References.converterConflict(type);
             }
-            InputConverter c = converter.get();
-            return new Converted(c.converter(), c.typeToConvert());
+            Converter c = converter.get();
+            return new Converted(c.converter(), c.externalType());
         }
         detectSelfReferencingType();
         if (type.getKind().isPrimitive()) {
             return new Primitive((PrimitiveType) type);
         }
-        Optional<Creator.Properties> jsonCreatorProperties = ctx.creators
-                .findJsonCreatorMethod(type)
-                .filter(Creator.Properties.class::isInstance)
-                .map(Creator.Properties.class::cast);
+        Optional<Creator.Properties> jsonCreatorProperties = ctx.creators.findPropertiesStyle(this.type);
         if (jsonCreatorProperties.isPresent()) {
             return new ObjectValue((DeclaredType) type, jsonCreatorProperties.get());
         }
@@ -596,8 +595,7 @@ public abstract class AbstractReaderGenerator<SELF extends AbstractReaderGenerat
                     delegatee.call(nested.prototype, List.of(), nested.generatedClass), this, __ -> afterObject());
         } else {
             ctx.creators
-                    .findJsonCreatorMethod(nested.type)
-                    .map(c -> c instanceof Creator.Properties p ? p : null)
+                    .findPropertiesStyle(nested.type)
                     .ifPresentOrElse(
                             c -> nested.readCreator(c.method()),
                             () -> nested.readObjectFields((TypeElement) ((DeclaredType) nested.type).asElement()));

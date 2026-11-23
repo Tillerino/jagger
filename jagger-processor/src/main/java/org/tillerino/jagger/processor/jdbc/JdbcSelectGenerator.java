@@ -23,7 +23,6 @@ import org.tillerino.jagger.helpers.jdbc.ResultSetIterator;
 import org.tillerino.jagger.processor.config.AnyConfig;
 import org.tillerino.jagger.processor.config.ConfigProperty.LocationKind;
 import org.tillerino.jagger.processor.ext.PrototypeKind.CodeGeneratorContext;
-import org.tillerino.jagger.processor.features.Creators;
 import org.tillerino.jagger.processor.features.Creators.Creator;
 import org.tillerino.jagger.processor.features.Generics.TypeVar;
 import org.tillerino.jagger.processor.features.IgnoreProperty;
@@ -219,12 +218,9 @@ public class JdbcSelectGenerator extends AbstractJdbcGenerator<JdbcSelectGenerat
             return null;
         }
 
-        Optional<Creator> creatorOpt = ctx.creators.findJsonCreatorMethod(type);
+        Optional<Creator.Properties> creatorOpt = ctx.creators.findPropertiesStyle(type);
         if (creatorOpt.isPresent()) {
-            if (creatorOpt.get() instanceof Creators.Creator.Converter) {
-                throw new ContextedRuntimeException("not implemented");
-            }
-            return ((Creator.Properties) creatorOpt.get()).method();
+            return creatorOpt.get().method();
         }
 
         if (dt.asElement().getKind() == ElementKind.RECORD) {

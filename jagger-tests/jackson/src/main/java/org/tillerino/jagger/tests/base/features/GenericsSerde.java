@@ -12,6 +12,7 @@ import org.tillerino.jagger.tests.base.features.DelegationSerde.BoxedScalarsSerd
 import org.tillerino.jagger.tests.model.features.EnumsModel.CustomNames.CustomNamedEnum;
 import org.tillerino.jagger.tests.model.features.GenericsModel.GenericRecord;
 import org.tillerino.jagger.tests.model.features.GenericsModel.PointlessGenericsRecord;
+import org.tillerino.jagger.tests.model.features.GenericsModel.ToStringSelfConverter;
 import org.tillerino.jagger.tests.model.features.GenericsModel.UsesGenericRecord;
 import tools.jackson.core.JsonGenerator;
 import tools.jackson.core.JsonParser;
@@ -288,5 +289,19 @@ public interface GenericsSerde {
 
         @JsonInput
         Map<String, String> readStringStringMap(JsonParser parser) throws Exception;
+    }
+
+    @JsonConfig(
+            uses = {
+                GenericKeyMapSerde.class,
+                StringSerde.class,
+            })
+    interface ToStringSelfConverterStringMapSerde {
+        @JsonOutput
+        void writeToStringSelfConverterStringMap(Map<ToStringSelfConverter, String> map, JsonGenerator gen)
+                throws Exception;
+
+        @JsonInput
+        Map<ToStringSelfConverter, String> readToStringSelfConverterStringMap(JsonParser parser) throws Exception;
     }
 }

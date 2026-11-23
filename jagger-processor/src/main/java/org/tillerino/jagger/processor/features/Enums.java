@@ -1,6 +1,7 @@
 package org.tillerino.jagger.processor.features;
 
 import static org.tillerino.jagger.processor.util.Code.c;
+import static org.tillerino.jagger.processor.util.Expr.e;
 
 import com.squareup.javapoet.ClassName;
 import com.squareup.javapoet.FieldSpec;
@@ -19,11 +20,11 @@ import org.tillerino.jagger.helpers.EnumHelper;
 import org.tillerino.jagger.processor.GeneratedClass;
 import org.tillerino.jagger.processor.JaggerContext;
 import org.tillerino.jagger.processor.config.JacksonAnnotationsPlugin;
+import org.tillerino.jagger.processor.features.Converters.Converter;
 import org.tillerino.jagger.processor.util.Annotations;
 import org.tillerino.jagger.processor.util.Code;
 import org.tillerino.jagger.processor.util.Code.Flattened;
 import org.tillerino.jagger.processor.util.Expr;
-import org.tillerino.jagger.processor.util.InstantiatedMethod;
 
 public class Enums {
     protected JaggerContext ctx;
@@ -47,10 +48,9 @@ public class Enums {
     }
 
     public EnumValuesField createEnumField(TypeMirror enumType, int nextIndex) {
-        String valueFunction = ctx.converters
-                .findJsonValueMethod(enumType, ctx.commonTypes::isString)
-                .map(InstantiatedMethod::name)
-                .orElse("name");
+        Optional<Converter> valueFunction = ctx.creators
+                .findJsonValueMethod(enumType)
+                .filter(method -> ctx.commonTypes.isString(method.externalType()));
 
         Map<String, String> explicitMappings = getEnumConstantJsonPropertyNames(enumType);
         Map<String, List<String>> aliases = ctx.aliases.getEnumConstantJsonAliases(enumType);
@@ -86,7 +86,7 @@ public class Enums {
     public record EnumValuesField(
             String name,
             TypeMirror type,
-            String valueMethod,
+            Optional<Converter> outputConverter,
             String serializedFormField,
             Map<String, String> explicitMappings,
             Map<String, List<String>> aliases) {
@@ -94,18 +94,18 @@ public class Enums {
             // We only need the explicit mappings for serialization if we are using the default "name" method.
             // A custom value method will always override explicit mappings and will be called by the converter
             // mechanism.
-            Map<String, String> mappings = valueMethod.equals("name") ? explicitMappings : Map.of();
+            Map<String, String> mappings = outputConverter.isEmpty() ? explicitMappings : Map.of();
+            Expr valueLambda = outputConverter.map(Converter::lambda).orElseGet(() -> e(null, "$T::$L", type, "name"));
 
             Code values = valuePairs(mappings, type);
 
             Code aliases = aliasPairs(aliases(), type);
 
             Flattened deserInitializer = c(
-                            "$T.deserializationMap($T.class, $T::$L, $C, $C)",
+                            "$T.deserializationMap($T.class, $C, $C, $C)",
                             EnumHelper.class,
                             type,
-                            type,
-                            valueMethod,
+                            valueLambda,
                             values,
                             aliases)
                     .flatten();
@@ -119,13 +119,7 @@ public class Enums {
                 return List.of(deserField);
             }
 
-            Flattened serInit = c(
-                            "$T.serializationMap($T.class, $T::$L, $C)",
-                            EnumHelper.class,
-                            type,
-                            type,
-                            valueMethod,
-                            values)
+            Flattened serInit = c("$T.serializationMap($T.class, $C, $C)", EnumHelper.class, type, valueLambda, values)
                     .flatten();
 
             ParameterizedTypeName enumMapType = ParameterizedTypeName.get(

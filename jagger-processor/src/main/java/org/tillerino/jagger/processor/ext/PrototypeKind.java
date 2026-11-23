@@ -41,6 +41,16 @@ public interface PrototypeKind {
         return false;
     }
 
+    /**
+     * Indicates whether code should be generated for this prototype. Some prototypes represent existing methods that
+     * are only used by the generator, for example converters and default values.
+     *
+     * @return true if code should be generated for this prototype
+     */
+    default boolean isGenerated() {
+        return true;
+    }
+
     static Optional<PrototypeKind> detect(
             List<TypeMirror> externalTypes, InstantiatedMethod m, JaggerContext ctx, PrototypeKindInstantiator c) {
         for (TypeMirror externalType : externalTypes) {

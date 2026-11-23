@@ -98,7 +98,8 @@ public class JaggerContext {
         // cannot use computeIfAbsent because this can recurse
         JaggerBlueprint blueprint = blueprints.get(element.getQualifiedName().toString());
         if (blueprint == null) {
-            blueprints.put(element.getQualifiedName().toString(), blueprint = JaggerBlueprint.of(element, this));
+            blueprints.put(
+                    element.getQualifiedName().toString(), blueprint = JaggerBlueprint.of(element.asType(), this));
         }
         return blueprint;
     }

@@ -2,8 +2,6 @@ package org.tillerino.jagger.processor.features;
 
 import static org.tillerino.jagger.processor.util.Expr.e;
 
-import jakarta.annotation.Nullable;
-import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Optional;
@@ -15,7 +13,6 @@ import javax.lang.model.type.TypeMirror;
 import org.apache.commons.lang3.exception.ContextedRuntimeException;
 import org.tillerino.jagger.annotations.JsonConfig;
 import org.tillerino.jagger.processor.GeneratedClass;
-import org.tillerino.jagger.processor.JaggerBlueprint;
 import org.tillerino.jagger.processor.JaggerContext;
 import org.tillerino.jagger.processor.JaggerPrototype;
 import org.tillerino.jagger.processor.config.AnyConfig;
@@ -23,14 +20,16 @@ import org.tillerino.jagger.processor.config.ConfigProperty;
 import org.tillerino.jagger.processor.config.ConfigProperty.LocationKind;
 import org.tillerino.jagger.processor.config.ConfigProperty.MergeFunction;
 import org.tillerino.jagger.processor.config.ConfigProperty.PropagationKind;
+import org.tillerino.jagger.processor.ext.PrototypeKind;
 import org.tillerino.jagger.processor.ext.PrototypeKind.TemplatablePrototypeKind;
 import org.tillerino.jagger.processor.ext.PrototypeKind.TemplatablePrototypeKind.MatchingOptions;
+import org.tillerino.jagger.processor.features.Converters.ConverterPrototypeKind;
+import org.tillerino.jagger.processor.features.Generics.FunctionalInterface;
 import org.tillerino.jagger.processor.features.Generics.TypeVar;
 import org.tillerino.jagger.processor.util.Expr;
 import org.tillerino.jagger.processor.util.InstantiatedMethod;
 import org.tillerino.jagger.processor.util.InstantiatedMethod.InstantiatedVariable;
-import org.tillerino.jagger.processor.util.MethodInScope;
-import org.tillerino.jagger.processor.util.MethodInScope.FromParameter;
+import org.tillerino.jagger.processor.util.PrototypeInScope;
 import org.tillerino.jagger.processor.util.ShortName;
 
 public class Delegation {
@@ -60,8 +59,10 @@ public class Delegation {
         return findDelegateeInScope(target, caller, allowRecursion, allowExact, config, generatedClass)
                 .or(() -> allowExact
                         ? Templates.delegateToAutoTemplate(ctx, target, caller).map(prototype -> {
-                            MethodInScope template = new MethodInScope.FromPrototype(prototype);
-                            return new Delegatee(template.instance(caller, generatedClass), template.method());
+                            PrototypeInScope template = new PrototypeInScope.FromPrototype(prototype);
+                            return new Delegatee(
+                                    template.instance(caller, generatedClass),
+                                    template.prototype().method());
                         })
                         : Optional.empty());
     }
@@ -76,32 +77,25 @@ public class Delegation {
         if (!config.resolveProperty(DELEGATE_FROM).value()) {
             return Optional.empty();
         }
-        for (MethodInScope methodInScope : listMethodsInScope(caller, config)) {
-            if (methodInScope instanceof MethodInScope.FromBlueprint) {
+        for (PrototypeInScope prototypeInScope : caller.listPrototypesInScope(config)) {
+            JaggerPrototype callee = prototypeInScope.prototype();
+            if (prototypeInScope instanceof PrototypeInScope.FromPrototype
+                    && (!canBeDelegatedTo(callee) || (callee == caller && !allowRecursion))) {
                 continue;
             }
-            if (methodInScope instanceof MethodInScope.FromPrototype fromPrototype) {
-                JaggerPrototype callee = fromPrototype.prototype();
-                if (!canBeDelegatedTo(callee) || (callee == caller && !allowRecursion)) {
-                    continue;
-                }
-            }
-            InstantiatedMethod method = methodInScope.method();
-            Optional<TemplatablePrototypeKind> kind = ctx.detectPrototype(method)
-                    .filter(k -> k instanceof TemplatablePrototypeKind)
-                    .map(TemplatablePrototypeKind.class::cast);
-            if (kind.isEmpty()) {
+            if (!(callee.kind() instanceof TemplatablePrototypeKind kind)) {
                 continue;
             }
             LinkedHashMap<TypeVar, TypeMirror> typeBindings = new LinkedHashMap<>();
-            if (!kind.get().matches(target, new MatchingOptions(ctx, typeBindings, method.freeTypeVars(), false))) {
+            if (!kind.matches(target, new MatchingOptions(ctx, typeBindings, callee.freeTypeVars(), false))) {
                 continue;
             }
-            if (methodInScope instanceof MethodInScope.FromPrototype && !allowExact && typeBindings.isEmpty()) {
+            if (prototypeInScope instanceof PrototypeInScope.FromPrototype && !allowExact && typeBindings.isEmpty()) {
                 continue;
             }
-            MethodInScope bound = methodInScope.applyTypeBindings(typeBindings);
-            return Optional.of(new Delegatee(bound.instance(caller, generatedClass), bound.method()));
+            PrototypeInScope bound = prototypeInScope.applyTypeBindings(typeBindings);
+            return Optional.of(new Delegatee(
+                    bound.instance(caller, generatedClass), bound.prototype().method()));
         }
         return Optional.empty();
     }
@@ -110,27 +104,8 @@ public class Delegation {
         return callee.config().resolveProperty(DELEGATE_TO).value().canBeDelegatedTo();
     }
 
-    public List<MethodInScope> listMethodsInScope(JaggerPrototype prototype, AnyConfig config) {
-        List<MethodInScope> methods = new ArrayList<>();
-        for (InstantiatedVariable parameter : prototype.parameters()) {
-            for (InstantiatedMethod method :
-                    ctx.generics.instantiateAllMethodsFromTypeHierarchy(parameter.type(), LocationKind.PROTOTYPE)) {
-                FromParameter fromParameter = new FromParameter(parameter, method);
-                methods.add(fromParameter);
-            }
-        }
-        addBlueprintMethods(methods, prototype.blueprint());
-        config.reversedUses().forEach(use -> addBlueprintMethods(methods, use));
-        return methods;
-    }
-
-    private static void addBlueprintMethods(List<MethodInScope> methods, JaggerBlueprint blueprint) {
-        blueprint.prototypes.forEach(prototype -> methods.add(new MethodInScope.FromPrototype(prototype)));
-        blueprint.allMethods.forEach(method -> methods.add(new MethodInScope.FromBlueprint(blueprint, method)));
-    }
-
     public List<Expr> findArguments(
-            @Nullable JaggerPrototype caller,
+            JaggerPrototype caller,
             InstantiatedMethod callee,
             List<? extends Expr> additionalParameters,
             int firstArgument,
@@ -150,7 +125,7 @@ public class Delegation {
     }
 
     private Optional<Expr> findArgument(
-            @Nullable JaggerPrototype caller,
+            JaggerPrototype caller,
             GeneratedClass generatedClass,
             List<? extends Expr> additionalParameters,
             InstantiatedVariable targetArgument) {
@@ -164,7 +139,7 @@ public class Delegation {
             }
         }
 
-        if (caller != null) {
+        if (caller != null && generatedClass != null) {
             // see if we can instantiate an instance from our list of used blueprints
             Expr delegateeInField =
                     generatedClass.getOrCreateUsedBlueprintWithTypeField(targetArgument.type(), caller.config());
@@ -180,30 +155,47 @@ public class Delegation {
                 return Optional.of(e(null, "$T.class", typeOfClass));
             }
         }
-        // see if we can instantiate a lambda from our list of used blueprints
-        Optional<Expr> lambda = ctx.generics.getOrCreateLambda(
-                generatedClass, targetArgument.type(), caller != null ? caller.parameters() : List.of(), 0);
-        if (lambda.isEmpty() && caller != null) {
-            // auto-templates may be able to provide a prototype that the lambda can delegate to
-            ctx.generics.instantiateMethods(targetArgument.type(), LocationKind.PROTOTYPE).stream()
-                    .findFirst()
-                    .flatMap(ctx::detectPrototype)
+
+        Optional<FunctionalInterface> functionalInterface = ctx.generics.isFunctionalInterface(targetArgument.type());
+        if (functionalInterface.isEmpty()) {
+            return Optional.empty();
+        }
+
+        { // see if we can instantiate a lambda from our list of used blueprints
+            Optional<Expr> lambda = ctx.generics.getOrCreateLambda(caller, generatedClass, targetArgument.type(), 0);
+            if (lambda.isPresent()) {
+                return lambda;
+            }
+        }
+
+        Optional<PrototypeKind> prototypeKind =
+                ctx.detectPrototype(functionalInterface.get().method());
+        if (prototypeKind.isEmpty()) {
+            return Optional.empty();
+        }
+
+        { // auto-templates may be able to provide a prototype that the lambda can delegate to
+            prototypeKind
                     .filter(TemplatablePrototypeKind.class::isInstance)
                     .map(TemplatablePrototypeKind.class::cast)
                     .flatMap(target -> Templates.delegateToAutoTemplate(ctx, target, caller));
-            lambda = ctx.generics.getOrCreateLambda(generatedClass, targetArgument.type(), caller.parameters(), 0);
+            Optional<Expr> lambda = ctx.generics.getOrCreateLambda(caller, generatedClass, targetArgument.type(), 0);
+            if (lambda.isPresent()) {
+                return lambda;
+            }
         }
-        if (lambda.isPresent()) {
-            return lambda;
+
+        if (!(prototypeKind.get() instanceof ConverterPrototypeKind cpk)) {
+            return Optional.empty();
         }
-        // default string converters have the lowest precedence
-        Optional<Expr> toStringConverter =
-                ctx.converters.instantiateToStringConverter(targetArgument.type(), generatedClass);
-        if (toStringConverter.isPresent()) {
-            return toStringConverter;
+
+        Optional<Expr> jsonValueOrJsonCreator = ctx.creators.findConverterLambda(cpk, caller, generatedClass);
+        if (jsonValueOrJsonCreator.isPresent()) {
+            return jsonValueOrJsonCreator;
         }
-        // see if we can instantiate a converter from string for boxed types or enums
-        return ctx.converters.instantiateFromStringConverter(targetArgument.type(), generatedClass);
+
+        return ctx.converters.instantiateStringConverter(
+                targetArgument.type(), functionalInterface.get().method(), cpk, generatedClass);
     }
 
     public record Delegatee(Expr fieldOrParameter, InstantiatedMethod method) {

@@ -14,7 +14,7 @@
 To start with generics, we need to define functional interfaces for generic serialization and/or deserialization.
 
 ```java
-// ../jagger-tests/jackson/src/main/java/org/tillerino/jagger/tests/base/features/GenericsSerde.java#L21-L25
+// ../jagger-tests/jackson/src/main/java/org/tillerino/jagger/tests/base/features/GenericsSerde.java#L22-L26
 
 @JsonConfig(implement = JsonConfig.ImplementationMode.DO_NOT_IMPLEMENT)
 interface GenericInputSerde<V> {
@@ -24,7 +24,7 @@ interface GenericInputSerde<V> {
 ```
 
 ```java
-// ../jagger-tests/jackson/src/main/java/org/tillerino/jagger/tests/base/features/GenericsSerde.java#L28-L32
+// ../jagger-tests/jackson/src/main/java/org/tillerino/jagger/tests/base/features/GenericsSerde.java#L29-L33
 
 @JsonConfig(implement = JsonConfig.ImplementationMode.DO_NOT_IMPLEMENT)
 interface GenericOutputSerde<U> {
@@ -40,7 +40,7 @@ These generic interfaces are well-suited for [templates](templates.md).
 Now say you have the following generic class:
 
 ```java
-// ../jagger-tests/base/src/main/java/org/tillerino/jagger/tests/model/features/GenericsModel.java#L4-L4
+// ../jagger-tests/base/src/main/java/org/tillerino/jagger/tests/model/features/GenericsModel.java#L7-L7
 
 record GenericRecord<F>(F f) {}
 ```
@@ -48,7 +48,7 @@ record GenericRecord<F>(F f) {}
 When you define a prototype for this, add a parameter of the matching functional interface:
 
 ```java
-// ../jagger-tests/jackson/src/main/java/org/tillerino/jagger/tests/base/features/GenericsSerde.java#L34-L41
+// ../jagger-tests/jackson/src/main/java/org/tillerino/jagger/tests/base/features/GenericsSerde.java#L35-L42
 
 interface GenericRecordSerde {
     @JsonInput
@@ -84,7 +84,7 @@ Generics are essential for container types like lists, maps, and arrays.
 You can base your containers serde off the following:
 
 ```java
-// ../jagger-tests/jackson/src/main/java/org/tillerino/jagger/tests/base/features/GenericsSerde.java#L102-L123
+// ../jagger-tests/jackson/src/main/java/org/tillerino/jagger/tests/base/features/GenericsSerde.java#L103-L124
 
 interface GenericContainersSerde {
     @JsonOutput
@@ -116,7 +116,7 @@ While writing generic arrays works just like any generic type, reading arrays re
 the component type. This means that it has to be known at runtime.
 
 ```java
-// ../jagger-tests/jackson/src/main/java/org/tillerino/jagger/tests/base/features/GenericsSerde.java#L120-L122
+// ../jagger-tests/jackson/src/main/java/org/tillerino/jagger/tests/base/features/GenericsSerde.java#L121-L123
 
 @JsonInput
 <T> T[] readGenericArray(JsonParser parser, GenericInputSerde<T> componentReader, Class<T[]> arrayClass)
@@ -143,7 +143,7 @@ When Jagger delegates to a generic prototype, the generic delegator parameter is
 prototypes, if possible. Say you define prototypes for a concrete generic record:
 
 ```java
-// ../jagger-tests/jackson/src/main/java/org/tillerino/jagger/tests/base/features/GenericsSerde.java#L43-L54
+// ../jagger-tests/jackson/src/main/java/org/tillerino/jagger/tests/base/features/GenericsSerde.java#L44-L55
 
 @JsonConfig(
         uses = {
@@ -196,7 +196,7 @@ It is not necessary to define methods for all concrete occurrences of your gener
 be called whenever necessary. For this record, which has a property of the fully instantiated generic record, 
 
 ```java
-// ../jagger-tests/base/src/main/java/org/tillerino/jagger/tests/model/features/GenericsModel.java#L8-L8
+// ../jagger-tests/base/src/main/java/org/tillerino/jagger/tests/model/features/GenericsModel.java#L11-L11
 
 record UsesGenericRecord(GenericRecord<Integer> gi) {}
 ```
@@ -204,7 +204,7 @@ record UsesGenericRecord(GenericRecord<Integer> gi) {}
 the prototype
 
 ```java
-// ../jagger-tests/jackson/src/main/java/org/tillerino/jagger/tests/base/features/GenericsSerde.java#L56-L67
+// ../jagger-tests/jackson/src/main/java/org/tillerino/jagger/tests/base/features/GenericsSerde.java#L57-L68
 
 @JsonConfig(
         uses = {

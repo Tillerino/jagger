@@ -1,6 +1,7 @@
 package org.tillerino.jagger.processor.features;
 
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import javax.lang.model.element.ExecutableElement;
@@ -9,10 +10,16 @@ import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
 import javax.lang.model.util.ElementFilter;
 import org.apache.commons.lang3.exception.ContextedRuntimeException;
+import org.tillerino.jagger.processor.GeneratedClass;
 import org.tillerino.jagger.processor.JaggerContext;
+import org.tillerino.jagger.processor.JaggerPrototype;
 import org.tillerino.jagger.processor.config.ConfigProperty.LocationKind;
+import org.tillerino.jagger.processor.features.Converters.Converter;
+import org.tillerino.jagger.processor.features.Converters.ConverterPrototypeKind;
+import org.tillerino.jagger.processor.features.Converters.Direction;
 import org.tillerino.jagger.processor.features.Generics.TypeVar;
 import org.tillerino.jagger.processor.util.Exceptions;
+import org.tillerino.jagger.processor.util.Expr;
 import org.tillerino.jagger.processor.util.InstantiatedMethod;
 
 public class Creators {
@@ -22,7 +29,7 @@ public class Creators {
         this.ctx = ctx;
     }
 
-    public Optional<Creator> findJsonCreatorMethod(TypeMirror tm) {
+    private Optional<Creator> findJsonCreatorMethod(TypeMirror tm) {
         if (!(tm instanceof DeclaredType dt)) {
             return Optional.empty();
         }
@@ -72,6 +79,49 @@ public class Creators {
                         .orElseThrow(Exceptions::unexpected)
                         .asEnum(JsonCreatorMode.class))
                 .filter(mode -> mode != JsonCreatorMode.DISABLED);
+    }
+
+    public Optional<Converter> findConverterStyle(
+            TypeMirror targetType, JaggerPrototype caller, GeneratedClass generatedClass) {
+        return findJsonCreatorMethod(targetType)
+                .filter(Creator.Converter.class::isInstance)
+                .map(creator -> {
+                    InstantiatedMethod method = ((Creator.Converter) creator).method();
+                    return new Converter(
+                            toConvert -> method.callStaticFindingArguments(caller, List.of(toConvert), generatedClass),
+                            method.unaryOperatorReference(),
+                            method.returnType(),
+                            method.parameters().get(0).type());
+                });
+    }
+
+    public Optional<Creator.Properties> findPropertiesStyle(TypeMirror type) {
+        return findJsonCreatorMethod(type)
+                .filter(Creator.Properties.class::isInstance)
+                .map(Creator.Properties.class::cast);
+    }
+
+    public Optional<Converter> findJsonValueMethod(TypeMirror dtoType) {
+        return Polymorphism.typeHierarchyBfs(dtoType, ctx, type -> {
+            for (InstantiatedMethod method : ctx.generics.instantiateMethods(type, LocationKind.BLUEPRINT)) {
+                if (method.findAnnotation("com.fasterxml.jackson.annotation.JsonValue")
+                                .isPresent()
+                        && method.parameters().isEmpty()
+                        && method.returnType().getKind() != TypeKind.VOID) {
+                    return Optional.of(
+                            new Converter(method::call, method.unaryOperatorReference(), dtoType, method.returnType()));
+                }
+            }
+            return Optional.empty();
+        });
+    }
+
+    public Optional<Expr> findConverterLambda(
+            ConverterPrototypeKind kind, JaggerPrototype caller, GeneratedClass generatedClass) {
+        return (kind.direction() == Direction.INPUT
+                        ? findConverterStyle(kind.internalType(), caller, generatedClass)
+                        : findJsonValueMethod(kind.internalType()))
+                .map(Converter::lambda);
     }
 
     public sealed interface Creator {

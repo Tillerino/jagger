@@ -2,13 +2,13 @@ package org.tillerino.jagger.processor.util;
 
 import static org.tillerino.jagger.processor.util.Expr.e;
 
-import jakarta.annotation.Nullable;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import javax.lang.model.element.ElementKind;
 import javax.lang.model.element.ExecutableElement;
+import javax.lang.model.element.Modifier;
 import javax.lang.model.element.VariableElement;
 import javax.lang.model.type.DeclaredType;
 import javax.lang.model.type.TypeMirror;
@@ -64,10 +64,16 @@ public record InstantiatedMethod(
         return call(instance, findArguments(caller, additionalParameters, generatedClass));
     }
 
+    public Optional<Expr> unaryOperatorReference() {
+        if ((parameters().size() == 1 && element().getModifiers().contains(Modifier.STATIC))
+                || (parameters().isEmpty() && !element().getModifiers().contains(Modifier.STATIC))) {
+            return Optional.of(Expr.e(null, "$T::$L", element().getEnclosingElement(), name()));
+        }
+        return Optional.empty();
+    }
+
     public List<Expr> findArguments(
-            @Nullable JaggerPrototype caller,
-            List<? extends Expr> additionalParameters,
-            GeneratedClass generatedClass) {
+            JaggerPrototype caller, List<? extends Expr> additionalParameters, GeneratedClass generatedClass) {
         return ctx.delegation.findArguments(caller, this, additionalParameters, 0, generatedClass);
     }
 
