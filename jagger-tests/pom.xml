@@ -34,7 +34,7 @@
         <copy.writerMode>-</copy.writerMode>
         <copy.features>JSON</copy.features>
         <maven.install.skip>true</maven.install.skip>
-        <argLine />
+        <argLine/>
     </properties>
 
     <dependencies>
