@@ -12,7 +12,6 @@ import static org.tillerino.jagger.processor.util.Expr.e;
 import com.squareup.javapoet.CodeBlock;
 import jakarta.annotation.Nonnull;
 import jakarta.annotation.Nullable;
-import java.io.IOException;
 import java.util.*;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -27,6 +26,7 @@ import javax.lang.model.type.TypeMirror;
 import javax.lang.model.util.ElementFilter;
 import lombok.With;
 import org.apache.commons.lang3.exception.ContextedRuntimeException;
+import org.tillerino.jagger.api.JaggerDatabindException;
 import org.tillerino.jagger.helpers.CharacterHelper;
 import org.tillerino.jagger.input.EmptyArrays;
 import org.tillerino.jagger.processor.config.AnyConfig;
@@ -217,7 +217,7 @@ public abstract class AbstractReaderGenerator<SELF extends AbstractReaderGenerat
         addStatement("$T $C = ($T) $C", type, resolvedVar, type, setup.resolveId(idVar));
 
         beginControlFlow("if ($C == null)", resolvedVar);
-        addStatement("throw new $T($S + $C)", IllegalArgumentException.class, "Unresolved ID: ", idVar);
+        addStatement("throw new $T($S + $C)", JaggerDatabindException.class, "Unresolved ID: ", idVar);
         endControlFlow();
 
         addStatement(lhs.assign(resolvedVar));
@@ -276,7 +276,8 @@ public abstract class AbstractReaderGenerator<SELF extends AbstractReaderGenerat
         beginControlFlow("if ($C.length() == 1)", stringVar);
         addStatement(lhs.assign("$C.charAt(0)", stringVar));
         nextControlFlow("else");
-        addStatement("throw new $T()", IllegalArgumentException.class);
+        addStatement(
+                "throw new $T($S + $C)", JaggerDatabindException.class, "Expected a single character, got ", stringVar);
         endControlFlow();
     }
 
@@ -294,7 +295,7 @@ public abstract class AbstractReaderGenerator<SELF extends AbstractReaderGenerat
         addStatement(lhs.assign("$T.NEGATIVE_INFINITY", boxed));
 
         nextControlFlow("else");
-        addStatement("throw new $T()", IllegalArgumentException.class);
+        addStatement("throw new $T($S + $C)", JaggerDatabindException.class, "Expected a number, got ", stringVar);
         endControlFlow();
     }
 
@@ -576,7 +577,7 @@ public abstract class AbstractReaderGenerator<SELF extends AbstractReaderGenerat
             throw new ContextedRuntimeException("No children for " + type);
         }
         nextControlFlow("else");
-        addStatement("throw new $T($S + $C)", IllegalArgumentException.class, "Unknown type ", discriminator);
+        addStatement("throw new $T($S + $C)", JaggerDatabindException.class, "Unknown type ", discriminator);
         endControlFlow(); // ends the loop
     }
 
@@ -796,7 +797,7 @@ public abstract class AbstractReaderGenerator<SELF extends AbstractReaderGenerat
             addStatement(
                     "if (!$C) throw new $T($S)",
                     propertyPresentByCanonicalName.get(property.canonicalName),
-                    IOException.class,
+                    JaggerDatabindException.class,
                     "Missing property " + property.serializedName);
         }
 
@@ -880,11 +881,22 @@ public abstract class AbstractReaderGenerator<SELF extends AbstractReaderGenerat
 
     protected abstract void afterArray();
 
-    protected abstract void throwUnexpected(String expected);
+    protected void throwUnexpected(String expected) {
+        addStatement("throw new $T($S)", JaggerDatabindException.class, "Expected " + expected);
+    }
 
-    protected abstract void throwUnexpectedValue(Code message);
+    protected void throwUnexpectedValue(Code message) {
+        addStatement("throw new $T($C)", JaggerDatabindException.class, message);
+    }
 
-    protected abstract void throwUnrecognizedProperty(Code propertyName);
+    protected void throwUnrecognizedProperty(Code propertyName) {
+        addStatement(
+                "throw new $T($S + $C + $S)",
+                JaggerDatabindException.class,
+                "Unrecognized field \"",
+                propertyName,
+                "\"");
+    }
 
     protected abstract SELF nest(Props props);
 

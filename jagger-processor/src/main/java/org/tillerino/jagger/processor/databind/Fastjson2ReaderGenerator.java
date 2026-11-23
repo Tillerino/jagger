@@ -2,7 +2,6 @@ package org.tillerino.jagger.processor.databind;
 
 import static org.tillerino.jagger.processor.util.Code.c;
 
-import java.io.IOException;
 import javax.lang.model.type.ArrayType;
 import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
@@ -144,24 +143,6 @@ public class Fastjson2ReaderGenerator extends AbstractReaderGenerator<Fastjson2R
 
     @Override
     protected void afterArray() {}
-
-    @Override
-    protected void throwUnexpected(String expected) {
-        addStatement(
-                "throw new $T($S + $C.current())",
-                IOException.class,
-                "Expected " + expected + ", got ",
-                parserVariable);
-    }
-
-    @Override
-    protected void throwUnexpectedValue(Code message) {
-        addStatement("throw new $T($C)", IOException.class, message);
-    }
-
-    protected void throwUnrecognizedProperty(Code propertyName) {
-        addStatement("throw new $T($S + $C + $S)", IOException.class, "Unrecognized field \"", propertyName, "\"");
-    }
 
     @Override
     protected Fastjson2ReaderGenerator nest(Props props) {

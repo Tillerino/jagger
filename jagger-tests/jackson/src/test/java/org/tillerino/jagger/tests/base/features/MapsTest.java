@@ -10,6 +10,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.tillerino.jagger.api.JaggerDatabindException;
 import org.tillerino.jagger.tests.ReferenceTest;
 import org.tillerino.jagger.tests.Replacement;
 import org.tillerino.jagger.tests.SerdeUtil;
@@ -218,10 +219,13 @@ class MapsTest extends ReferenceTest {
         @Test
         void enumMapKeyUnknown() {
             assertThatThrownBy(() -> inputUtils.deserialize("{\"VALUE1\":\"value\"}", serde::readMapCustomNamedEnum))
+                    .isInstanceOf(JaggerDatabindException.class)
                     .hasMessageContaining("Unexpected enum value: \"VALUE1\"");
             assertThatThrownBy(() -> inputUtils.deserialize("{\"UNKNOWN\":\"value\"}", serde::readMapAnEnum))
+                    .isInstanceOf(JaggerDatabindException.class)
                     .hasMessageContaining("Unexpected enum value: \"UNKNOWN\"");
             assertThatThrownBy(() -> inputUtils.deserialize("{\"VALUE1\":\"value\"}", serde::readMapJsonValueEnum))
+                    .isInstanceOf(JaggerDatabindException.class)
                     .hasMessageContaining("Unexpected enum value: \"VALUE1\"");
         }
 
@@ -298,7 +302,7 @@ class MapsTest extends ReferenceTest {
         @Test
         void mapKeyCharacterMustHaveLengthOne() {
             assertThatThrownBy(() -> inputUtils.deserialize("{\"ab\":\"value\"}", serde::readMapCharacter))
-                    .isInstanceOf(IllegalArgumentException.class)
+                    .isInstanceOf(JaggerDatabindException.class)
                     .hasMessageContaining("single character");
         }
 

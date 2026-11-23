@@ -3,7 +3,6 @@ package org.tillerino.jagger.processor.databind;
 import static org.tillerino.jagger.processor.util.Code.c;
 
 import com.squareup.javapoet.ClassName;
-import java.io.IOException;
 import javax.lang.model.type.TypeMirror;
 import org.apache.commons.lang3.exception.ContextedRuntimeException;
 import org.tillerino.jagger.helpers.JakartaJsonParserHelper;
@@ -158,26 +157,6 @@ public class JakartaJsonParserGenerator extends AbstractReaderGenerator<JakartaJ
     @Override
     protected void afterArray() {
         // we skipped the END_ARRAY token in the head of the loop
-    }
-
-    @Override
-    protected void throwUnexpected(String expected) {
-        addStatement(
-                "throw new $T($S + $C.currentEvent() + $S + $C.getLocation())",
-                IOException.class,
-                "Expected " + expected + ", got ",
-                parserVariable,
-                " at ",
-                parserVariable);
-    }
-
-    @Override
-    protected void throwUnexpectedValue(Code message) {
-        addStatement("throw new $T($C)", IOException.class, message);
-    }
-
-    protected void throwUnrecognizedProperty(Code propertyName) {
-        addStatement("throw new $T($S + $C + $S)", IOException.class, "Unrecognized field \"", propertyName, "\"");
     }
 
     @Override

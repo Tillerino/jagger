@@ -28,7 +28,7 @@ List<ScalarFieldsRecord> deserializeList(JsonParser parser) throws Exception;
 
 `deserializeList` will then refer to `deserializeSingle` instead of repeating the entire deserialization of `ScalarFieldsRecord`.
 ```java
-// ../jagger-tests/jackson/target/generated-sources/annotations/org/tillerino/jagger/tests/base/features/DelegationSerde$SimpleDelegationSerdeImpl.java#L333-L349
+// ../jagger-tests/jackson/target/generated-sources/annotations/org/tillerino/jagger/tests/base/features/DelegationSerde$SimpleDelegationSerdeImpl.java#L332-L348
 
 @Override
 public List<ScalarFieldsRecord> deserializeList(JsonParser parser) throws Exception {
@@ -44,7 +44,7 @@ public List<ScalarFieldsRecord> deserializeList(JsonParser parser) throws Except
     }
     return container;
   } else {
-    throw new IOException("Expected array, got " + parser.currentToken() + " at " + parser.currentLocation());
+    throw new JaggerDatabindException("Expected array");
   }
 }
 ```
@@ -93,7 +93,7 @@ To keep the generated code small and readable, it is recommended to build a libr
 Even something as simple as reading a `Float[]` generates a lot of code:
 
 ```java
-// ../jagger-tests/jackson/target/generated-sources/annotations/org/tillerino/jagger/tests/base/ScalarArraysSerdeImpl.java#L709-L751
+// ../jagger-tests/jackson/target/generated-sources/annotations/org/tillerino/jagger/tests/base/ScalarArraysSerdeImpl.java#L708-L750
 
 @Override
 public Float[] readBoxedFloatArray(JsonParser parser) throws Exception {
@@ -124,18 +124,18 @@ public Float[] readBoxedFloatArray(JsonParser parser) throws Exception {
         } else if (string.equals("-Infinity")) {
           array[len++] = Float.NEGATIVE_INFINITY;
         } else {
-          throw new IllegalArgumentException();
+          throw new JaggerDatabindException("Expected a number, got " + string);
         }
       } else if (parser.currentToken().isNumeric()) {
         array[len++] = parser.getFloatValue();
         parser.nextToken();
       } else {
-        throw new IOException("Expected number, got " + parser.currentToken() + " at " + parser.currentLocation());
+        throw new JaggerDatabindException("Expected number");
       }
     }
     return Arrays.copyOf(array, len, Float[].class);
   } else {
-    throw new IOException("Expected array, got " + parser.currentToken() + " at " + parser.currentLocation());
+    throw new JaggerDatabindException("Expected array");
   }
 }
 ```

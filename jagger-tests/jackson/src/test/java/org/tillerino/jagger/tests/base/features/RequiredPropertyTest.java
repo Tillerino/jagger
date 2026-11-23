@@ -3,6 +3,7 @@ package org.tillerino.jagger.tests.base.features;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import org.junit.jupiter.api.Test;
+import org.tillerino.jagger.api.JaggerDatabindException;
 import org.tillerino.jagger.tests.ReferenceTest;
 import org.tillerino.jagger.tests.SerdeUtil;
 import org.tillerino.jagger.tests.model.features.RequiredPropertyModel.MixedFields;
@@ -26,12 +27,14 @@ class RequiredPropertyTest extends ReferenceTest {
     @Test
     void requiredFields_missingName() {
         assertThatThrownBy(() -> inputUtils.deserialize("{\"age\": 30}", serde::readRequiredFields))
+                .isInstanceOf(JaggerDatabindException.class)
                 .hasMessageContaining("Missing property name");
     }
 
     @Test
     void requiredFields_missingAge() {
         assertThatThrownBy(() -> inputUtils.deserialize("{\"name\": \"John\"}", serde::readRequiredFields))
+                .isInstanceOf(JaggerDatabindException.class)
                 .hasMessageContaining("Missing property age");
     }
 
@@ -48,6 +51,7 @@ class RequiredPropertyTest extends ReferenceTest {
     @Test
     void mixedFields_missingRequired() {
         assertThatThrownBy(() -> inputUtils.deserialize("{\"age\": 30}", serde::readMixedFields))
+                .isInstanceOf(JaggerDatabindException.class)
                 .hasMessageContaining("Missing property name");
     }
 
@@ -71,6 +75,7 @@ class RequiredPropertyTest extends ReferenceTest {
     void requiredPropertyWithSetter_missingRequired() {
         assertThatThrownBy(() -> inputUtils.deserialize(
                         "{\"description\": \"Developer\"}", serde::readRequiredPropertyWithSetter))
+                .isInstanceOf(JaggerDatabindException.class)
                 .hasMessageContaining("Missing property name");
     }
 

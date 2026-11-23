@@ -1,6 +1,9 @@
 package org.tillerino.jagger.tests.base.features;
 
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
 import org.junit.jupiter.api.Test;
+import org.tillerino.jagger.api.JaggerDatabindException;
 import org.tillerino.jagger.tests.ReferenceTest;
 import org.tillerino.jagger.tests.SerdeUtil;
 import org.tillerino.jagger.tests.model.features.EnumsModel.CustomNames.CustomNamedEnum;
@@ -44,6 +47,8 @@ public class EnumsTest extends ReferenceTest {
                 new TypeReference<>() {},
                 "Unexpected enum value: \"VALUE1\"",
                 "from String \"VALUE1\"");
+        assertThatThrownBy(() -> inputUtils.deserialize("\"VALUE1\"", serde::readCustomNamed))
+                .isInstanceOf(JaggerDatabindException.class);
     }
 
     @Test

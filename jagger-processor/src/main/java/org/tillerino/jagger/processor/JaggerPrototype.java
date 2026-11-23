@@ -6,7 +6,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import javax.lang.model.element.ExecutableElement;
 import javax.lang.model.type.TypeMirror;
-import org.apache.commons.lang3.NotImplementedException;
+import org.apache.commons.lang3.exception.ContextedRuntimeException;
 import org.tillerino.jagger.processor.JaggerProcessor.Trigger;
 import org.tillerino.jagger.processor.config.AnyConfig;
 import org.tillerino.jagger.processor.config.ConfigProperty;
@@ -67,12 +67,12 @@ public record JaggerPrototype(
 
     @Override
     public int hashCode() {
-        throw new NotImplementedException("hashCode");
+        throw new ContextedRuntimeException("hashCode");
     }
 
     @Override
     public boolean equals(Object obj) {
-        throw new NotImplementedException("equals");
+        throw new ContextedRuntimeException("equals");
     }
 
     public String name() {

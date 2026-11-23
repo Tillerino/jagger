@@ -57,12 +57,6 @@ public interface JaggerReader<E extends Exception> {
      */
     void skipChildren(Advance advance) throws E;
 
-    E unexpectedToken(String expectedToken);
-
-    E unexpectedValue(String message);
-
-    E unrecognizedProperty(String propertyName);
-
     /** Controls whether to advance while inspecting tokens or keep the token. */
     enum Advance {
         KEEP,

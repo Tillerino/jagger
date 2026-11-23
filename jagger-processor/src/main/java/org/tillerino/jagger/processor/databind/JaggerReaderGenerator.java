@@ -130,20 +130,6 @@ public class JaggerReaderGenerator extends AbstractReaderGenerator<JaggerReaderG
     }
 
     @Override
-    protected void throwUnexpected(String expectedToken) {
-        addStatement("throw $C.unexpectedToken($S)", parserVariable, expectedToken);
-    }
-
-    @Override
-    protected void throwUnexpectedValue(Code message) {
-        addStatement("throw $C.unexpectedValue($C)", parserVariable, message);
-    }
-
-    protected void throwUnrecognizedProperty(Code propertyName) {
-        addStatement("throw $C.unrecognizedProperty($C)", parserVariable, propertyName);
-    }
-
-    @Override
     protected JaggerReaderGenerator nest(Props props) {
         return new JaggerReaderGenerator(this, props);
     }

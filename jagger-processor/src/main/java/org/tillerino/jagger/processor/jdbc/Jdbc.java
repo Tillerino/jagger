@@ -110,7 +110,7 @@ public record Jdbc(JaggerContext ctx) {
         try {
             statement = CCJSqlParserUtil.parse(sqlTemplate);
         } catch (JSQLParserException e) {
-            throw new RuntimeException("Failed to parse SQL: " + sqlTemplate, e);
+            throw new ContextedRuntimeException("Failed to parse SQL: " + sqlTemplate, e);
         }
 
         if (statement instanceof Insert insert) {
@@ -163,7 +163,7 @@ public record Jdbc(JaggerContext ctx) {
                         case ".#insertColumns" -> getInsertProperties(paramType);
                         case ".#keyColumns" -> getPropertiesWhereIdIs(paramType, true);
                         case ".#updateColumns" -> getPropertiesWhereIdIs(paramType, false);
-                        default -> throw new IllegalStateException();
+                        default -> throw new ContextedRuntimeException();
                     };
 
             for (OutputProperty prop : props) {
@@ -202,7 +202,7 @@ public record Jdbc(JaggerContext ctx) {
                         case ".#insertValues" -> getInsertProperties(paramType);
                         case ".#keyValues" -> getPropertiesWhereIdIs(paramType, true);
                         case ".#updateValues" -> getPropertiesWhereIdIs(paramType, false);
-                        default -> throw new IllegalStateException();
+                        default -> throw new ContextedRuntimeException();
                     };
 
             for (OutputProperty prop : props) {
@@ -232,7 +232,7 @@ public record Jdbc(JaggerContext ctx) {
     private static InstantiatedVariable getParam(Map<String, InstantiatedVariable> paramMap, String paramName) {
         InstantiatedVariable methodParam = paramMap.get(paramName);
         if (methodParam == null) {
-            throw new IllegalArgumentException("Unknown parameter: " + paramName);
+            throw new ContextedRuntimeException("Unknown parameter: " + paramName);
         }
         return methodParam;
     }
@@ -285,7 +285,7 @@ public record Jdbc(JaggerContext ctx) {
 
             for (Expression expr : exprs) {
                 if (!(expr instanceof JdbcNamedParameter p)) {
-                    throw new IllegalStateException();
+                    throw new ContextedRuntimeException();
                 }
                 String name = p.getName();
                 if (name.contains(".")) {

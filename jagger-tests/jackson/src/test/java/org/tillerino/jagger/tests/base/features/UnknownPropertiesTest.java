@@ -1,6 +1,9 @@
 package org.tillerino.jagger.tests.base.features;
 
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
 import org.junit.jupiter.api.Test;
+import org.tillerino.jagger.api.JaggerDatabindException;
 import org.tillerino.jagger.tests.ReferenceTest;
 import org.tillerino.jagger.tests.SerdeUtil;
 import org.tillerino.jagger.tests.model.features.UnknownPropertiesModel.JsonConfigThrow;
@@ -87,5 +90,9 @@ class UnknownPropertiesTest extends ReferenceTest {
                 new TypeReference<JsonConfigThrow>() {},
                 "Unrecognized field \"unknown\"",
                 "Unrecognized property \"unknown\"");
+        assertThatThrownBy(() -> inputUtils.deserialize(
+                        "{ \"name\": \"Moopsy\", \"unknown\": \"blergh\", \"value\": 123 }",
+                        serde::readJsonConfigThrow))
+                .isInstanceOf(JaggerDatabindException.class);
     }
 }

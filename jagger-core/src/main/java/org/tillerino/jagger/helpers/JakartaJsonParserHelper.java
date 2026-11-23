@@ -10,16 +10,19 @@ import java.io.IOException;
 import java.math.BigDecimal;
 import java.util.Map;
 import java.util.stream.Stream;
+import org.tillerino.jagger.api.JaggerDatabindException;
 
 public class JakartaJsonParserHelper {
     public static String readDiscriminator(String discriminatorName, JsonParserWrapper parser) throws IOException {
         if (parser.currentEvent() != Event.KEY_NAME) {
-            throw new IOException("Expected field name, got " + parser.currentEvent() + " at " + parser.getLocation());
+            throw new JaggerDatabindException(
+                    "Expected field name, got " + parser.currentEvent() + " at " + parser.getLocation());
         } else if (!parser.getString().equals(discriminatorName)) {
-            throw new IOException("Expected field name " + discriminatorName + ", got " + parser.getString() + " at "
-                    + parser.getLocation());
+            throw new JaggerDatabindException("Expected field name " + discriminatorName + ", got " + parser.getString()
+                    + " at " + parser.getLocation());
         } else if (parser.next() != Event.VALUE_STRING) {
-            throw new IOException("Expected string, got " + parser.currentEvent() + " at " + parser.getLocation());
+            throw new JaggerDatabindException(
+                    "Expected string, got " + parser.currentEvent() + " at " + parser.getLocation());
         } else {
             String value = parser.getString();
             parser.next();

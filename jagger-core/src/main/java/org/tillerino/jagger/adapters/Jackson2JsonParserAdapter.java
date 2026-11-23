@@ -3,6 +3,7 @@ package org.tillerino.jagger.adapters;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonToken;
 import java.io.IOException;
+import org.tillerino.jagger.api.JaggerDatabindException;
 import org.tillerino.jagger.api.JaggerReader;
 
 public class Jackson2JsonParserAdapter implements JaggerReader<IOException> {
@@ -145,11 +146,12 @@ public class Jackson2JsonParserAdapter implements JaggerReader<IOException> {
         }
         String fieldName = getFieldName(Advance.CONSUME);
         if (!fieldName.equals(expectedName)) {
-            throw new IOException("Expected discriminator " + expectedName + " but got " + fieldName + " at "
-                    + parser.currentLocation());
+            throw new JaggerDatabindException("Expected discriminator " + expectedName + " but got " + fieldName
+                    + " at " + parser.currentLocation());
         }
         if (!isText()) {
-            throw unexpectedToken("text");
+            throw new JaggerDatabindException(
+                    "Expected text, got " + parser.currentToken() + " at " + parser.currentLocation());
         }
         return getText(Advance.CONSUME);
     }
@@ -158,22 +160,6 @@ public class Jackson2JsonParserAdapter implements JaggerReader<IOException> {
     public void skipChildren(Advance advance) throws IOException {
         parser.skipChildren();
         advance(advance);
-    }
-
-    @Override
-    public IOException unexpectedToken(String expectedToken) {
-        return new IOException(
-                "Expected " + expectedToken + " but got " + parser.currentToken() + " at " + parser.currentLocation());
-    }
-
-    @Override
-    public IOException unexpectedValue(String message) {
-        return new IOException(message);
-    }
-
-    @Override
-    public IOException unrecognizedProperty(String propertyName) {
-        return new IOException("Unrecognized field \"" + propertyName + "\"" + " at " + parser.currentLocation());
     }
 
     private void advance(Advance advance) throws IOException {

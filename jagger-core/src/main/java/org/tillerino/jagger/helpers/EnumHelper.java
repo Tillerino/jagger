@@ -5,6 +5,7 @@ import java.util.EnumMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.function.Function;
+import org.tillerino.jagger.api.JaggerDatabindException;
 
 public class EnumHelper {
 
@@ -32,7 +33,7 @@ public class EnumHelper {
     public static <T extends Enum<T>> T deserialize(Map<String, T> lookup, String key) {
         T value = lookup.get(key);
         if (value == null) {
-            throw new IllegalArgumentException("Unexpected enum value: \"" + key + "\"");
+            throw new JaggerDatabindException("Unexpected enum value: \"" + key + "\"");
         }
         return value;
     }

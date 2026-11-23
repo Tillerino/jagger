@@ -17,6 +17,7 @@ import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
 import javax.lang.model.util.ElementFilter;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.exception.ContextedRuntimeException;
 import org.tillerino.jagger.helpers.jdbc.JdbcHelper;
 import org.tillerino.jagger.helpers.jdbc.ResultSetIterator;
 import org.tillerino.jagger.processor.config.AnyConfig;
@@ -221,7 +222,7 @@ public class JdbcSelectGenerator extends AbstractJdbcGenerator<JdbcSelectGenerat
         Optional<Creator> creatorOpt = ctx.creators.findJsonCreatorMethod(type);
         if (creatorOpt.isPresent()) {
             if (creatorOpt.get() instanceof Creators.Creator.Converter) {
-                throw new UnsupportedOperationException("not implemented");
+                throw new ContextedRuntimeException("not implemented");
             }
             return ((Creator.Properties) creatorOpt.get()).method();
         }
@@ -326,7 +327,7 @@ public class JdbcSelectGenerator extends AbstractJdbcGenerator<JdbcSelectGenerat
             case "java.sql.Date" -> e(type, "$C.getDate($S)", rsVar, name);
             case "java.sql.Time" -> e(type, "$C.getTime($S)", rsVar, name);
             case "java.sql.Timestamp" -> e(type, "$C.getTimestamp($S)", rsVar, name);
-            default -> throw new IllegalArgumentException("Unsupported type: " + typeStr);
+            default -> throw new ContextedRuntimeException("Unsupported type: " + typeStr);
         };
     }
 

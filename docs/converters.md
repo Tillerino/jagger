@@ -33,7 +33,7 @@ The generated code converts the value before writing it and after reading it.
 An `OffsetDateTime` is written as a `String`:
 
 ```java
-// ../jagger-tests/jackson/target/generated-sources/annotations/org/tillerino/jagger/tests/base/features/ConvertersSerdeImpl.java#L36-L46
+// ../jagger-tests/jackson/target/generated-sources/annotations/org/tillerino/jagger/tests/base/features/ConvertersSerdeImpl.java#L35-L45
 
 OffsetDateTime timestamp = record.timestamp();
 if (timestamp != null) {
@@ -51,7 +51,7 @@ if (timestamp != null) {
 and read back with the reverse converter:
 
 ```java
-// ../jagger-tests/jackson/target/generated-sources/annotations/org/tillerino/jagger/tests/base/features/ConvertersSerdeImpl.java#L70-L82
+// ../jagger-tests/jackson/target/generated-sources/annotations/org/tillerino/jagger/tests/base/features/ConvertersSerdeImpl.java#L69-L81
 
 case "timestamp": {
   final String timestampToConvert;
@@ -61,7 +61,7 @@ case "timestamp": {
     timestampToConvert = parser.getText();
     parser.nextToken();
   } else {
-    throw new IOException("Expected string, got " + parser.currentToken() + " at " + parser.currentLocation());
+    throw new JaggerDatabindException("Expected string");
   }
   timestamp = JavaTimeInputConverters.stringToOffsetDateTime(timestampToConvert);
   break;

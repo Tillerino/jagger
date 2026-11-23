@@ -2,6 +2,7 @@ package com.grack.nanojson;
 
 import java.io.InputStream;
 import java.io.Reader;
+import org.tillerino.jagger.api.JaggerDatabindException;
 import org.tillerino.jagger.api.JaggerReader;
 
 public class NanojsonReaderAdapter implements JaggerReader<JsonParserException> {
@@ -146,7 +147,7 @@ public class NanojsonReaderAdapter implements JaggerReader<JsonParserException> 
         if (advance == Advance.CONSUME) {
             advance(advance);
             if (token != TOKEN_COLON) {
-                throw unexpectedToken("colon");
+                throw new JaggerDatabindException("Expected colon");
             }
             advance(advance);
         }
@@ -160,11 +161,10 @@ public class NanojsonReaderAdapter implements JaggerReader<JsonParserException> 
         }
         String fieldName = getFieldName(Advance.CONSUME);
         if (!fieldName.equals(expectedName)) {
-            throw tokener.createParseException(
-                    null, "Expected field name " + expectedName + ", but was " + fieldName, true);
+            throw new JaggerDatabindException("Expected field name " + expectedName + ", but was " + fieldName);
         }
         if (!isText()) {
-            throw unexpectedToken("text");
+            throw new JaggerDatabindException("Expected text but got token " + token);
         }
         return getText(Advance.CONSUME);
     }
@@ -184,21 +184,6 @@ public class NanojsonReaderAdapter implements JaggerReader<JsonParserException> 
             }
         }
         advance(advance);
-    }
-
-    @Override
-    public JsonParserException unexpectedToken(String expectedToken) {
-        return tokener.createParseException(null, "Expected " + expectedToken, true);
-    }
-
-    @Override
-    public JsonParserException unexpectedValue(String message) {
-        return tokener.createParseException(null, message, false);
-    }
-
-    @Override
-    public JsonParserException unrecognizedProperty(String propertyName) {
-        return tokener.createParseException(null, "Unrecognized field \"" + propertyName + "\"", true);
     }
 
     private void advance(Advance advance) throws JsonParserException {

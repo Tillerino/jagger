@@ -5,6 +5,7 @@ import java.util.*;
 import java.util.function.Function;
 import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
+import org.apache.commons.lang3.exception.ContextedRuntimeException;
 import org.tillerino.jagger.processor.util.Code.DeconstructedCode.A;
 
 /**
@@ -36,11 +37,11 @@ public interface Code {
                 case 'C' -> {
                     deconstructed.add(format.substring(i, j));
                     if (remainingArgs.isEmpty()) {
-                        throw new IllegalArgumentException("Too few snippet arguments");
+                        throw new ContextedRuntimeException("Too few snippet arguments");
                     }
                     Object o = remainingArgs.remove();
                     if (!(o instanceof Code s)) {
-                        throw new IllegalArgumentException("Not code: " + o);
+                        throw new ContextedRuntimeException("Not code: " + o);
                     }
                     deconstructed.add(s);
                 }

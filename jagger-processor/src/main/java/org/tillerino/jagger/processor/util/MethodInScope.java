@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.Map;
 import javax.lang.model.element.Modifier;
 import javax.lang.model.type.TypeMirror;
+import org.apache.commons.lang3.exception.ContextedRuntimeException;
 import org.tillerino.jagger.processor.GeneratedClass;
 import org.tillerino.jagger.processor.JaggerBlueprint;
 import org.tillerino.jagger.processor.JaggerPrototype;
@@ -34,7 +35,7 @@ public sealed interface MethodInScope {
         if (this instanceof FromBlueprint fromBlueprint) {
             return new FromBlueprint(fromBlueprint.blueprint(), bound);
         }
-        throw new IllegalStateException();
+        throw new ContextedRuntimeException();
     }
 
     default Expr call(JaggerPrototype caller, List<Expr> arguments, GeneratedClass generatedClass) {

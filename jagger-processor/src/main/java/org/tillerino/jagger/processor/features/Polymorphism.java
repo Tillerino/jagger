@@ -72,7 +72,7 @@ public record Polymorphism(String discriminator, JsonTypeInfoId id, List<Child> 
             case CLASS -> fullName(subType);
             case MINIMAL_CLASS -> minimalName(subType, superType);
             case SIMPLE_NAME -> name.orElseGet(subType.getSimpleName()::toString);
-            case NAME -> name.orElseThrow(() -> new UnsupportedOperationException("No name specified for " + subType));
+            case NAME -> name.orElseThrow(() -> new ContextedRuntimeException("No name specified for " + subType));
             default -> throw new ContextedRuntimeException("Unsupported id: " + id);
         };
     }

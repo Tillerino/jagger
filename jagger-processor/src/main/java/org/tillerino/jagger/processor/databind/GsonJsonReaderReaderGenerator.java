@@ -2,7 +2,6 @@ package org.tillerino.jagger.processor.databind;
 
 import static org.tillerino.jagger.processor.util.Code.c;
 
-import java.io.IOException;
 import javax.lang.model.element.TypeElement;
 import javax.lang.model.type.TypeMirror;
 import org.apache.commons.lang3.exception.ContextedRuntimeException;
@@ -128,26 +127,6 @@ public class GsonJsonReaderReaderGenerator extends AbstractReaderGenerator<GsonJ
     @Override
     protected void afterArray() {
         addStatement("$C.endArray()", parserVariable);
-    }
-
-    @Override
-    protected void throwUnexpected(String expected) {
-        addStatement(
-                "throw new $T($S + $C.peek() + $S + $C.getPath())",
-                IOException.class,
-                "Expected " + expected + ", got ",
-                parserVariable,
-                " at ",
-                parserVariable);
-    }
-
-    @Override
-    protected void throwUnexpectedValue(Code message) {
-        addStatement("throw new $T($C)", IOException.class, message);
-    }
-
-    protected void throwUnrecognizedProperty(Code propertyName) {
-        addStatement("throw new $T($S + $C + $S)", IOException.class, "Unrecognized field \"", propertyName, "\"");
     }
 
     @Override

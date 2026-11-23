@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonToken;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import java.util.*;
+import org.tillerino.jagger.api.JaggerDatabindException;
 import org.tillerino.jagger.api.JaggerReader;
 
 /**
@@ -112,7 +113,7 @@ public class Jackson2JsonNodeReaderAdapter implements JaggerReader<RuntimeExcept
             advance(advance);
             return b;
         }
-        throw unexpectedToken("boolean");
+        throw new JaggerDatabindException("Expected boolean but got " + currentToken());
     }
 
     @Override
@@ -123,7 +124,7 @@ public class Jackson2JsonNodeReaderAdapter implements JaggerReader<RuntimeExcept
             advance(advance);
             return b;
         }
-        throw unexpectedToken("number");
+        throw new JaggerDatabindException("Expected number but got " + currentToken());
     }
 
     @Override
@@ -134,7 +135,7 @@ public class Jackson2JsonNodeReaderAdapter implements JaggerReader<RuntimeExcept
             advance(advance);
             return s;
         }
-        throw unexpectedToken("number");
+        throw new JaggerDatabindException("Expected number but got " + currentToken());
     }
 
     @Override
@@ -145,7 +146,7 @@ public class Jackson2JsonNodeReaderAdapter implements JaggerReader<RuntimeExcept
             advance(advance);
             return i;
         }
-        throw unexpectedToken("number");
+        throw new JaggerDatabindException("Expected number but got " + currentToken());
     }
 
     @Override
@@ -156,7 +157,7 @@ public class Jackson2JsonNodeReaderAdapter implements JaggerReader<RuntimeExcept
             advance(advance);
             return l;
         }
-        throw unexpectedToken("number");
+        throw new JaggerDatabindException("Expected number but got " + currentToken());
     }
 
     @Override
@@ -167,7 +168,7 @@ public class Jackson2JsonNodeReaderAdapter implements JaggerReader<RuntimeExcept
             advance(advance);
             return f;
         }
-        throw unexpectedToken("number");
+        throw new JaggerDatabindException("Expected number but got " + currentToken());
     }
 
     @Override
@@ -178,7 +179,7 @@ public class Jackson2JsonNodeReaderAdapter implements JaggerReader<RuntimeExcept
             advance(advance);
             return d;
         }
-        throw unexpectedToken("number");
+        throw new JaggerDatabindException("Expected number but got " + currentToken());
     }
 
     @Override
@@ -189,7 +190,7 @@ public class Jackson2JsonNodeReaderAdapter implements JaggerReader<RuntimeExcept
             advance(advance);
             return text;
         }
-        throw unexpectedToken("text");
+        throw new JaggerDatabindException("Expected text but got " + currentToken());
     }
 
     @Override
@@ -202,7 +203,7 @@ public class Jackson2JsonNodeReaderAdapter implements JaggerReader<RuntimeExcept
             }
             return fieldName;
         }
-        throw unexpectedToken("field name");
+        throw new JaggerDatabindException("Expected field name but got " + currentToken());
     }
 
     @Override
@@ -212,7 +213,7 @@ public class Jackson2JsonNodeReaderAdapter implements JaggerReader<RuntimeExcept
             NodeState parent = ((Member) current).parent;
             ObjectNode parentNode = (ObjectNode) parent.node;
             if (!parentNode.has(expectedName)) {
-                throw new RuntimeException("Expected discriminator " + expectedName + " not found at TODO LOCATION");
+                throw new JaggerDatabindException("Expected discriminator " + expectedName + " not found");
             }
             if (!visible) {
                 if (parent.hideField != null) {
@@ -226,7 +227,7 @@ public class Jackson2JsonNodeReaderAdapter implements JaggerReader<RuntimeExcept
             }
             return parentNode.get(expectedName).asText();
         }
-        throw unexpectedToken("field name");
+        throw new JaggerDatabindException("Expected field name but got " + currentToken());
     }
 
     @Override
@@ -239,24 +240,9 @@ public class Jackson2JsonNodeReaderAdapter implements JaggerReader<RuntimeExcept
         advance(advance);
     }
 
-    @Override
-    public RuntimeException unexpectedToken(String expectedToken) {
-        return new RuntimeException("Expected " + expectedToken + " but got " + currentToken() + " at TODO LOCATION");
-    }
-
-    @Override
-    public RuntimeException unexpectedValue(String message) {
-        return new RuntimeException(message);
-    }
-
-    @Override
-    public RuntimeException unrecognizedProperty(String propertyName) {
-        return new RuntimeException("Unrecognized field \"" + propertyName + "\"" + " at TODO LOCATION");
-    }
-
     protected JsonToken currentToken() {
         if (node.isEmpty()) {
-            throw new RuntimeException("Unexpected end of input");
+            throw new JaggerDatabindException("Unexpected end of input");
         }
         return node.peek().asToken();
     }

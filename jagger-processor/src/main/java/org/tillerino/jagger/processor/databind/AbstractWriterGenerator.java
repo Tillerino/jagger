@@ -10,6 +10,7 @@ import javax.lang.model.element.TypeElement;
 import javax.lang.model.type.*;
 import lombok.Getter;
 import org.apache.commons.lang3.exception.ContextedRuntimeException;
+import org.tillerino.jagger.api.JaggerDatabindException;
 import org.tillerino.jagger.processor.config.AnyConfig;
 import org.tillerino.jagger.processor.config.ConfigProperty.InstantiatedProperty;
 import org.tillerino.jagger.processor.config.ConfigProperty.LocationKind;
@@ -403,7 +404,7 @@ public abstract class AbstractWriterGenerator<SELF extends AbstractWriterGenerat
             throw new ContextedRuntimeException("Polymorphism must have at least one child type");
         }
         nextControlFlow("else");
-        addStatement("throw new $T($S)", IllegalArgumentException.class, "Unknown type");
+        addStatement("throw new $T($S)", JaggerDatabindException.class, "Unknown type");
         endControlFlow();
     }
 
