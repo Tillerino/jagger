@@ -13,9 +13,9 @@ import com.squareup.javapoet.CodeBlock;
 import jakarta.annotation.Nonnull;
 import jakarta.annotation.Nullable;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import java.util.function.Function;
-import java.util.function.Supplier;
 import javax.lang.model.element.ElementKind;
 import javax.lang.model.element.Modifier;
 import javax.lang.model.element.TypeElement;
@@ -33,6 +33,8 @@ import org.tillerino.jagger.processor.config.AnyConfig;
 import org.tillerino.jagger.processor.config.ConfigProperty.InstantiatedProperty;
 import org.tillerino.jagger.processor.config.ConfigProperty.LocationKind;
 import org.tillerino.jagger.processor.config.ConfigProperty.PropagationKind;
+import org.tillerino.jagger.processor.databind.AbstractReaderGenerator.LHS.Return;
+import org.tillerino.jagger.processor.databind.AbstractReaderGenerator.LHS.Variable;
 import org.tillerino.jagger.processor.databind.AbstractReaderGenerator.ReadType.Array;
 import org.tillerino.jagger.processor.databind.AbstractReaderGenerator.ReadType.Boxed;
 import org.tillerino.jagger.processor.databind.AbstractReaderGenerator.ReadType.Converted;
@@ -62,27 +64,21 @@ import org.tillerino.jagger.processor.util.InstantiatedMethod.InstantiatedVariab
 
 public abstract class AbstractReaderGenerator<SELF extends AbstractReaderGenerator<SELF>>
         extends AbstractCodeGeneratorStack<SELF> {
+    public static final AtomicReference<Optional<TypedVariable>> NO_ALREADY_OPEN =
+            new AtomicReference<>(Optional.empty());
     protected final LHS lhs;
 
     protected final boolean exhaust;
 
     protected final ReadType rt;
 
-    protected Optional<TypedVariable> alreadyOpen;
+    protected AtomicReference<Optional<TypedVariable>> alreadyOpen;
 
     AbstractReaderGenerator(CodeGeneratorContext generatorContext) {
         super(generatorContext, generatorContext.prototype().returnType());
         lhs = new LHS.Return(generatorContext.prototype().returnType());
         exhaust = true;
-        rt = detect();
-    }
-
-    protected AbstractReaderGenerator(
-            @Nonnull SELF parent, String potentialVariableName, LHS lhs, AnyConfig config, boolean exhaust) {
-        super(parent, lhs.internalType(), potentialVariableName, config);
-        this.lhs = lhs;
-        this.exhaust = exhaust;
-        this.alreadyOpen = lhs instanceof LHS.Return ? parent.alreadyOpen : Optional.empty();
+        alreadyOpen = new AtomicReference<>();
         rt = detect();
     }
 
@@ -157,11 +153,6 @@ public abstract class AbstractReaderGenerator<SELF extends AbstractReaderGenerat
 
     public CodeBlock.Builder build() {
         initializeParser();
-        alreadyOpen = contextParameter().map(contextParameter -> {
-            TypedVariable ao = createVariable(ctx.types.getPrimitiveType(TypeKind.BOOLEAN), "objectOpen");
-            addStatement("boolean $C = $C.isObjectOpen(true)", ao, contextParameter);
-            return ao;
-        });
         return build(Branch.IF, true);
     }
 
@@ -230,8 +221,7 @@ public abstract class AbstractReaderGenerator<SELF extends AbstractReaderGenerat
      */
     protected void readNullable(Branch branch, boolean nullable) {
         if (nullable) {
-            Code cond = nullCaseCondition();
-            beginControlFlow(branch, safeNonObjectCase(cond));
+            beginSafeNonObjectCase(branch, nullCaseCondition());
             addStatement(lhs.assign("null"));
             readNullCheckedObject(Branch.ELSE_IF);
         } else {
@@ -243,21 +233,21 @@ public abstract class AbstractReaderGenerator<SELF extends AbstractReaderGenerat
         String typeName;
         switch (type.getKind()) {
             case BOOLEAN -> {
-                beginControlFlow(branch, safeNonObjectCase(booleanCaseCondition()));
+                beginSafeNonObjectCase(branch, booleanCaseCondition());
                 typeName = "boolean";
             }
             case BYTE, SHORT, INT, LONG -> {
-                beginControlFlow(branch, safeNonObjectCase(numberCaseCondition()));
+                beginSafeNonObjectCase(branch, numberCaseCondition());
                 typeName = "number";
             }
             case FLOAT, DOUBLE -> {
-                beginControlFlow(branch, safeNonObjectCase(stringCaseCondition()));
+                beginSafeNonObjectCase(branch, stringCaseCondition());
                 readNumberFromString((PrimitiveType) type);
-                beginControlFlow(ELSE_IF, safeNonObjectCase(numberCaseCondition()));
+                beginSafeNonObjectCase(ELSE_IF, numberCaseCondition());
                 typeName = "number";
             }
             case CHAR -> {
-                beginControlFlow(branch, safeNonObjectCase(stringCaseCondition()));
+                beginSafeNonObjectCase(branch, stringCaseCondition());
                 typeName = "string";
             }
             default -> throw new ContextedRuntimeException(type.getKind().toString());
@@ -325,23 +315,25 @@ public abstract class AbstractReaderGenerator<SELF extends AbstractReaderGenerat
         } else if (rt instanceof IterableValue iterable) {
             readCollection(branch, iterable.componentType());
         } else if (rt instanceof MapValue map) {
-            readMap(branch, map.keyType(), map.valueType());
+            inGuardedObject(branch, gen -> gen.readMap(map.keyType(), map.valueType()));
         } else if (rt instanceof ObjectValue object) {
-            readObject(branch, object.creator(), (TypeElement)
-                    object.declaredType().asElement());
+            inGuardedObject(
+                    branch,
+                    gen -> gen.readObject(object.creator(), (TypeElement)
+                            object.declaredType().asElement()));
         } else {
             throw Exceptions.unexpected();
         }
     }
 
     private void readString(Branch branch, StringKind stringKind) {
-        beginControlFlow(branch, safeNonObjectCase(stringCaseCondition()));
+        beginSafeNonObjectCase(branch, stringCaseCondition());
         readString(stringKind);
         elseThrowUnexpected("string");
     }
 
     private void readEnum(Branch branch) {
-        beginControlFlow(branch, stringCaseCondition());
+        beginSafeNonObjectCase(branch, stringCaseCondition());
         {
             String enumValuesField = generatedClass.getOrCreateEnumField(type).name();
             Expr enumVar = readStringInstead();
@@ -355,7 +347,7 @@ public abstract class AbstractReaderGenerator<SELF extends AbstractReaderGenerat
     }
 
     private void readArray(Branch branch, TypeMirror componentType) {
-        beginControlFlow(branch, arrayCaseCondition());
+        beginSafeNonObjectCase(branch, arrayCaseCondition());
         {
             TypeMirror rawComponentType = ctx.types.erasure(componentType);
             TypeMirror rawRawComponentType =
@@ -388,7 +380,7 @@ public abstract class AbstractReaderGenerator<SELF extends AbstractReaderGenerat
 
                 AnyConfig nestedConfig = config.propagateTo(PropagationKind.PROPERTY);
                 SELF nested =
-                        nest("item", new LHS.Array(componentType, varName, len), nestedConfig, true, Optional.empty());
+                        nest("item", new LHS.Array(componentType, varName, len), nestedConfig, true, NO_ALREADY_OPEN);
                 Exceptions.runWithContext("component", componentType, () -> nested.build(Branch.IF, true));
             }
             endControlFlow(); // end of loop
@@ -408,7 +400,7 @@ public abstract class AbstractReaderGenerator<SELF extends AbstractReaderGenerat
             }
         }
         if (componentType.getKind() == TypeKind.BYTE) {
-            beginControlFlow(ELSE_IF, stringCaseCondition());
+            beginSafeNonObjectCase(ELSE_IF, stringCaseCondition());
             Expr stringVar = readStringInstead();
             addStatement(lhs.assign("$T.getDecoder().decode($C)", Base64.class, stringVar));
         }
@@ -416,7 +408,7 @@ public abstract class AbstractReaderGenerator<SELF extends AbstractReaderGenerat
     }
 
     private void readCollection(Branch branch, TypeMirror componentType) {
-        beginControlFlow(branch, arrayCaseCondition());
+        beginSafeNonObjectCase(branch, arrayCaseCondition());
         {
             TypeMirror collectionType = determineCollectionType();
             Code containerVar = instantiateContainer(collectionType);
@@ -425,7 +417,7 @@ public abstract class AbstractReaderGenerator<SELF extends AbstractReaderGenerat
             {
                 AnyConfig nestedConfig = config.propagateTo(PropagationKind.PROPERTY);
                 SELF nested = nest(
-                        "item", new LHS.Collection(componentType, containerVar), nestedConfig, true, Optional.empty());
+                        "item", new LHS.Collection(componentType, containerVar), nestedConfig, true, NO_ALREADY_OPEN);
                 runWithContext("component", componentType, () -> nested.build(IF, true));
             }
             endControlFlow(); // end of loop
@@ -463,30 +455,24 @@ public abstract class AbstractReaderGenerator<SELF extends AbstractReaderGenerat
         }
     }
 
-    private void readMap(Branch branch, TypeMirror keyType, TypeMirror valueType) {
-        inGuardedObject(branch, () -> {
-            TypeMirror mapType = determineCollectionType();
-            Code mapVar = instantiateContainer(mapType);
-            iterateOverFields();
-            {
-                beginControlFlow(IF, memberCaseCondition());
-                TypedVariable keyString = createVariable(ctx.commonTypes.string, "key");
-                readMemberNameInIteration(keyString.name());
-                Code key = Exceptions.getWithContext("key", keyType, () -> getMapKey(keyType, keyString));
-                LHS.Map lhsValue = new LHS.Map(valueType, mapVar, key);
-                SELF nested =
-                        nest("value", lhsValue, config.propagateTo(PropagationKind.PROPERTY), true, Optional.empty());
-                Exceptions.runWithContext("value", valueType, () -> nested.build(Branch.IF, true));
-                elseThrowUnexpected("field name");
-            }
-            endControlFlow(); // end of loop
-
-            return () -> {
-                if (mapVar != lhs) {
-                    addStatement(lhs.assign("$C", mapVar));
-                }
-            };
-        });
+    private void readMap(TypeMirror keyType, TypeMirror valueType) {
+        TypeMirror mapType = determineCollectionType();
+        Code mapVar = instantiateContainer(mapType);
+        iterateOverFields();
+        {
+            beginSafeNonObjectCase(IF, memberCaseCondition());
+            TypedVariable keyString = createVariable(ctx.commonTypes.string, "key");
+            readMemberNameInIteration(keyString.name());
+            Code key = Exceptions.getWithContext("key", keyType, () -> getMapKey(keyType, keyString));
+            LHS.Map lhsValue = new LHS.Map(valueType, mapVar, key);
+            SELF nested = nest("value", lhsValue, config.propagateTo(PropagationKind.PROPERTY), true, NO_ALREADY_OPEN);
+            Exceptions.runWithContext("value", valueType, () -> nested.build(Branch.IF, true));
+            elseThrowUnexpected("field name");
+        }
+        endControlFlow(); // end of loop
+        if (mapVar != lhs) {
+            addStatement(lhs.assign("$C", mapVar));
+        }
     }
 
     /** Converts the map key string into the actual key type. Mirrors the writer's map key handling. */
@@ -515,46 +501,70 @@ public abstract class AbstractReaderGenerator<SELF extends AbstractReaderGenerat
                 .addContextValue("keyType", keyType);
     }
 
-    private void readObject(Branch branch, @Nullable Creator.Properties properties, TypeElement element) {
-        Code cond = objectCaseCondition();
-        if (alreadyOpen.isPresent()) {
-            cond = c("$C || $C", alreadyOpen.get(), cond);
-        }
-        beginControlFlow(branch, cond);
-
+    private void readObject(@Nullable Creator.Properties properties, TypeElement element) {
         if (properties != null) {
             readCreator(properties.method());
         } else {
             Polymorphism.of(element, ctx).ifPresentOrElse(this::readPolymorphicObject, () -> readObjectFields(element));
         }
+    }
+
+    private void inGuardedObject(Branch branch, Consumer<AbstractReaderGenerator<SELF>> r) {
+        initAlreadyOpen(branch);
+        alreadyOpen
+                .get()
+                .ifPresentOrElse(
+                        ao -> beginControlFlow(branch, "$C || $C", ao, objectCaseCondition()),
+                        () -> beginControlFlow(branch, "$C", objectCaseCondition()));
+
+        AbstractReaderGenerator<SELF> gen = this;
+        if (lhs instanceof Return) {
+            gen = nest(pvn, declareLhsVariable(type, pvn), config, exhaust, alreadyOpen);
+        }
+
+        r.accept(gen);
+
+        alreadyOpen
+                .get()
+                .ifPresentOrElse(
+                        ao -> {
+                            beginControlFlow("if (!$C)", ao);
+                            afterObject();
+                            endControlFlow();
+                        },
+                        this::afterObject);
+
+        if (gen != this) {
+            addStatement(lhs.assign((Variable) gen.lhs));
+        }
 
         elseThrowUnexpected("object");
     }
 
-    private void inGuardedObject(Branch branch, Supplier<Runnable> r) {
-        alreadyOpen.ifPresentOrElse(
-                ao -> beginControlFlow(branch, "$C || $C", ao, objectCaseCondition()),
-                () -> beginControlFlow(branch, "$C", objectCaseCondition()));
+    private void beginSafeNonObjectCase(Branch branch, Code cond) {
+        initAlreadyOpen(branch);
+        beginControlFlow(
+                branch,
+                alreadyOpen.get().map(ao -> Code.c("!$C && $C", ao, cond)).orElse(cond));
+    }
 
-        Runnable s = r.get();
-
-        alreadyOpen.ifPresentOrElse(
-                ao -> {
-                    beginControlFlow("if (!$C)", ao);
-                    afterObject();
-                    endControlFlow();
-                },
-                this::afterObject);
-
-        if (s != null) {
-            s.run();
+    private void initAlreadyOpen(Branch branch) {
+        if (alreadyOpen.get() == null) {
+            if (branch != IF) {
+                // must be declared before first if
+                throw Exceptions.unexpected();
+            }
+            alreadyOpen.set(contextParameter().map(contextParameter -> {
+                TypedVariable ao = createVariable(ctx.types.getPrimitiveType(TypeKind.BOOLEAN), "objectOpen");
+                addStatement("boolean $C = $C.isObjectOpen(true)", ao, contextParameter);
+                return ao;
+            }));
         }
-        elseThrowUnexpected("object");
     }
 
     private void readPolymorphicObject(Polymorphism polymorphism) {
         LHS.Variable discriminator = declareLhsVariable(ctx.commonTypes.string, "discriminator");
-        nest("discriminator", discriminator, config.propagateTo(PropagationKind.PROPERTY), true, Optional.empty())
+        nest("discriminator", discriminator, config.propagateTo(PropagationKind.PROPERTY), true, NO_ALREADY_OPEN)
                 .readDiscriminator(polymorphism.discriminator());
 
         Branch branch = Branch.IF;
@@ -566,7 +576,7 @@ public abstract class AbstractReaderGenerator<SELF extends AbstractReaderGenerat
                             PropagationKind.SUBSTITUTE /* this is fine with the configuration options that we
                currently have */),
                     exhaust,
-                    Optional.empty());
+                    NO_ALREADY_OPEN);
 
             beginControlFlow(branch, "$C.equals($S)", discriminator, child.name());
             Exceptions.runWithContext("instance", child.type(), () -> readPolymorphicChild(nested));
@@ -591,8 +601,7 @@ public abstract class AbstractReaderGenerator<SELF extends AbstractReaderGenerat
                 throw new ContextedRuntimeException("Delegate method must have a context parameter");
             }
             addStatement("$C.markObjectOpen()", callerContext);
-            nested.lhs.assignAnd(
-                    delegatee.call(nested.prototype, List.of(), nested.generatedClass), this, __ -> afterObject());
+            addStatement(nested.lhs.assign(delegatee.call(nested.prototype, List.of(), nested.generatedClass)));
         } else {
             ctx.creators
                     .findPropertiesStyle(nested.type)
@@ -640,7 +649,7 @@ public abstract class AbstractReaderGenerator<SELF extends AbstractReaderGenerat
                     propVar,
                     propertyConfig.propagateTo(PropagationKind.PROPERTY),
                     true,
-                    Optional.empty());
+                    NO_ALREADY_OPEN);
             if (IgnoreProperty.isIgnoredForJson(propertyConfig)) {
                 // we do need the default value to call the creator, so we only skip reading the value
                 continue;
@@ -683,7 +692,7 @@ public abstract class AbstractReaderGenerator<SELF extends AbstractReaderGenerat
                     lhs,
                     propertyConfig.propagateTo(PropagationKind.PROPERTY),
                     true,
-                    Optional.empty());
+                    NO_ALREADY_OPEN);
             nested.add(new NestedProperty(canonicalPropertyName, propertyName, propertyConfig, nest));
         });
 
@@ -738,7 +747,7 @@ public abstract class AbstractReaderGenerator<SELF extends AbstractReaderGenerat
                             new LHS.Variable(nest.generator.type, idVar),
                             nest.generator.config,
                             true,
-                            Optional.empty());
+                            NO_ALREADY_OPEN);
                     tmpNest.build(IF, true);
                     addStatement(nest.generator.lhs.assign(idVar));
                     bindItemWhenIdIsRead.ifPresent(c -> c.accept(idVar));
@@ -772,7 +781,7 @@ public abstract class AbstractReaderGenerator<SELF extends AbstractReaderGenerat
                             new LHS.Variable(setup.idType(), idVar),
                             config.propagateTo(PropagationKind.PROPERTY),
                             true,
-                            Optional.empty())
+                            NO_ALREADY_OPEN)
                     .build(IF, true);
             bindItemWhenIdIsRead.ifPresent(c -> c.accept(idVar));
             addStatement("break");
@@ -799,13 +808,6 @@ public abstract class AbstractReaderGenerator<SELF extends AbstractReaderGenerat
                     "Missing property " + property.serializedName);
         }
 
-        alreadyOpen.ifPresentOrElse(
-                ao -> {
-                    beginControlFlow("if (!$C)", ao);
-                    afterObject();
-                    endControlFlow();
-                },
-                this::afterObject);
         return idVar;
     }
 
@@ -834,10 +836,6 @@ public abstract class AbstractReaderGenerator<SELF extends AbstractReaderGenerat
             throwUnexpected(typeName);
             endControlFlow();
         }
-    }
-
-    private Code safeNonObjectCase(Code leCase) {
-        return alreadyOpen.map(ao -> c("!$C && $C", ao, leCase)).orElse(leCase);
     }
 
     private LHS.Variable createLhsVariable(TypeMirror type, String name) {
@@ -903,7 +901,7 @@ public abstract class AbstractReaderGenerator<SELF extends AbstractReaderGenerat
             LHS lhs,
             AnyConfig config,
             boolean exhaust,
-            Optional<TypedVariable> alreadyOpen) {
+            AtomicReference<Optional<TypedVariable>> alreadyOpen) {
         return nest(new Props(potentialVariableName, lhs, config, exhaust, alreadyOpen));
     }
 
@@ -1049,5 +1047,5 @@ public abstract class AbstractReaderGenerator<SELF extends AbstractReaderGenerat
             LHS lhs,
             AnyConfig config,
             boolean exhaust,
-            Optional<TypedVariable> alreadyOpen) {}
+            AtomicReference<Optional<TypedVariable>> alreadyOpen) {}
 }
