@@ -9,6 +9,7 @@ import org.tillerino.jagger.api.SerializationContext;
 import org.tillerino.jagger.converters.AllInputConverters;
 import org.tillerino.jagger.converters.AllOutputConverters;
 import org.tillerino.jagger.tests.base.features.DelegationSerde.BoxedScalarsSerde;
+import org.tillerino.jagger.tests.base.features.TemplatesSerde.AutoTemplatesForGenericContainers;
 import org.tillerino.jagger.tests.model.features.ReferencesModel.*;
 import org.tillerino.jagger.tests.model.features.ReferencesModel.IntSequenceParent.IntSequenceChild;
 import org.tillerino.jagger.tests.model.features.ReferencesModel.UuidParent.UuidChild;
@@ -136,6 +137,12 @@ public interface ReferencesSerde {
         @JsonInput
         List<IntSequenceChild> readListOfIntSequenceChild(JsonParser parser, DeserializationContext ctx)
                 throws Exception;
+    }
+
+    @JsonConfig(uses = AutoTemplatesForGenericContainers.class)
+    interface ReferencesWithAutoTemplatesSerde {
+        @JsonInput
+        IntSequenceIdPojo readIntSequenceIdPojo(JsonParser parser, DeserializationContext ctx) throws Exception;
     }
 
     @JsonConfig(uses = {AllInputConverters.class, AllOutputConverters.class})

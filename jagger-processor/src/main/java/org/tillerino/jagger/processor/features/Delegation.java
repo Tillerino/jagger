@@ -56,6 +56,9 @@ public class Delegation {
             boolean allowExact,
             AnyConfig config,
             GeneratedClass generatedClass) {
+        if (!config.resolveProperty(DELEGATE_FROM).value()) {
+            return Optional.empty();
+        }
         return findDelegateeInScope(target, caller, allowRecursion, allowExact, config, generatedClass)
                 .or(() -> allowExact
                         ? Templates.delegateToAutoTemplate(ctx, target, caller).map(prototype -> {
@@ -74,9 +77,6 @@ public class Delegation {
             boolean allowExact,
             AnyConfig config,
             GeneratedClass generatedClass) {
-        if (!config.resolveProperty(DELEGATE_FROM).value()) {
-            return Optional.empty();
-        }
         for (PrototypeInScope prototypeInScope : caller.listPrototypesInScope(config)) {
             JaggerPrototype callee = prototypeInScope.prototype();
             if (prototypeInScope instanceof PrototypeInScope.FromPrototype

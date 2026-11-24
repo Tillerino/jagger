@@ -11,6 +11,7 @@ import org.tillerino.jagger.tests.ReferenceTest;
 import org.tillerino.jagger.tests.SerdeUtil;
 import org.tillerino.jagger.tests.base.features.ReferencesSerde.PolyWithDelegatorReferencesSerde;
 import org.tillerino.jagger.tests.base.features.ReferencesSerde.ReferenceInheritanceSerde;
+import org.tillerino.jagger.tests.base.features.ReferencesSerde.ReferencesWithAutoTemplatesSerde;
 import org.tillerino.jagger.tests.model.features.ReferencesModel.*;
 import org.tillerino.jagger.tests.model.features.ReferencesModel.IntSequenceParent.IntSequenceChild;
 import org.tillerino.jagger.tests.model.features.ReferencesModel.UuidParent.UuidChild;
@@ -171,6 +172,18 @@ class ReferencesTest extends ReferenceTest {
             List<IntSequenceChild> list = inputUtils.deserialize2(
                     "[ { \"@id\": 1 }, 1 ]", new DeserializationContext(), serde::readListOfIntSequenceChild);
             assertThat(list.get(0)).isSameAs(list.get(1));
+        }
+    }
+
+    @Nested
+    class AutoTemplateDelegationTest {
+        ReferencesWithAutoTemplatesSerde serde = SerdeUtil.impl(ReferencesWithAutoTemplatesSerde.class);
+
+        @Test
+        void initialIdReadIsNotDelegatedToAutoTemplate() throws Exception {
+            IntSequenceIdPojo pojo = inputUtils.deserialize2(
+                    "{\"@id\":1,\"prop\":\"bla\"}", new DeserializationContext(), serde::readIntSequenceIdPojo);
+            assertThat(pojo.getProp()).isEqualTo("bla");
         }
     }
 
