@@ -51,7 +51,7 @@ if (timestamp != null) {
 and read back with the reverse converter:
 
 ```java
-// ../jagger-tests/jackson/target/generated-sources/annotations/org/tillerino/jagger/tests/base/features/ConvertersSerdeImpl.java#L69-L81
+// ../jagger-tests/jackson/target/generated-sources/annotations/org/tillerino/jagger/tests/base/features/ConvertersSerdeImpl.java#L70-L82
 
 case "timestamp": {
   final String timestampToConvert;

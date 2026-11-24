@@ -3,8 +3,6 @@ package org.tillerino.jagger.processor.features;
 import static org.tillerino.jagger.processor.util.Expr.e;
 
 import java.util.*;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 import java.util.stream.Stream;
 import javax.lang.model.type.DeclaredType;
 import javax.lang.model.type.TypeMirror;
@@ -106,21 +104,22 @@ public class Delegation {
             JaggerPrototype caller,
             InstantiatedMethod callee,
             List<? extends Expr> additionalParameters,
-            int firstArgument,
             GeneratedClass generatedClass,
             Set<String> avn) {
-        return IntStream.range(firstArgument, callee.parameters().size())
-                .mapToObj(i -> {
-                    InstantiatedVariable targetParameter = callee.parameters().get(i);
-                    return findArgument(caller, generatedClass, additionalParameters, targetParameter, avn)
-                            .orElseThrow(() -> new ContextedRuntimeException(
-                                            ("Could not find a value of type %s to pass in method call. Consider declaring a parameter of this type on the caller.")
-                                                    .formatted(ShortName.of(targetParameter.type())))
-                                    .addContextValue("parameter", targetParameter)
-                                    .addContextValue("callee", callee)
-                                    .addContextValue("caller", caller != null ? caller.method() : "(anonymous)"));
-                })
-                .collect(Collectors.toList());
+        List<Expr> exprs = new ArrayList<>();
+        for (InstantiatedVariable targetParameter : callee.parameters()) {
+            Optional<Expr> argument = findArgument(caller, generatedClass, additionalParameters, targetParameter, avn);
+            if (argument.isEmpty()) {
+                throw new ContextedRuntimeException(
+                                ("Could not find a value of type %s to pass in method call. Consider declaring a parameter of this type on the caller.")
+                                        .formatted(ShortName.of(targetParameter.type())))
+                        .addContextValue("parameter", targetParameter)
+                        .addContextValue("callee", callee)
+                        .addContextValue("caller", caller != null ? caller.method() : "(anonymous)");
+            }
+            exprs.add(argument.get());
+        }
+        return exprs;
     }
 
     public Optional<Expr> findArgument(

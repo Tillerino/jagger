@@ -98,7 +98,7 @@ all properties are delegated to automatically created methods.
 For example, reading the `Double dd` property delegates to `readDouble`.
 
 ```java
-// ../jagger-tests/jackson/target/generated-sources/annotations/org/tillerino/jagger/tests/base/features/TemplatesSerde$AutoTemplatesSerdeImpl.java#L121-L124
+// ../jagger-tests/jackson/target/generated-sources/annotations/org/tillerino/jagger/tests/base/features/TemplatesSerde$AutoTemplatesSerdeImpl.java#L122-L125
 
 case "dd": {
   dd = this.readDouble(parser);
@@ -109,7 +109,7 @@ case "dd": {
 `readDouble` itself only does a null-check and then delegates to `readPrimitiveDouble`:
 
 ```java
-// ../jagger-tests/jackson/target/generated-sources/annotations/org/tillerino/jagger/tests/base/features/TemplatesSerde$AutoTemplatesSerdeImpl.java#L426-L435
+// ../jagger-tests/jackson/target/generated-sources/annotations/org/tillerino/jagger/tests/base/features/TemplatesSerde$AutoTemplatesSerdeImpl.java#L428-L437
 
 public Double readDouble(JsonParser parser) throws Exception {
   if (!parser.hasCurrentToken()) {

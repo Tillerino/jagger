@@ -81,7 +81,7 @@ public record InstantiatedMethod(
             List<? extends Expr> additionalParameters,
             GeneratedClass generatedClass,
             Set<String> avn) {
-        return ctx.delegation.findArguments(caller, this, additionalParameters, 0, generatedClass, avn);
+        return ctx.delegation.findArguments(caller, this, additionalParameters, generatedClass, avn);
     }
 
     public boolean hasSameSignature(InstantiatedMethod other) {
