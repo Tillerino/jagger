@@ -116,7 +116,7 @@ public class JacksonJsonGeneratorWriterGenerator extends AbstractWriterGenerator
     @Override
     protected void callDelegate(Delegatee delegatee) {
         addFieldNameIfRequired();
-        addStatement(delegatee.call(prototype, List.of(rhs), generatedClass));
+        addStatement(delegatee.call(prototype, List.of(rhs), generatedClass, avoidVariableNames()));
     }
 
     @Override

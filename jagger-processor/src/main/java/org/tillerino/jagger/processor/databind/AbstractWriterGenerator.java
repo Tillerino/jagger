@@ -91,7 +91,7 @@ public abstract class AbstractWriterGenerator<SELF extends AbstractWriterGenerat
             return new Primitive((PrimitiveType) type);
         }
         Optional<Converter> converter = ctx.converters
-                .findOutputConverter(type, prototype, config, generatedClass)
+                .findOutputConverter(type, prototype, config, generatedClass, avoidVariableNames())
                 .or(() -> ctx.creators.findJsonValueMethod(type));
         if (converter.isPresent()) {
             if (ctx.references.isConfigured(type)) {
@@ -379,7 +379,8 @@ public abstract class AbstractWriterGenerator<SELF extends AbstractWriterGenerat
                                         () -> addStatement(delegatee.call(
                                                 nest(child.type(), lhs, "instance", casted, childConfig).prototype,
                                                 List.of(casted),
-                                                generatedClass)));
+                                                generatedClass,
+                                                avoidVariableNames())));
                                 endObject();
                             },
                             () -> {

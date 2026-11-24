@@ -123,7 +123,12 @@ public class SimpleMapperPlugin implements JaggerPlugin {
 
                 value = delegatee
                         .method()
-                        .callFindingArguments(delegatee.fieldOrParameter(), prototype, List.of(value), generatedClass);
+                        .callFindingArguments(
+                                delegatee.fieldOrParameter(),
+                                prototype,
+                                List.of(value),
+                                generatedClass,
+                                avoidVariableNames());
             }
 
             addStatement(writeAccessor.write(result, value));

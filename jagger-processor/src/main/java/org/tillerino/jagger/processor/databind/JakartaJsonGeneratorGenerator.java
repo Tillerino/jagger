@@ -108,7 +108,7 @@ public class JakartaJsonGeneratorGenerator extends AbstractWriterGenerator<Jakar
     @Override
     protected void callDelegate(Delegatee delegatee) {
         addFieldNameIfRequired();
-        addStatement(delegatee.call(prototype, List.of(rhs), generatedClass));
+        addStatement(delegatee.call(prototype, List.of(rhs), generatedClass, avoidVariableNames()));
     }
 
     @Override

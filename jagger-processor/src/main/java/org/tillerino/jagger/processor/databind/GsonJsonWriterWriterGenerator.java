@@ -97,7 +97,7 @@ public class GsonJsonWriterWriterGenerator extends AbstractWriterGenerator<GsonJ
     @Override
     protected void callDelegate(Delegatee delegatee) {
         addMemberNameIfNeeded();
-        addStatement(delegatee.call(prototype, List.of(rhs), generatedClass));
+        addStatement(delegatee.call(prototype, List.of(rhs), generatedClass, avoidVariableNames()));
     }
 
     @Override

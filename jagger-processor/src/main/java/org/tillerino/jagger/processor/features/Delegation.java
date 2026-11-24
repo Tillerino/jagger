@@ -2,9 +2,7 @@ package org.tillerino.jagger.processor.features;
 
 import static org.tillerino.jagger.processor.util.Expr.e;
 
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
@@ -109,11 +107,12 @@ public class Delegation {
             InstantiatedMethod callee,
             List<? extends Expr> additionalParameters,
             int firstArgument,
-            GeneratedClass generatedClass) {
+            GeneratedClass generatedClass,
+            Set<String> avn) {
         return IntStream.range(firstArgument, callee.parameters().size())
                 .mapToObj(i -> {
                     InstantiatedVariable targetParameter = callee.parameters().get(i);
-                    return findArgument(caller, generatedClass, additionalParameters, targetParameter)
+                    return findArgument(caller, generatedClass, additionalParameters, targetParameter, avn)
                             .orElseThrow(() -> new ContextedRuntimeException(
                                             ("Could not find a value of type %s to pass in method call. Consider declaring a parameter of this type on the caller.")
                                                     .formatted(ShortName.of(targetParameter.type())))
@@ -124,11 +123,12 @@ public class Delegation {
                 .collect(Collectors.toList());
     }
 
-    private Optional<Expr> findArgument(
+    public Optional<Expr> findArgument(
             JaggerPrototype caller,
             GeneratedClass generatedClass,
             List<? extends Expr> additionalParameters,
-            InstantiatedVariable targetArgument) {
+            InstantiatedVariable targetArgument,
+            Set<String> avn) {
         // search in caller's own parameters
         Iterable<Expr> locallyAvailable = () -> Stream.concat(
                         additionalParameters.stream(), caller != null ? caller.parameters().stream() : Stream.of())
@@ -139,7 +139,7 @@ public class Delegation {
             }
         }
 
-        if (caller != null && generatedClass != null) {
+        {
             // see if we can instantiate an instance from our list of used blueprints
             Expr delegateeInField =
                     generatedClass.getOrCreateUsedBlueprintWithTypeField(targetArgument.type(), caller.config());
@@ -161,25 +161,17 @@ public class Delegation {
             return Optional.empty();
         }
 
-        { // see if we can instantiate a lambda from our list of used blueprints
-            Optional<Expr> lambda = ctx.generics.getOrCreateLambda(caller, generatedClass, targetArgument.type(), 0);
-            if (lambda.isPresent()) {
-                return lambda;
-            }
-        }
-
         Optional<PrototypeKind> prototypeKind =
                 ctx.detectPrototype(functionalInterface.get().method());
         if (prototypeKind.isEmpty()) {
             return Optional.empty();
         }
 
-        { // auto-templates may be able to provide a prototype that the lambda can delegate to
-            prototypeKind
-                    .filter(TemplatablePrototypeKind.class::isInstance)
-                    .map(TemplatablePrototypeKind.class::cast)
-                    .flatMap(target -> Templates.delegateToAutoTemplate(ctx, target, caller));
-            Optional<Expr> lambda = ctx.generics.getOrCreateLambda(caller, generatedClass, targetArgument.type(), 0);
+        if (prototypeKind.get() instanceof TemplatablePrototypeKind tpk) {
+            Optional<Expr> lambda = ctx.delegation
+                    .findDelegatee(tpk, caller, false, true, caller.config(), generatedClass)
+                    .flatMap(delegatee -> ctx.generics.getOrCreateLambda(
+                            caller, generatedClass, targetArgument.type(), delegatee, avn));
             if (lambda.isPresent()) {
                 return lambda;
             }
@@ -189,7 +181,7 @@ public class Delegation {
             return Optional.empty();
         }
 
-        Optional<Expr> jsonValueOrJsonCreator = ctx.creators.findConverterLambda(cpk, caller, generatedClass);
+        Optional<Expr> jsonValueOrJsonCreator = ctx.creators.findConverterLambda(cpk, caller, generatedClass, avn);
         if (jsonValueOrJsonCreator.isPresent()) {
             return jsonValueOrJsonCreator;
         }
@@ -199,8 +191,12 @@ public class Delegation {
     }
 
     public record Delegatee(Expr fieldOrParameter, InstantiatedMethod method) {
-        public Expr call(JaggerPrototype caller, List<Expr> additionalParameters, GeneratedClass generatedClass) {
-            return method.callFindingArguments(fieldOrParameter, caller, additionalParameters, generatedClass);
+        public Expr call(
+                JaggerPrototype caller,
+                List<Expr> additionalParameters,
+                GeneratedClass generatedClass,
+                Set<String> avn) {
+            return method.callFindingArguments(fieldOrParameter, caller, additionalParameters, generatedClass, avn);
         }
     }
 }

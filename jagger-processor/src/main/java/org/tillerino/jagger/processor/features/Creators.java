@@ -1,9 +1,6 @@
 package org.tillerino.jagger.processor.features;
 
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import javax.lang.model.element.ExecutableElement;
 import javax.lang.model.type.DeclaredType;
 import javax.lang.model.type.TypeKind;
@@ -82,13 +79,14 @@ public class Creators {
     }
 
     public Optional<Converter> findConverterStyle(
-            TypeMirror targetType, JaggerPrototype caller, GeneratedClass generatedClass) {
+            TypeMirror targetType, JaggerPrototype caller, GeneratedClass generatedClass, Set<String> avn) {
         return findJsonCreatorMethod(targetType)
                 .filter(Creator.Converter.class::isInstance)
                 .map(creator -> {
                     InstantiatedMethod method = ((Creator.Converter) creator).method();
                     return new Converter(
-                            toConvert -> method.callStaticFindingArguments(caller, List.of(toConvert), generatedClass),
+                            toConvert ->
+                                    method.callStaticFindingArguments(caller, List.of(toConvert), generatedClass, avn),
                             method.unaryOperatorReference(),
                             method.returnType(),
                             method.parameters().get(0).type());
@@ -117,9 +115,9 @@ public class Creators {
     }
 
     public Optional<Expr> findConverterLambda(
-            ConverterPrototypeKind kind, JaggerPrototype caller, GeneratedClass generatedClass) {
+            ConverterPrototypeKind kind, JaggerPrototype caller, GeneratedClass generatedClass, Set<String> avn) {
         return (kind.direction() == Direction.INPUT
-                        ? findConverterStyle(kind.internalType(), caller, generatedClass)
+                        ? findConverterStyle(kind.internalType(), caller, generatedClass, avn)
                         : findJsonValueMethod(kind.internalType()))
                 .map(Converter::lambda);
     }

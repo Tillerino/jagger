@@ -2,9 +2,9 @@ package org.tillerino.jagger.processor.util;
 
 import com.squareup.javapoet.CodeBlock;
 import java.util.*;
-import java.util.function.Function;
 import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import org.apache.commons.lang3.exception.ContextedRuntimeException;
 import org.tillerino.jagger.processor.util.Code.DeconstructedCode.A;
 
@@ -126,26 +126,10 @@ public interface Code {
             List<Object> replaced = modAll(deconstructed, d -> d instanceof Code s ? s.subst(needle, replacement) : d);
             return replaced != deconstructed ? new DeconstructedCode(replaced) : this;
         }
-    }
-
-    class CodeWrapper<SELF extends Code> implements Code {
-        final Code wrapped;
-        final Function<Code, SELF> reconstructor;
-
-        protected CodeWrapper(Code wrapped, Function<Code, SELF> reconstructor) {
-            this.wrapped = wrapped;
-            this.reconstructor = reconstructor;
-        }
 
         @Override
-        public Flattened flatten() {
-            return wrapped.flatten();
-        }
-
-        @Override
-        public SELF subst(Expr needle, Expr replacement) {
-            Code subst = wrapped.subst(needle, replacement);
-            return subst != wrapped ? reconstructor.apply(subst) : (SELF) this;
+        public String toString() {
+            return flatten().toString();
         }
     }
 
@@ -156,6 +140,12 @@ public interface Code {
     record Flattened(String format, Object[] args) {
         public static Flattened of(String format, Object... args) {
             return new Flattened(format, args);
+        }
+
+        @Override
+        public String toString() {
+            return "(\"%s\", %s)"
+                    .formatted(format, Stream.of(args).map(String::valueOf).collect(Collectors.joining(", ")));
         }
     }
 }

@@ -6,7 +6,6 @@ import static org.tillerino.jagger.processor.util.Expr.e;
 import jakarta.annotation.Nullable;
 import java.util.*;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 import javax.lang.model.element.Element;
 import javax.lang.model.element.ExecutableElement;
 import javax.lang.model.element.TypeElement;
@@ -16,13 +15,14 @@ import javax.lang.model.util.AbstractTypeVisitor14;
 import javax.lang.model.util.ElementFilter;
 import javax.lang.model.util.Types;
 import org.tillerino.jagger.processor.GeneratedClass;
-import org.tillerino.jagger.processor.JaggerBlueprint;
 import org.tillerino.jagger.processor.JaggerContext;
 import org.tillerino.jagger.processor.JaggerPrototype;
 import org.tillerino.jagger.processor.config.AnyConfig;
 import org.tillerino.jagger.processor.config.ConfigProperty.LocationKind;
+import org.tillerino.jagger.processor.features.Delegation.Delegatee;
 import org.tillerino.jagger.processor.util.Code;
 import org.tillerino.jagger.processor.util.Expr;
+import org.tillerino.jagger.processor.util.Expr.TypedVariable;
 import org.tillerino.jagger.processor.util.InstantiatedMethod;
 import org.tillerino.jagger.processor.util.InstantiatedMethod.InstantiatedVariable;
 import org.tillerino.jagger.processor.util.RebuildingTypeVisitor;
@@ -226,15 +226,13 @@ public class Generics {
     }
 
     public Optional<Expr> getOrCreateLambda(
-            JaggerPrototype caller, GeneratedClass callingClass, TypeMirror targetType, int depth) {
-        // TODO availableValues is not being used, depth == 0. There was a plan here to instantiate recursively.
-        if (depth > 10) {
-            // this depth is pretty arbitrary, but surely larger than anything useful and it's just important that we
-            // do not explode here.
-            return Optional.empty();
-        }
+            JaggerPrototype caller,
+            GeneratedClass callingClass,
+            TypeMirror targetType,
+            Delegatee delegatee,
+            Set<String> avn) {
         return isFunctionalInterface(targetType)
-                .flatMap(fi -> instantiateFunctionalInterface(caller, callingClass, fi));
+                .flatMap(fi -> instantiateFunctionalInterface(caller, callingClass, fi, delegatee, avn));
     }
 
     Optional<FunctionalInterface> isFunctionalInterface(TypeMirror functionalInterface) {
@@ -255,32 +253,19 @@ public class Generics {
     }
 
     private Optional<Expr> instantiateFunctionalInterface(
-            JaggerPrototype caller, GeneratedClass callingClass, FunctionalInterface functionalInterface) {
+            JaggerPrototype caller,
+            GeneratedClass callingClass,
+            FunctionalInterface functionalInterface,
+            Delegatee delegatee,
+            Set<String> avn) {
         InstantiatedMethod targetMethod = functionalInterface.method;
 
-        JaggerBlueprint blueprint = callingClass.blueprint;
-        List<JaggerPrototype> allAvailablePrototypes = Stream.concat(
-                        blueprint.prototypes.stream(),
-                        blueprint.config.reversedUses().stream().flatMap(b -> b.prototypes.stream()))
-                .toList();
-
-        for (JaggerPrototype method : allAvailablePrototypes) {
-            Optional<Expr> methodReference = createMethodReference(
-                            functionalInterface.type, targetMethod, callingClass, method)
-                    .or(() -> createLambda(functionalInterface.type, targetMethod, caller, callingClass, method));
-            if (methodReference.isPresent()) {
-                return methodReference;
-            }
-        }
-
-        return Optional.empty();
+        return createMethodReference(functionalInterface.type, targetMethod, delegatee)
+                .or(() -> createLambda(functionalInterface.type, targetMethod, caller, callingClass, delegatee, avn));
     }
 
     private Optional<Expr> createMethodReference(
-            TypeMirror functionalInterface,
-            InstantiatedMethod singleMethod,
-            GeneratedClass caller,
-            JaggerPrototype callee) {
+            TypeMirror functionalInterface, InstantiatedMethod singleMethod, Delegatee callee) {
         if (!callee.method().hasSameSignature(singleMethod)) {
             return Optional.empty();
         }
@@ -288,7 +273,7 @@ public class Generics {
         return Optional.of(e(
                 functionalInterface,
                 "$C::$L",
-                caller.getOrCreateDelegateeField(caller.blueprint, callee.blueprint(), !callee.overrides()),
+                callee.fieldOrParameter(),
                 callee.method().name()));
     }
 
@@ -297,22 +282,50 @@ public class Generics {
             InstantiatedMethod singleMethod,
             JaggerPrototype caller,
             GeneratedClass callingClass,
-            JaggerPrototype callee) {
-        if (!callee.method().hasOnlyParametersFrom(singleMethod)) {
-            return Optional.empty();
-        }
+            Delegatee callee,
+            Set<String> avoidVariableNames) {
+        // copy since this is modified by us and passed on
+        avoidVariableNames = new HashSet<>(avoidVariableNames);
+        List<TypedVariable> lambdaVars = getFreshLambdaVars(singleMethod, avoidVariableNames);
 
-        // TODO avoid local variables
-        Code argsDecl = c("($C)", Code.join(singleMethod.parameters(), ", "));
-        Code argsVals = Code.join(callee.method().findArguments(caller, singleMethod.parameters(), callingClass), ", ");
+        Code argsDecl = c("($C)", Code.join(lambdaVars, ", "));
+        List<Expr> arguments = new ArrayList<>();
+        for (InstantiatedVariable parameter : callee.method().parameters()) {
+            Optional<Expr> argument =
+                    ctx.delegation.findArgument(caller, callingClass, lambdaVars, parameter, avoidVariableNames);
+            if (argument.isEmpty()) {
+                return Optional.empty();
+            }
+            arguments.add(argument.get());
+        }
+        Code argsVals = Code.join(arguments, ", ");
 
         return Optional.of(e(
                 functionalInterface,
                 "$C -> $C.$L($C)",
                 argsDecl,
-                callingClass.getOrCreateDelegateeField(callingClass.blueprint, callee.blueprint(), !callee.overrides()),
+                callee.fieldOrParameter(),
                 callee.method().name(),
                 argsVals));
+    }
+
+    private static List<TypedVariable> getFreshLambdaVars(
+            InstantiatedMethod singleMethod, Set<String> avoidVariableNames) {
+        List<TypedVariable> lambdaVars = new ArrayList<>();
+        for (InstantiatedVariable parameter : singleMethod.parameters()) {
+            if (avoidVariableNames.add(parameter.name())) {
+                lambdaVars.add(new TypedVariable(parameter.type(), parameter.name()));
+                continue;
+            }
+            for (int i = 2; ; i++) {
+                String name = parameter.name() + i;
+                if (avoidVariableNames.add(name)) {
+                    lambdaVars.add(new TypedVariable(parameter.type(), name));
+                    break;
+                }
+            }
+        }
+        return lambdaVars;
     }
 
     /** Finds a parameter of type {@code Class<T>} on the method. */

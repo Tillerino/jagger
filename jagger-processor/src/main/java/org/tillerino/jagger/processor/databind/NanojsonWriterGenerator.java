@@ -119,7 +119,7 @@ public class NanojsonWriterGenerator extends AbstractWriterGenerator<NanojsonWri
             addStatement(c("$C.key($C)", generatorVariable, f));
         }
 
-        addStatement(delegatee.call(prototype, List.of(rhs), generatedClass));
+        addStatement(delegatee.call(prototype, List.of(rhs), generatedClass, avoidVariableNames()));
     }
 
     @Override

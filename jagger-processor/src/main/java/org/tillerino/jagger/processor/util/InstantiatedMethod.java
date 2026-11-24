@@ -47,8 +47,8 @@ public record InstantiatedMethod(
     }
 
     public Expr callStaticFindingArguments(
-            JaggerPrototype caller, List<Expr> additionalParameters, GeneratedClass generatedClass) {
-        return callStatic(findArguments(caller, additionalParameters, generatedClass));
+            JaggerPrototype caller, List<Expr> additionalParameters, GeneratedClass generatedClass, Set<String> avn) {
+        return callStatic(findArguments(caller, additionalParameters, generatedClass, avn));
     }
 
     public Expr call(Expr instance) {
@@ -60,8 +60,12 @@ public record InstantiatedMethod(
     }
 
     public Expr callFindingArguments(
-            Expr instance, JaggerPrototype caller, List<Expr> additionalParameters, GeneratedClass generatedClass) {
-        return call(instance, findArguments(caller, additionalParameters, generatedClass));
+            Expr instance,
+            JaggerPrototype caller,
+            List<Expr> additionalParameters,
+            GeneratedClass generatedClass,
+            Set<String> avn) {
+        return call(instance, findArguments(caller, additionalParameters, generatedClass, avn));
     }
 
     public Optional<Expr> unaryOperatorReference() {
@@ -73,8 +77,11 @@ public record InstantiatedMethod(
     }
 
     public List<Expr> findArguments(
-            JaggerPrototype caller, List<? extends Expr> additionalParameters, GeneratedClass generatedClass) {
-        return ctx.delegation.findArguments(caller, this, additionalParameters, 0, generatedClass);
+            JaggerPrototype caller,
+            List<? extends Expr> additionalParameters,
+            GeneratedClass generatedClass,
+            Set<String> avn) {
+        return ctx.delegation.findArguments(caller, this, additionalParameters, 0, generatedClass, avn);
     }
 
     public boolean hasSameSignature(InstantiatedMethod other) {

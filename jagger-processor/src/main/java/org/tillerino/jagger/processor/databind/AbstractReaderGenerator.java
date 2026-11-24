@@ -103,8 +103,8 @@ public abstract class AbstractReaderGenerator<SELF extends AbstractReaderGenerat
             return new Delegated(delegate.get());
         }
         Optional<Converter> converter = ctx.converters
-                .findInputConverter(prototype, type, config, generatedClass)
-                .or(() -> ctx.creators.findConverterStyle(type, prototype, generatedClass));
+                .findInputConverter(prototype, type, config, generatedClass, avoidVariableNames())
+                .or(() -> ctx.creators.findConverterStyle(type, prototype, generatedClass, avoidVariableNames()));
         if (converter.isPresent()) {
             if (ctx.references.isConfigured(type)) {
                 throw References.converterConflict(type);
@@ -164,7 +164,8 @@ public abstract class AbstractReaderGenerator<SELF extends AbstractReaderGenerat
         }
         if (rt instanceof Delegated delegated) {
             lastBranch(branch).withBody(() -> {
-                addStatement(lhs.assign(delegated.delegatee().call(prototype, List.of(), generatedClass)));
+                addStatement(lhs.assign(
+                        delegated.delegatee().call(prototype, List.of(), generatedClass, avoidVariableNames())));
             });
         } else if (rt instanceof Converted converted) {
             lastBranch(branch).withBody(() -> readConverted(converted, nullable));
@@ -601,7 +602,8 @@ public abstract class AbstractReaderGenerator<SELF extends AbstractReaderGenerat
                 throw new ContextedRuntimeException("Delegate method must have a context parameter");
             }
             addStatement("$C.markObjectOpen()", callerContext);
-            addStatement(nested.lhs.assign(delegatee.call(nested.prototype, List.of(), nested.generatedClass)));
+            addStatement(nested.lhs.assign(
+                    delegatee.call(nested.prototype, List.of(), nested.generatedClass, avoidVariableNames())));
         } else {
             ctx.creators
                     .findPropertiesStyle(nested.type)
@@ -640,8 +642,8 @@ public abstract class AbstractReaderGenerator<SELF extends AbstractReaderGenerat
             String propertyName = resolvePropertyName(propertyConfig, parameter.name());
 
             LHS.Variable propVar = createLhsVariable(parameter.type(), parameter.name());
-            Code defaultValue =
-                    ctx.defaultValues.getDefaultValue(prototype, parameter.type(), propertyConfig, generatedClass);
+            Code defaultValue = ctx.defaultValues.getDefaultValue(
+                    prototype, parameter.type(), propertyConfig, generatedClass, avoidVariableNames());
             addStatement(c("$T $C = $C", parameter.type(), propVar, defaultValue));
 
             SELF nest = nest(

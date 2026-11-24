@@ -118,7 +118,7 @@ public class JaggerWriterGenerator extends AbstractWriterGenerator<JaggerWriterG
             addStatement(c("$C.writeFieldName($C)", generatorVariable, f));
         }
 
-        addStatement(delegatee.call(prototype, List.of(rhs), generatedClass));
+        addStatement(delegatee.call(prototype, List.of(rhs), generatedClass, avoidVariableNames()));
     }
 
     @Override

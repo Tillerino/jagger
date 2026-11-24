@@ -2,18 +2,21 @@ package org.tillerino.jagger.tests.base.features;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.tillerino.jagger.tests.CodeAssertions.assertThatImpl;
 import static org.tillerino.jagger.tests.TestSettings.SETTINGS;
 
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import org.apache.commons.lang3.StringUtils;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.tillerino.jagger.api.JaggerDatabindException;
 import org.tillerino.jagger.tests.ReferenceTest;
 import org.tillerino.jagger.tests.Replacement;
 import org.tillerino.jagger.tests.SerdeUtil;
+import org.tillerino.jagger.tests.base.features.MapsSerde.NestedMaps;
 import org.tillerino.jagger.tests.model.AnEnum;
 import org.tillerino.jagger.tests.model.features.CreatorsModel.ConvertersInheritance.JsonValueChild;
 import org.tillerino.jagger.tests.model.features.EnumsModel.CustomNames.CustomNamedEnum;
@@ -441,6 +444,76 @@ class MapsTest extends ReferenceTest {
             map.put("2", "first");
             map.put("1", null);
             outputUtils.roundTrip(map, serde::writeMapString, serde::readMapString, new TypeReference<>() {});
+        }
+    }
+
+    @Nested
+    class NestedMapsTest {
+        MapsSerde.NestedMaps serde = SerdeUtil.impl(MapsSerde.NestedMaps.class);
+
+        @Test
+        void stringStringStringMap() throws Exception {
+            Map<String, String> innerA = new LinkedHashMap<>();
+            innerA.put("y", "2");
+            innerA.put("x", "1");
+            Map<String, Map<String, String>> map = new LinkedHashMap<>();
+            map.put("a", innerA);
+            map.put("b", new LinkedHashMap<>());
+            map.put("c", null);
+            outputUtils.roundTrip(
+                    map, serde::writeStringStringStringMap, serde::readStringStringStringMap, new TypeReference<>() {});
+            assertThat(assertThatImpl(NestedMaps.class)
+                            .method("writeStringStringStringMap")
+                            .body())
+                    .hasValueSatisfying(body -> {
+                        assertThat(StringUtils.countMatches(body.toString(), "writeGenericMap"))
+                                .isEqualTo(2);
+                    });
+            assertThat(assertThatImpl(NestedMaps.class)
+                            .method("readStringStringStringMap")
+                            .body())
+                    .hasValueSatisfying(body -> {
+                        assertThat(StringUtils.countMatches(body.toString(), "readGenericMap"))
+                                .isEqualTo(2);
+                    });
+        }
+    }
+
+    @Nested
+    class TripleNestedMapsTest {
+        MapsSerde.TripleNestedMaps serde = SerdeUtil.impl(MapsSerde.TripleNestedMaps.class);
+
+        @Test
+        void stringStringStringStringMap() throws Exception {
+            Map<String, String> innermost = new LinkedHashMap<>();
+            innermost.put("y", "2");
+            innermost.put("x", "1");
+            Map<String, Map<String, String>> middle = new LinkedHashMap<>();
+            middle.put("b", innermost);
+            middle.put("c", new LinkedHashMap<>());
+            Map<String, Map<String, Map<String, String>>> map = new LinkedHashMap<>();
+            map.put("a", middle);
+            map.put("d", new LinkedHashMap<>());
+            map.put("e", null);
+            outputUtils.roundTrip(
+                    map,
+                    serde::writeStringStringStringStringMap,
+                    serde::readStringStringStringStringMap,
+                    new TypeReference<>() {});
+            assertThat(assertThatImpl(MapsSerde.TripleNestedMaps.class)
+                            .method("writeStringStringStringStringMap")
+                            .body())
+                    .hasValueSatisfying(body -> {
+                        assertThat(StringUtils.countMatches(body.toString(), "writeGenericMap"))
+                                .isEqualTo(3);
+                    });
+            assertThat(assertThatImpl(MapsSerde.TripleNestedMaps.class)
+                            .method("readStringStringStringStringMap")
+                            .body())
+                    .hasValueSatisfying(body -> {
+                        assertThat(StringUtils.countMatches(body.toString(), "readGenericMap"))
+                                .isEqualTo(3);
+                    });
         }
     }
 }

@@ -3,12 +3,7 @@ package org.tillerino.jagger.processor.features;
 import static org.tillerino.jagger.processor.util.Expr.e;
 
 import com.squareup.javapoet.CodeBlock;
-import java.util.Collection;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
+import java.util.*;
 import java.util.function.Function;
 import javax.lang.model.type.TypeMirror;
 import org.tillerino.jagger.helpers.CharacterHelper;
@@ -35,7 +30,11 @@ public class Converters {
     }
 
     public Optional<Converter> findInputConverter(
-            JaggerPrototype prototype, TypeMirror targetType, AnyConfig config, GeneratedClass generatedClass) {
+            JaggerPrototype prototype,
+            TypeMirror targetType,
+            AnyConfig config,
+            GeneratedClass generatedClass,
+            Set<String> avn) {
         Map<TypeVar, TypeMirror> typeBindings = new LinkedHashMap<>();
         for (PrototypeInScope prototypeInScope : prototype.listPrototypesInScope(config)) {
             if (!(prototypeInScope.prototype().kind() instanceof ConverterPrototypeKind converter)
@@ -48,7 +47,7 @@ public class Converters {
                     targetType, method.returnType(), typeBindings, method.freeTypeVars(), true)) {
                 PrototypeInScope boundMethod = prototypeInScope.applyTypeBindings(typeBindings);
                 return Optional.of(new Converter(
-                        toConvert -> boundMethod.call(prototype, List.of(toConvert), generatedClass),
+                        toConvert -> boundMethod.call(prototype, List.of(toConvert), generatedClass, avn),
                         boundMethod.prototype().method().unaryOperatorReference(),
                         boundMethod.prototype().returnType(),
                         boundMethod.prototype().parameters().get(0).type()));
@@ -58,7 +57,11 @@ public class Converters {
     }
 
     public Optional<Converter> findOutputConverter(
-            TypeMirror toConvertType, JaggerPrototype prototype, AnyConfig config, GeneratedClass generatedClass) {
+            TypeMirror toConvertType,
+            JaggerPrototype prototype,
+            AnyConfig config,
+            GeneratedClass generatedClass,
+            Set<String> avn) {
         Map<TypeVar, TypeMirror> typeBindings = new LinkedHashMap<>();
         for (PrototypeInScope prototypeInScope : prototype.listPrototypesInScope(config)) {
             if (!(prototypeInScope.prototype().kind() instanceof ConverterPrototypeKind converter)
@@ -71,7 +74,7 @@ public class Converters {
                     toConvertType, method.parameters().get(0).type(), typeBindings, method.freeTypeVars(), true)) {
                 PrototypeInScope boundMethod = prototypeInScope.applyTypeBindings(typeBindings);
                 return Optional.of(new Converter(
-                        toConvert -> boundMethod.call(prototype, List.of(toConvert), generatedClass),
+                        toConvert -> boundMethod.call(prototype, List.of(toConvert), generatedClass, avn),
                         boundMethod.prototype().method().unaryOperatorReference(),
                         boundMethod.prototype().parameters().get(0).type(),
                         boundMethod.prototype().returnType()));

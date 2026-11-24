@@ -7,6 +7,8 @@ import org.tillerino.jagger.annotations.JsonOutput;
 import org.tillerino.jagger.converters.AllInputConverters;
 import org.tillerino.jagger.converters.AllOutputConverters;
 import org.tillerino.jagger.tests.Replacement;
+import org.tillerino.jagger.tests.base.features.GenericsSerde.GenericContainersSerde;
+import org.tillerino.jagger.tests.base.features.GenericsSerde.StringSerde;
 import org.tillerino.jagger.tests.model.AnEnum;
 import org.tillerino.jagger.tests.model.features.CreatorsModel.ConvertersInheritance.JsonValueChild;
 import org.tillerino.jagger.tests.model.features.EnumsModel.CustomNames.CustomNamedEnum;
@@ -278,5 +280,29 @@ interface MapsSerde {
         @JsonInput
         @GeneratedVariant("Variant of readMapInteger")
         Map<String, String> readMapString(JsonParser parser) throws Exception;
+    }
+
+    @JsonConfig(uses = {GenericContainersSerde.class, StringSerde.class})
+    interface NestedMaps {
+        @JsonOutput
+        void writeStringStringStringMap(Map<String, Map<String, String>> map, JsonGenerator generator) throws Exception;
+
+        @JsonInput
+        Map<String, Map<String, String>> readStringStringStringMap(JsonParser parser) throws Exception;
+    }
+
+    /**
+     * Same configuration as {@link NestedMaps}, but without the two-deep methods. This forces the three-deep map to be
+     * serialized by recursively instantiating the generic map prototype at every level.
+     */
+    @JsonConfig(uses = {GenericContainersSerde.class, StringSerde.class})
+    interface TripleNestedMaps {
+        @JsonOutput
+        void writeStringStringStringStringMap(
+                Map<String, Map<String, Map<String, String>>> map, JsonGenerator generator) throws Exception;
+
+        @JsonInput
+        Map<String, Map<String, Map<String, String>>> readStringStringStringStringMap(JsonParser parser)
+                throws Exception;
     }
 }

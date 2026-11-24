@@ -1,11 +1,7 @@
 package org.tillerino.jagger.processor.features;
 
 import com.squareup.javapoet.CodeBlock;
-import java.util.Collection;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import javax.lang.model.element.ExecutableElement;
 import javax.lang.model.type.TypeMirror;
 import org.tillerino.jagger.processor.GeneratedClass;
@@ -45,9 +41,13 @@ public class DefaultValues {
     }
 
     public Expr getDefaultValue(
-            JaggerPrototype prototype, TypeMirror type, AnyConfig propertyConfig, GeneratedClass generatedClass) {
+            JaggerPrototype prototype,
+            TypeMirror type,
+            AnyConfig propertyConfig,
+            GeneratedClass generatedClass,
+            Set<String> avn) {
         return findInputDefaultValue(prototype, type, propertyConfig)
-                .map(prototypeInScope -> prototypeInScope.call(prototype, List.of(), generatedClass))
+                .map(prototypeInScope -> prototypeInScope.call(prototype, List.of(), generatedClass, avn))
                 .orElseGet(() -> ctx.commonTypes.getNullValueRaw(type));
     }
 

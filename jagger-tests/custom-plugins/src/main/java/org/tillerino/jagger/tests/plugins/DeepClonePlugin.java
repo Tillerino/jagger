@@ -138,7 +138,7 @@ public class DeepClonePlugin implements JaggerPlugin {
                         .orElseThrow(() -> new ContextedRuntimeException("Cannot clone property")
                                 .addContextValue("property", writeAccessor.name())
                                 .addContextValue("type", fieldType));
-                valueToWrite = delegatee.call(prototype, List.of(valueToWrite), generatedClass);
+                valueToWrite = delegatee.call(prototype, List.of(valueToWrite), generatedClass, avoidVariableNames());
             }
 
             addStatement(writeAccessor.write(result, valueToWrite));

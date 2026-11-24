@@ -125,7 +125,7 @@ public class Fastjson2WriterGenerator extends AbstractWriterGenerator<Fastjson2W
     @Override
     protected void callDelegate(Delegatee delegatee) {
         addFieldNameIfNeeded();
-        addStatement(delegatee.call(prototype, List.of(rhs), generatedClass));
+        addStatement(delegatee.call(prototype, List.of(rhs), generatedClass, avoidVariableNames()));
     }
 
     @Override

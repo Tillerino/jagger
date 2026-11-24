@@ -3,10 +3,7 @@ package org.tillerino.jagger.processor;
 import static org.tillerino.jagger.processor.util.Code.c;
 
 import com.squareup.javapoet.CodeBlock;
-import java.util.LinkedHashSet;
-import java.util.Objects;
-import java.util.Set;
-import java.util.Stack;
+import java.util.*;
 import java.util.function.Consumer;
 import javax.lang.model.type.TypeMirror;
 import org.tillerino.jagger.processor.ext.PrototypeKind.CodeGeneratorContext;
@@ -119,6 +116,17 @@ public class AbstractCodeGenerator<SELF extends AbstractCodeGenerator<SELF>> {
 
         Flattened g = afterBody.flatten();
         code.add("}" + g.format(), g.args());
+    }
+
+    public Set<String> avoidVariableNames() {
+        Set<String> names = new HashSet<>();
+        for (InstantiatedVariable parameter : prototype.parameters()) {
+            names.add(parameter.name());
+        }
+        if (!variables.empty()) {
+            names.addAll(variables.peek());
+        }
+        return names;
     }
 
     public static class NullaryControlFlowScope {

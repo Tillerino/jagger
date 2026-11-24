@@ -2,6 +2,7 @@ package org.tillerino.jagger.processor.util;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import javax.lang.model.element.Modifier;
 import javax.lang.model.type.TypeMirror;
 import org.tillerino.jagger.processor.GeneratedClass;
@@ -23,12 +24,12 @@ public sealed interface PrototypeInScope {
         return new FromPrototype(boundPrototype);
     }
 
-    default Expr call(JaggerPrototype caller, List<Expr> arguments, GeneratedClass generatedClass) {
+    default Expr call(JaggerPrototype caller, List<Expr> arguments, GeneratedClass generatedClass, Set<String> avn) {
         InstantiatedMethod method = prototype().method();
         if (method.element().getModifiers().contains(Modifier.STATIC)) {
-            return method.callStaticFindingArguments(caller, arguments, generatedClass);
+            return method.callStaticFindingArguments(caller, arguments, generatedClass, avn);
         }
-        return method.callFindingArguments(instance(caller, generatedClass), caller, arguments, generatedClass);
+        return method.callFindingArguments(instance(caller, generatedClass), caller, arguments, generatedClass, avn);
     }
 
     Expr instance(JaggerPrototype caller, GeneratedClass generatedClass);
