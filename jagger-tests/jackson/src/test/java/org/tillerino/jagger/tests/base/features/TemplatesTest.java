@@ -26,14 +26,18 @@ class TemplatesTest extends ReferenceTest {
     @Test
     void templatesGenerateMethods() throws Exception {
         CompileUnitAssert assertThat = assertThatImpl(TemplatedSerde.class);
-        assertThat.method("readPrimitiveDouble");
-        assertThat.method("writePrimitiveDouble");
-        assertThat.method("readAnEnum");
-        assertThat.method("writeAnEnum");
-        assertThat.method("readArrayOfPrimitiveDouble");
-        assertThat.method("writeArrayOfPrimitiveDouble");
-        assertThat.method("readArrayOfAnEnum").calls("readAnEnum");
-        assertThat.method("writeArrayOfAnEnum").calls("writeGenericArray").references("writeAnEnum");
+        assertThat.method("readPrimitiveDouble").hasAnnotation("@JsonInput");
+        assertThat.method("writePrimitiveDouble").hasAnnotation("@JsonOutput");
+        assertThat.method("readAnEnum").hasAnnotation("@JsonInput");
+        assertThat.method("writeAnEnum").hasAnnotation("@JsonOutput");
+        assertThat.method("readArrayOfPrimitiveDouble").hasAnnotation("@JsonInput");
+        assertThat.method("writeArrayOfPrimitiveDouble").hasAnnotation("@JsonOutput");
+        assertThat.method("readArrayOfAnEnum").hasAnnotation("@JsonInput").calls("readAnEnum");
+        assertThat
+                .method("writeArrayOfAnEnum")
+                .hasAnnotation("@JsonOutput")
+                .calls("writeGenericArray")
+                .references("writeAnEnum");
     }
 
     @Test
@@ -87,8 +91,14 @@ class TemplatesTest extends ReferenceTest {
         @Test
         void autoTemplateGeneratesMethodsOnDemand() throws Exception {
             CompileUnitAssert assertThat = assertThatImpl(TemplatesSerde.AutoTemplatesSerde.class);
-            assertThat.method("readScalarFieldsRecord").calls("readString");
-            assertThat.method("writeScalarFieldsRecord").calls("writeString");
+            assertThat
+                    .method("readScalarFieldsRecord")
+                    .hasAnnotation("@JsonInput")
+                    .calls("readString");
+            assertThat
+                    .method("writeScalarFieldsRecord")
+                    .hasAnnotation("@JsonOutput")
+                    .calls("writeString");
         }
 
         @Test

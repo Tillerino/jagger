@@ -41,8 +41,9 @@ The name of the generated methods is derived from the type.
 
 For example:
 ```java
-//../jagger-tests/jackson/target/generated-sources/annotations/org/tillerino/jagger/tests/base/features/TemplatesSerde$TemplatedSerdeImpl.java#L92-L99
+//../jagger-tests/jackson/target/generated-sources/annotations/org/tillerino/jagger/tests/base/features/TemplatesSerde$TemplatedSerdeImpl.java#L97-L105
 
+@JsonOutput
 public void writeAnEnum(AnEnum obj, JsonGenerator gen) throws Exception {
   if (obj != null) {
     String root = obj.name();
@@ -70,8 +71,9 @@ interface TemplatedSerde {
 
 `writeAnEnum` works with generics and delegates serialization of the enum itself to the specialized method:
 ```java
-//../jagger-tests/jackson/target/generated-sources/annotations/org/tillerino/jagger/tests/base/features/TemplatesSerde$TemplatedSerdeImpl.java#L159-L161
+//../jagger-tests/jackson/target/generated-sources/annotations/org/tillerino/jagger/tests/base/features/TemplatesSerde$TemplatedSerdeImpl.java#L168-L171
 
+@JsonOutput
 public void writeArrayOfAnEnum(AnEnum[] obj, JsonGenerator gen) throws Exception {
   this.writeGenericArray(obj, gen, this::writeAnEnum);
 }
@@ -98,7 +100,7 @@ all properties are delegated to automatically created methods.
 For example, reading the `Double dd` property delegates to `readDouble`.
 
 ```java
-// ../jagger-tests/jackson/target/generated-sources/annotations/org/tillerino/jagger/tests/base/features/TemplatesSerde$AutoTemplatesSerdeImpl.java#L122-L125
+// ../jagger-tests/jackson/target/generated-sources/annotations/org/tillerino/jagger/tests/base/features/TemplatesSerde$AutoTemplatesSerdeImpl.java#L125-L128
 
 case "dd": {
   dd = this.readDouble(parser);
@@ -109,8 +111,9 @@ case "dd": {
 `readDouble` itself only does a null-check and then delegates to `readPrimitiveDouble`:
 
 ```java
-// ../jagger-tests/jackson/target/generated-sources/annotations/org/tillerino/jagger/tests/base/features/TemplatesSerde$AutoTemplatesSerdeImpl.java#L428-L437
+// ../jagger-tests/jackson/target/generated-sources/annotations/org/tillerino/jagger/tests/base/features/TemplatesSerde$AutoTemplatesSerdeImpl.java#L447-L457
 
+@JsonInput
 public Double readDouble(JsonParser parser) throws Exception {
   if (!parser.hasCurrentToken()) {
     parser.nextToken();

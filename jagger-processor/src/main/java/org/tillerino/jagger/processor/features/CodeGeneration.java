@@ -208,6 +208,17 @@ public class CodeGeneration {
                             ClassName.get(ctx.elements.getTypeElement("org.tillerino.jagger.annotations.Generated")))
                     .build());
         }
+        if (!overrides) {
+            /* When we use generated blueprints that are not processed by the same annotation processor (e.g. in a
+             * different module), we need them to be annotated with the relevant annotations so that they can be
+             * detected. */
+            for (AnnotationMirror annotation : method.element().getAnnotationMirrors()) {
+                if (ctx.prototypeDetectors.containsKey(
+                        annotation.getAnnotationType().toString())) {
+                    methodBuilder.addAnnotation(AnnotationSpec.get(annotation));
+                }
+            }
+        }
 
         return methodBuilder;
     }
