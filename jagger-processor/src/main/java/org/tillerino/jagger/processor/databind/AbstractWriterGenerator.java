@@ -5,7 +5,6 @@ import static org.tillerino.jagger.processor.util.Expr.e;
 
 import com.squareup.javapoet.CodeBlock;
 import java.util.*;
-import java.util.function.Function;
 import javax.lang.model.element.TypeElement;
 import javax.lang.model.type.*;
 import lombok.Getter;
@@ -17,27 +16,13 @@ import org.tillerino.jagger.processor.config.ConfigProperty.LocationKind;
 import org.tillerino.jagger.processor.config.ConfigProperty.PropagationKind;
 import org.tillerino.jagger.processor.databind.AbstractWriterGenerator.LHS.Member;
 import org.tillerino.jagger.processor.databind.AbstractWriterGenerator.LHS.Return;
-import org.tillerino.jagger.processor.databind.AbstractWriterGenerator.WrittenType.Binary;
-import org.tillerino.jagger.processor.databind.AbstractWriterGenerator.WrittenType.Boxed;
-import org.tillerino.jagger.processor.databind.AbstractWriterGenerator.WrittenType.Converted;
-import org.tillerino.jagger.processor.databind.AbstractWriterGenerator.WrittenType.Delegated;
-import org.tillerino.jagger.processor.databind.AbstractWriterGenerator.WrittenType.EnumValue;
-import org.tillerino.jagger.processor.databind.AbstractWriterGenerator.WrittenType.IterableValue;
-import org.tillerino.jagger.processor.databind.AbstractWriterGenerator.WrittenType.MapValue;
-import org.tillerino.jagger.processor.databind.AbstractWriterGenerator.WrittenType.ObjectAsMap;
-import org.tillerino.jagger.processor.databind.AbstractWriterGenerator.WrittenType.Primitive;
-import org.tillerino.jagger.processor.databind.AbstractWriterGenerator.WrittenType.Text;
+import org.tillerino.jagger.processor.databind.AbstractWriterGenerator.WrittenType.*;
 import org.tillerino.jagger.processor.ext.PrototypeKind.CodeGeneratorContext;
 import org.tillerino.jagger.processor.ext.PrototypeKind.TemplatablePrototypeKind;
+import org.tillerino.jagger.processor.features.*;
 import org.tillerino.jagger.processor.features.Converters.Converter;
-import org.tillerino.jagger.processor.features.Delegation;
 import org.tillerino.jagger.processor.features.Delegation.Delegatee;
-import org.tillerino.jagger.processor.features.Enums;
-import org.tillerino.jagger.processor.features.IgnoreProperties;
-import org.tillerino.jagger.processor.features.IgnoreProperty;
-import org.tillerino.jagger.processor.features.Polymorphism;
 import org.tillerino.jagger.processor.features.Properties.OutputProperty;
-import org.tillerino.jagger.processor.features.References;
 import org.tillerino.jagger.processor.features.References.Setup;
 import org.tillerino.jagger.processor.features.Verification.ProtoAndProps;
 import org.tillerino.jagger.processor.util.Code;
@@ -98,7 +83,7 @@ public abstract class AbstractWriterGenerator<SELF extends AbstractWriterGenerat
                 throw References.converterConflict(type);
             }
             Converter c = converter.get();
-            return new Converted(c.converter(), c.externalType());
+            return new Converted(c);
         }
         if (ctx.commonTypes.isBoxed(type)) {
             return new Boxed(ctx.types.unboxedType(type));
@@ -196,7 +181,7 @@ public abstract class AbstractWriterGenerator<SELF extends AbstractWriterGenerat
      */
     protected void writeNullCheckedObject(WrittenType wt) {
         if (wt instanceof Converted converted) {
-            Expr convertedValue = converted.converter().apply(rhs);
+            Expr convertedValue = converted.c.converter().apply(rhs);
             RHS newValue = new RHS(createVariable(convertedValue.type(), "converted"), true);
             addStatement(c("$T $C = $C", convertedValue.type(), newValue, convertedValue));
             nest(convertedValue.type(), lhs, pvn, newValue, config.propagateTo(PropagationKind.SUBSTITUTE))
@@ -280,8 +265,8 @@ public abstract class AbstractWriterGenerator<SELF extends AbstractWriterGenerat
         } else if (keyWrittenType instanceof Boxed) {
             return new Member(e(ctx.commonTypes.string, "$T.valueOf($C)", String.class, rawKeyExpr));
         } else if (keyWrittenType instanceof Converted converted
-                && ctx.commonTypes.isString(converted.convertedType())) {
-            return new Member(converted.converter().apply(rawKeyExpr));
+                && ctx.commonTypes.isString(converted.c.externalType())) {
+            return new Member(converted.c.converter().apply(rawKeyExpr));
         } else if (keyWrittenType instanceof EnumValue) {
             return new Member(e(ctx.commonTypes.string, Enums.serializationCode(generatedClass, keyType, rawKeyExpr)));
         }
@@ -534,7 +519,7 @@ public abstract class AbstractWriterGenerator<SELF extends AbstractWriterGenerat
         record Primitive(PrimitiveType pt) implements WrittenType {}
 
         /** The value is converted before writing. The converter is applied to the current {@link #rhs}. */
-        record Converted(Function<Expr, Expr> converter, TypeMirror convertedType) implements WrittenType {}
+        record Converted(Converter c) implements WrittenType {}
 
         /** A boxed primitive that is written as its {@code unboxed} primitive type. */
         record Boxed(PrimitiveType unboxed) implements WrittenType {}

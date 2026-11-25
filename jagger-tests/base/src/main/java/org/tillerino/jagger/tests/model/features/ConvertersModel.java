@@ -1,16 +1,15 @@
 package org.tillerino.jagger.tests.model.features;
 
 import java.time.OffsetDateTime;
-import java.util.Optional;
-import java.util.OptionalDouble;
-import java.util.OptionalInt;
-import java.util.OptionalLong;
-import java.util.UUID;
+import java.util.*;
 
 public interface ConvertersModel {
     record OffsetDateTimeRecord(OffsetDateTime timestamp) {}
 
-    record UuidRecord(UUID value) {}
+    record UuidRecord(UUID value) {
+        public static final List<UuidRecord> RECORDS = Arrays.asList(
+                null, new UuidRecord(UUID.fromString("123e4567-e89b-12d3-a456-426614174000")), new UuidRecord(null));
+    }
 
     record OptionalComponentsRecord(
             Optional<String> optionalString,

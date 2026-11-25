@@ -17,6 +17,7 @@ import org.tillerino.jagger.processor.features.Generics.TypeVar;
 import org.tillerino.jagger.processor.util.Annotations.AnnotationMirrorWrapper;
 import org.tillerino.jagger.processor.util.Expr;
 import org.tillerino.jagger.processor.util.InstantiatedMethod;
+import org.tillerino.jagger.processor.util.InstantiatedMethod.InstantiatedVariable;
 import org.tillerino.jagger.processor.util.PrototypeInScope;
 
 public class Converters {
@@ -30,13 +31,13 @@ public class Converters {
     }
 
     public Optional<Converter> findInputConverter(
-            JaggerPrototype prototype,
+            JaggerPrototype caller,
             TypeMirror targetType,
             AnyConfig config,
             GeneratedClass generatedClass,
             Set<String> avn) {
         Map<TypeVar, TypeMirror> typeBindings = new LinkedHashMap<>();
-        for (PrototypeInScope prototypeInScope : prototype.listPrototypesInScope(config)) {
+        for (PrototypeInScope prototypeInScope : caller.listPrototypesInScope(config)) {
             if (!(prototypeInScope.prototype().kind() instanceof ConverterPrototypeKind converter)
                     || converter.direction != Direction.INPUT) {
                 continue;
@@ -46,11 +47,13 @@ public class Converters {
             if (ctx.generics.typeBindingsSatisfyingEquality(
                     targetType, method.returnType(), typeBindings, method.freeTypeVars(), true)) {
                 PrototypeInScope boundMethod = prototypeInScope.applyTypeBindings(typeBindings);
+                JaggerPrototype prototype = boundMethod.prototype();
                 return Optional.of(new Converter(
-                        toConvert -> boundMethod.call(prototype, List.of(toConvert), generatedClass, avn),
-                        boundMethod.prototype().method().unaryOperatorReference(),
-                        boundMethod.prototype().returnType(),
-                        boundMethod.prototype().parameters().get(0).type()));
+                        toConvert -> boundMethod.call(caller, List.of(toConvert), generatedClass, avn),
+                        prototype.method().unaryOperatorReference(),
+                        prototype.returnType(),
+                        prototype.parameters().get(0).type(),
+                        converter.nullable));
             }
         }
         return Optional.empty();
@@ -58,12 +61,12 @@ public class Converters {
 
     public Optional<Converter> findOutputConverter(
             TypeMirror toConvertType,
-            JaggerPrototype prototype,
+            JaggerPrototype caller,
             AnyConfig config,
             GeneratedClass generatedClass,
             Set<String> avn) {
         Map<TypeVar, TypeMirror> typeBindings = new LinkedHashMap<>();
-        for (PrototypeInScope prototypeInScope : prototype.listPrototypesInScope(config)) {
+        for (PrototypeInScope prototypeInScope : caller.listPrototypesInScope(config)) {
             if (!(prototypeInScope.prototype().kind() instanceof ConverterPrototypeKind converter)
                     || converter.direction != Direction.OUTPUT) {
                 continue;
@@ -74,10 +77,11 @@ public class Converters {
                     toConvertType, method.parameters().get(0).type(), typeBindings, method.freeTypeVars(), true)) {
                 PrototypeInScope boundMethod = prototypeInScope.applyTypeBindings(typeBindings);
                 return Optional.of(new Converter(
-                        toConvert -> boundMethod.call(prototype, List.of(toConvert), generatedClass, avn),
+                        toConvert -> boundMethod.call(caller, List.of(toConvert), generatedClass, avn),
                         boundMethod.prototype().method().unaryOperatorReference(),
                         boundMethod.prototype().parameters().get(0).type(),
-                        boundMethod.prototype().returnType()));
+                        boundMethod.prototype().returnType(),
+                        converter.nullable));
             }
         }
         return Optional.empty();
@@ -148,13 +152,15 @@ public class Converters {
             Function<Expr, Expr> converter,
             Optional<Expr> methodReference,
             TypeMirror internalType,
-            TypeMirror externalType) {
+            TypeMirror externalType,
+            boolean nullable) {
         public Expr lambda() {
             return methodReference.orElseGet(() -> e(null, "e -> $C", converter.apply(e(null, "e"))));
         }
     }
 
-    public record ConverterPrototypeKind(Direction direction, TypeMirror internalType, TypeMirror externalType)
+    public record ConverterPrototypeKind(
+            Direction direction, TypeMirror internalType, TypeMirror externalType, boolean nullable)
             implements PrototypeKind {
         @Override
         public CodeBlock.Builder generateCode(CodeGeneratorContext context) {
@@ -184,16 +190,15 @@ public class Converters {
             if (method.parameters().size() != 1) {
                 return Optional.empty();
             }
+            InstantiatedVariable firstParameter = method.parameters().get(0);
             String annotationType = annotation.mirror().getAnnotationType().toString();
             if (annotationType.equals(JSON_INPUT_CONVERTER)) {
                 return Optional.of(new ConverterPrototypeKind(
-                        Direction.INPUT,
-                        method.returnType(),
-                        method.parameters().get(0).type()));
+                        Direction.INPUT, method.returnType(), firstParameter.type(), firstParameter.isNullable()));
             }
             if (annotationType.equals(JSON_OUTPUT_CONVERTER)) {
                 return Optional.of(new ConverterPrototypeKind(
-                        Direction.OUTPUT, method.parameters().get(0).type(), method.returnType()));
+                        Direction.OUTPUT, firstParameter.type(), method.returnType(), firstParameter.isNullable()));
             }
             return Optional.empty();
         }

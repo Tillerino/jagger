@@ -15,7 +15,6 @@ import jakarta.annotation.Nullable;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
-import java.util.function.Function;
 import javax.lang.model.element.ElementKind;
 import javax.lang.model.element.Modifier;
 import javax.lang.model.element.TypeElement;
@@ -35,16 +34,7 @@ import org.tillerino.jagger.processor.config.ConfigProperty.LocationKind;
 import org.tillerino.jagger.processor.config.ConfigProperty.PropagationKind;
 import org.tillerino.jagger.processor.databind.AbstractReaderGenerator.LHS.Return;
 import org.tillerino.jagger.processor.databind.AbstractReaderGenerator.LHS.Variable;
-import org.tillerino.jagger.processor.databind.AbstractReaderGenerator.ReadType.Array;
-import org.tillerino.jagger.processor.databind.AbstractReaderGenerator.ReadType.Boxed;
-import org.tillerino.jagger.processor.databind.AbstractReaderGenerator.ReadType.Converted;
-import org.tillerino.jagger.processor.databind.AbstractReaderGenerator.ReadType.Delegated;
-import org.tillerino.jagger.processor.databind.AbstractReaderGenerator.ReadType.EnumValue;
-import org.tillerino.jagger.processor.databind.AbstractReaderGenerator.ReadType.IterableValue;
-import org.tillerino.jagger.processor.databind.AbstractReaderGenerator.ReadType.MapValue;
-import org.tillerino.jagger.processor.databind.AbstractReaderGenerator.ReadType.ObjectValue;
-import org.tillerino.jagger.processor.databind.AbstractReaderGenerator.ReadType.Primitive;
-import org.tillerino.jagger.processor.databind.AbstractReaderGenerator.ReadType.Text;
+import org.tillerino.jagger.processor.databind.AbstractReaderGenerator.ReadType.*;
 import org.tillerino.jagger.processor.ext.PrototypeKind.CodeGeneratorContext;
 import org.tillerino.jagger.processor.features.*;
 import org.tillerino.jagger.processor.features.Converters.Converter;
@@ -110,7 +100,7 @@ public abstract class AbstractReaderGenerator<SELF extends AbstractReaderGenerat
                 throw References.converterConflict(type);
             }
             Converter c = converter.get();
-            return new Converted(c.converter(), c.externalType());
+            return new Converted(c);
         }
         detectSelfReferencingType();
         if (type.getKind().isPrimitive()) {
@@ -178,13 +168,20 @@ public abstract class AbstractReaderGenerator<SELF extends AbstractReaderGenerat
     }
 
     private void readConverted(Converted converted, boolean nullable) {
-        LHS.Variable replacementVar = declareLhsVariable(converted.typeToConvert(), pvn + "ToConvert");
+        LHS.Variable replacementVar = declareLhsVariable(converted.c.externalType(), pvn + "ToConvert");
 
         AnyConfig nestedConfig = config.propagateTo(PropagationKind.SUBSTITUTE);
         SELF nested = nest(pvn, replacementVar, nestedConfig, exhaust, alreadyOpen);
 
         runWithContext("converter", converted, () -> nested.build(IF, nullable));
-        addStatement(lhs.assign(converted.converter().apply(replacementVar)));
+
+        Expr converterApplied = converted.c.converter().apply(replacementVar);
+        Expr nullChecked = converted.c.internalType().getKind().isPrimitive()
+                        || converted.c().nullable()
+                ? converterApplied
+                : e(type, "$C != null ? $C : null", replacementVar, converterApplied);
+
+        addStatement(lhs.assign(nullChecked));
     }
 
     private LHS.Variable declareLhsVariable(TypeMirror replacementType, String name) {
@@ -492,8 +489,8 @@ public abstract class AbstractReaderGenerator<SELF extends AbstractReaderGenerat
                 return e(keyType, "$T.toCharacter($C)", CharacterHelper.class, keyString);
             }
             return e(keyType, "$T.valueOf($C)", keyType, keyString);
-        } else if (keyReadType instanceof Converted converted && ctx.commonTypes.isString(converted.typeToConvert())) {
-            return converted.converter().apply(keyString);
+        } else if (keyReadType instanceof Converted converted && ctx.commonTypes.isString(converted.c.externalType())) {
+            return converted.c.converter().apply(keyString);
         } else if (keyReadType instanceof EnumValue) {
             return Enums.deserializationCode(generatedClass, keyType, keyString);
         }
@@ -1023,7 +1020,7 @@ public abstract class AbstractReaderGenerator<SELF extends AbstractReaderGenerat
         record Primitive(PrimitiveType pt) implements ReadType {}
 
         /** The value is converted after reading. The converter is applied to the nested value. */
-        record Converted(Function<Expr, Expr> converter, TypeMirror typeToConvert) implements ReadType {}
+        record Converted(Converter c) implements ReadType {}
 
         /** A boxed primitive that is read as its {@code unboxed} primitive type. */
         record Boxed(PrimitiveType unboxed) implements ReadType {}

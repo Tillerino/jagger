@@ -184,6 +184,7 @@ public record InstantiatedMethod(
 
     public record InstantiatedVariable(VariableElement elem, TypeMirror type, String name, AnyConfig config)
             implements AnyVariable {
+
         @Override
         public String toString() {
             return ShortName.of(type) + " " + name();
@@ -207,6 +208,15 @@ public record InstantiatedMethod(
         @Override
         public String variableName() {
             return name;
+        }
+
+        public boolean isNullable() {
+            return elem().getAnnotationMirrors().stream()
+                    .anyMatch(a -> a.getAnnotationType()
+                            .asElement()
+                            .getSimpleName()
+                            .toString()
+                            .equals("Nullable"));
         }
     }
 }

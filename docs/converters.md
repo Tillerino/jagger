@@ -63,7 +63,7 @@ case "timestamp": {
   } else {
     throw new JaggerDatabindException("Expected string");
   }
-  timestamp = JavaTimeInputConverters.stringToOffsetDateTime(timestampToConvert);
+  timestamp = timestampToConvert != null ? JavaTimeInputConverters.stringToOffsetDateTime(timestampToConvert) : null;
   break;
 }
 ```
@@ -81,10 +81,10 @@ public static <T> T optionalToNullable(Optional<T> optional) {
 ```
 
 ```java
-// ../jagger-core/src/main/java/org/tillerino/jagger/converters/OptionalInputConverters.java#L12-L15
+// ../jagger-core/src/main/java/org/tillerino/jagger/converters/OptionalInputConverters.java#L13-L16
 
 @JsonInputConverter
-public static <T> Optional<T> nullableToOptional(T nullable) {
+public static <T> Optional<T> nullableToOptional(@Nullable T nullable) {
     return Optional.ofNullable(nullable);
 }
 ```

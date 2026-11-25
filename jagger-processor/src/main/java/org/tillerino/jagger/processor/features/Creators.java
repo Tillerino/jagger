@@ -18,6 +18,7 @@ import org.tillerino.jagger.processor.features.Generics.TypeVar;
 import org.tillerino.jagger.processor.util.Exceptions;
 import org.tillerino.jagger.processor.util.Expr;
 import org.tillerino.jagger.processor.util.InstantiatedMethod;
+import org.tillerino.jagger.processor.util.InstantiatedMethod.InstantiatedVariable;
 
 public class Creators {
     protected final JaggerContext ctx;
@@ -84,12 +85,14 @@ public class Creators {
                 .filter(Creator.Converter.class::isInstance)
                 .map(creator -> {
                     InstantiatedMethod method = ((Creator.Converter) creator).method();
+                    InstantiatedVariable firstParameter = method.parameters().get(0);
                     return new Converter(
                             toConvert ->
                                     method.callStaticFindingArguments(caller, List.of(toConvert), generatedClass, avn),
                             method.unaryOperatorReference(),
                             method.returnType(),
-                            method.parameters().get(0).type());
+                            firstParameter.type(),
+                            firstParameter.isNullable());
                 });
     }
 
@@ -106,8 +109,8 @@ public class Creators {
                                 .isPresent()
                         && method.parameters().isEmpty()
                         && method.returnType().getKind() != TypeKind.VOID) {
-                    return Optional.of(
-                            new Converter(method::call, method.unaryOperatorReference(), dtoType, method.returnType()));
+                    return Optional.of(new Converter(
+                            method::call, method.unaryOperatorReference(), dtoType, method.returnType(), false));
                 }
             }
             return Optional.empty();

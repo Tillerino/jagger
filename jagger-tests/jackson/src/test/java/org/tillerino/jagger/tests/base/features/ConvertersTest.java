@@ -58,13 +58,13 @@ class ConvertersTest extends ReferenceTest {
 
     @Test
     void nonStaticConverterRoundTrips() throws Exception {
-        UuidRecord record = new UuidRecord(UUID.fromString("123e4567-e89b-12d3-a456-426614174000"));
-
-        outputUtils.roundTrip(
-                record,
-                nonStaticConverterSerde::writeUuidRecord,
-                nonStaticConverterSerde::readUuidRecord,
-                new TypeReference<>() {});
+        for (UuidRecord record : UuidRecord.RECORDS) {
+            outputUtils.roundTrip(
+                    record,
+                    nonStaticConverterSerde::writeUuidRecord,
+                    nonStaticConverterSerde::readUuidRecord,
+                    new TypeReference<>() {});
+        }
 
         assertThatImpl(NonStaticConverterSerde.class).method("writeUuidRecord").bodyContains("uuidToString");
         assertThatImpl(NonStaticConverterSerde.class).method("readUuidRecord").bodyContains("stringToUuid");
@@ -72,13 +72,13 @@ class ConvertersTest extends ReferenceTest {
 
     @Test
     void abstractConverterIsPassedToTheClass() throws Exception {
-        UuidRecord record = new UuidRecord(UUID.fromString("123e4567-e89b-12d3-a456-426614174000"));
-
-        outputUtils.roundTrip(
-                record,
-                abstractConverterSerde::writeUuidRecord,
-                abstractConverterSerde::readUuidRecord,
-                new TypeReference<>() {});
+        for (UuidRecord record : UuidRecord.RECORDS) {
+            outputUtils.roundTrip(
+                    record,
+                    abstractConverterSerde::writeUuidRecord,
+                    abstractConverterSerde::readUuidRecord,
+                    new TypeReference<>() {});
+        }
 
         assertThatImpl(AbstractConverterSerde.class).method("writeUuidRecord").bodyContains("uuidToString");
         assertThatImpl(AbstractConverterSerde.class).method("readUuidRecord").bodyContains("stringToUuid");
@@ -87,14 +87,14 @@ class ConvertersTest extends ReferenceTest {
 
     @Test
     void converterPassedToThePrototypeIsUsedDirectly() throws Exception {
-        UuidRecord record = new UuidRecord(UUID.fromString("123e4567-e89b-12d3-a456-426614174000"));
-
-        outputUtils.roundTrip2(
-                record,
-                uuidConverter,
-                parameterConverterSerde::writeUuidRecord,
-                parameterConverterSerde::readUuidRecord,
-                new TypeReference<>() {});
+        for (UuidRecord record : UuidRecord.RECORDS) {
+            outputUtils.roundTrip2(
+                    record,
+                    uuidConverter,
+                    parameterConverterSerde::writeUuidRecord,
+                    parameterConverterSerde::readUuidRecord,
+                    new TypeReference<>() {});
+        }
 
         assertThatImpl(ParameterConverterSerde.class).method("writeUuidRecord").bodyContains("converter.uuidToString");
         assertThatImpl(ParameterConverterSerde.class).method("readUuidRecord").bodyContains("converter.stringToUuid");
@@ -103,13 +103,13 @@ class ConvertersTest extends ReferenceTest {
 
     @Test
     void converterOnThePrototypeItselfIsCalledOnThis() throws Exception {
-        UuidRecord record = new UuidRecord(UUID.fromString("123e4567-e89b-12d3-a456-426614174000"));
-
-        outputUtils.roundTrip(
-                record,
-                selfConverterSerde::writeUuidRecord,
-                selfConverterSerde::readUuidRecord,
-                new TypeReference<>() {});
+        for (UuidRecord record : UuidRecord.RECORDS) {
+            outputUtils.roundTrip(
+                    record,
+                    selfConverterSerde::writeUuidRecord,
+                    selfConverterSerde::readUuidRecord,
+                    new TypeReference<>() {});
+        }
 
         assertThatImpl(SelfConverterSerde.class).method("writeUuidRecord").bodyContains("this.uuidToString");
         assertThatImpl(SelfConverterSerde.class).method("readUuidRecord").bodyContains("this.stringToUuid");
