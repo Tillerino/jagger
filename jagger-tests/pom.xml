@@ -11,6 +11,7 @@
     <packaging>pom</packaging>
     <modules>
         <module>base</module>
+        <module>jackson-sibling</module>
         <module>jackson</module>
         <module>gson</module>
         <module>fastjson2</module>

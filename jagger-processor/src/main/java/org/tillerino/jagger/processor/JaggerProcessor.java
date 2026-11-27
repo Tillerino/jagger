@@ -9,7 +9,9 @@ import com.squareup.javapoet.TypeSpec.Builder;
 import java.io.IOException;
 import java.util.*;
 import java.util.ServiceLoader.Provider;
+import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import javax.annotation.processing.AbstractProcessor;
 import javax.annotation.processing.ProcessingEnvironment;
 import javax.annotation.processing.Processor;
@@ -67,16 +69,42 @@ public class JaggerProcessor extends AbstractProcessor {
 
     @Override
     public boolean process(Set<? extends TypeElement> annotations, RoundEnvironment roundEnv) {
+        long time = System.currentTimeMillis();
         setupContext(processingEnv);
-        collectJsonConfig(roundEnv);
+        findClassesCompiledByUs(roundEnv);
+        collectPrototypelessBlueprints(roundEnv);
         collectPrototypeDetectors(roundEnv);
         // blueprint configurators run later so they can modify results of prototype detectors
         runBlueprintConfigurators(roundEnv);
         generateCode();
+        if (isJaggerDebug()) {
+            System.out.println("Jagger processor took " + (System.currentTimeMillis() - time) + "ms");
+        }
         return true;
     }
 
-    private void collectJsonConfig(RoundEnvironment roundEnv) {
+    private void findClassesCompiledByUs(RoundEnvironment roundEnv) {
+        Stream.of(
+                        ctx.prototypeDetectors.keySet().stream(),
+                        ctx.blueprintConfigurators.keySet().stream(),
+                        Stream.of(JsonConfig.class.getCanonicalName()))
+                .flatMap(Function.identity())
+                .map(ctx.elements::getTypeElement)
+                .<Element>flatMap(t -> roundEnv.getElementsAnnotatedWith(t).stream())
+                .map(elem -> {
+                    while (elem != null) {
+                        if (elem instanceof TypeElement te) {
+                            return te;
+                        }
+                        elem = elem.getEnclosingElement();
+                    }
+                    return null;
+                })
+                .filter(Objects::nonNull)
+                .forEach(ctx.classesCompiledByUs::add);
+    }
+
+    private void collectPrototypelessBlueprints(RoundEnvironment roundEnv) {
         roundEnv.getElementsAnnotatedWith(JsonConfig.class).forEach(element -> {
             if (!(element instanceof TypeElement type)) {
                 return;
@@ -124,6 +152,7 @@ public class JaggerProcessor extends AbstractProcessor {
         // blueprints are sorted so that the providers from breaking up circles remain in stable places. blueprints
         // with auto-templates are generated last, since other blueprints may add prototypes to them while generating.
         ArrayList<JaggerBlueprint> blueprintsSorted = new ArrayList<>(ctx.blueprints.values());
+        blueprintsSorted.removeIf(b -> !ctx.classesCompiledByUs.contains(b.typeElement));
         blueprintsSorted.sort(Comparator.comparing((JaggerBlueprint b) -> Templates.hasAutoTemplates(b) ? 1 : 0)
                 .thenComparing(b -> b.typeElement.getQualifiedName().toString()));
 

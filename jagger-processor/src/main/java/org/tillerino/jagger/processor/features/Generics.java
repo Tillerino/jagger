@@ -6,10 +6,7 @@ import static org.tillerino.jagger.processor.util.Expr.e;
 import jakarta.annotation.Nullable;
 import java.util.*;
 import java.util.stream.Collectors;
-import javax.lang.model.element.Element;
-import javax.lang.model.element.ExecutableElement;
-import javax.lang.model.element.TypeElement;
-import javax.lang.model.element.TypeParameterElement;
+import javax.lang.model.element.*;
 import javax.lang.model.type.*;
 import javax.lang.model.util.AbstractTypeVisitor14;
 import javax.lang.model.util.ElementFilter;
@@ -125,11 +122,23 @@ public class Generics {
             return List.of();
         }
         List<InstantiatedMethod> methods = new ArrayList<>();
+        // also organize by name to prevent guaranteed quadratic override checking
+        Map<String, List<InstantiatedMethod>> methodsByName = new LinkedHashMap<>();
         Polymorphism.typeHierarchyBfs(d, ctx, supertype -> {
             Map<TypeVar, TypeMirror> typeBindings = recordTypeBindings(supertype);
+            methodLoop:
             for (ExecutableElement method :
                     ElementFilter.methodsIn(supertype.asElement().getEnclosedElements())) {
-                methods.add(instantiateMethod(method, typeBindings, locationKind));
+                InstantiatedMethod e = instantiateMethod(method, typeBindings, locationKind);
+                List<InstantiatedMethod> methodsWithSameName =
+                        methodsByName.computeIfAbsent(e.name(), __ -> new ArrayList<>());
+                for (InstantiatedMethod potentialOverride : methodsWithSameName) {
+                    if (potentialOverride.overrides(e)) {
+                        continue methodLoop;
+                    }
+                }
+                methods.add(e);
+                methodsWithSameName.add(e);
             }
             return Optional.empty();
         });

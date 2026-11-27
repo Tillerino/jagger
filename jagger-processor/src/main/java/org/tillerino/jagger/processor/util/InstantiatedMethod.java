@@ -165,6 +165,23 @@ public record InstantiatedMethod(
         return new InstantiatedMethod(name, returnType, parameters, element, freeTypeVars, config, ctx);
     }
 
+    public boolean overrides(InstantiatedMethod superMethod) {
+        if (!name.equals(superMethod.name)
+                || parameters.size() != superMethod.parameters.size()
+                || !ctx.commonTypes.isErasureAssignableToErasure(returnType, superMethod.returnType)) {
+            return false;
+        }
+        List<InstantiatedVariable> instantiatedVariables = parameters;
+        for (int i = 0; i < instantiatedVariables.size(); i++) {
+            InstantiatedVariable parameter = instantiatedVariables.get(i);
+            InstantiatedVariable superParameter = superMethod.parameters.get(i);
+            if (!ctx.commonTypes.isErasureAssignableToErasure(superParameter.type, parameter.type)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
     public record InstantiatedVariable(VariableElement elem, TypeMirror type, String name, AnyConfig config)
             implements AnyVariable {
         @Override

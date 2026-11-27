@@ -52,6 +52,8 @@ public class JaggerContext {
     public final Map<String, PrototypeDetector> prototypeDetectors = new LinkedHashMap<>();
     public final Map<String, BlueprintConfigurator> blueprintConfigurators = new LinkedHashMap<>();
 
+    public final Set<TypeElement> classesCompiledByUs = new LinkedHashSet<>();
+
     public JaggerContext(ProcessingEnvironment processingEnv) {
         elements = processingEnv.getElementUtils();
         types = processingEnv.getTypeUtils();
@@ -202,6 +204,10 @@ public class JaggerContext {
 
         public boolean isErasureAssignableTo(TypeMirror type, Class<?> cls) {
             return isAssignable(types.erasure(type), cls);
+        }
+
+        public boolean isErasureAssignableToErasure(TypeMirror from, TypeMirror to) {
+            return isAssignable(types.erasure(from), types.erasure(to));
         }
 
         public TypeMirror getComponentType(TypeMirror type, Class<?> parameterizedClass) {

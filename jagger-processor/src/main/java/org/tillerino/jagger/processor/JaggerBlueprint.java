@@ -36,6 +36,14 @@ public final class JaggerBlueprint {
 
     public static JaggerBlueprint of(TypeMirror type, JaggerContext ctx) {
         TypeElement element = (TypeElement) ctx.types.asElement(type);
+        if (!ctx.classesCompiledByUs.contains(element)) {
+            TypeElement impl = ctx.elements.getTypeElement(
+                    FullyQualifiedClassName.of(element).impl().importName());
+            if (impl != null) {
+                element = impl;
+                type = impl.asType();
+            }
+        }
 
         Map<TypeVar, TypeMirror> typeBindings = new LinkedHashMap<>();
         Polymorphism.typeHierarchyBfs(type, ctx, t -> {
